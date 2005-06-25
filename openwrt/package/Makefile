@@ -25,10 +25,9 @@ package-$(BR2_PACKAGE_FPROBE) += fprobe
 package-$(BR2_PACKAGE_FREERADIUS) += freeradius
 package-$(BR2_PACKAGE_FRICKIN) += frickin
 package-$(BR2_PACKAGE_FUSE) += fuse
-package-$(BR2_PACKAGE_GDBSERVER) += gdbserver
+package-$(BR2_PACKAGE_GDB) += gdb
 package-$(BR2_PACKAGE_GLIB) += glib
 package-$(BR2_PACKAGE_GMP) += gmp
-package-$(BR2_PACKAGE_GNUTLS) += gnutls
 package-$(BR2_PACKAGE_HASERL) += haserl
 package-$(BR2_PACKAGE_HOWL) += howl
 package-$(BR2_PACKAGE_HTPDATE) += htpdate
@@ -42,17 +41,14 @@ package-$(BR2_PACKAGE_LIBDB) += libdb
 package-$(BR2_PACKAGE_LIBELF) += libelf
 package-$(BR2_PACKAGE_LIBEVENT) += libevent
 package-$(BR2_PACKAGE_LIBFFI_SABLE) += libffi-sable
-package-$(BR2_PACKAGE_LIBGCRYPT) += libgcrypt
 package-$(BR2_PACKAGE_LIBGD) += libgd
 package-$(BR2_PACKAGE_LIBGDBM) += libgdbm
-package-$(BR2_PACKAGE_LIBGPG_ERROR) += libgpg-error
 package-$(BR2_PACKAGE_LIBNET) += libnet
 package-$(BR2_PACKAGE_LIBNIDS) += libnids
 package-$(BR2_PACKAGE_LIBOSIP2) += libosip2
 package-$(BR2_PACKAGE_LIBPCAP) += libpcap
 package-$(BR2_PACKAGE_LIBPNG) += libpng
 package-$(BR2_PACKAGE_LIBPTHREAD) += libpthread
-package-$(BR2_PACKAGE_LIBTASN1) += libtasn1
 package-$(BR2_PACKAGE_LIBTOOL) += libtool
 package-$(BR2_PACKAGE_LIBUSB) += libusb
 package-$(BR2_PACKAGE_LIGHTTPD) += lighttpd
@@ -62,8 +58,6 @@ package-$(BR2_PACKAGE_MARADNS) += maradns
 package-$(BR2_PACKAGE_MATRIXSSL) += matrixssl
 package-$(BR2_PACKAGE_MICROCOM) += microcom
 package-$(BR2_PACKAGE_MICROPERL) += microperl
-package-$(BR2_PACKAGE_MINI_HTTPD) += mini_httpd
-package-$(BR2_PACKAGE_MINI_SENDMAIL) += mini_sendmail
 package-$(BR2_PACKAGE_MONIT) += monit
 package-$(BR2_PACKAGE_MYSQL) += mysql
 package-$(BR2_PACKAGE_NCURSES) += ncurses
@@ -74,7 +68,6 @@ package-$(BR2_PACKAGE_NMAP) += nmap
 package-$(BR2_PACKAGE_NOCATSPLASH) += nocatsplash
 package-$(BR2_PACKAGE_NTPCLIENT) += ntpclient
 package-$(BR2_PACKAGE_OLSRD) += olsrd
-package-$(BR2_PACKAGE_OPENCDK) += opencdk
 package-$(BR2_PACKAGE_OPENLDAP) += openldap
 package-$(BR2_PACKAGE_OPENNTPD) += openntpd
 package-$(BR2_PACKAGE_OPENSSH) += openssh
@@ -109,7 +102,6 @@ package-$(BR2_PACKAGE_SIPSAK) += sipsak
 package-$(BR2_PACKAGE_SNORT) += snort
 package-$(BR2_PACKAGE_SPEEX) += speex
 package-$(BR2_PACKAGE_SQLITE) += sqlite
-package-$(BR2_PACKAGE_SSMTP) += ssmtp
 package-$(BR2_PACKAGE_STRACE) += strace
 package-$(BR2_PACKAGE_TCPDUMP) += tcpdump
 package-$(BR2_PACKAGE_TINC) += tinc
@@ -138,27 +130,24 @@ clean: $(patsubst %,%-clean,$(package-) $(package-y) $(package-m))
 compile: $(patsubst %,%-compile,$(package-y) $(package-m))
 install: $(patsubst %,%-install,$(package-y))
 
+wificonf-compile: openwrt-compile wireless-tools-compile
 arpwatch-compile: libpcap-compile
 cyrus-sasl-compile: openssl-compile
 dropbear-compile: zlib-compile
 dsniff-compile: libnids-compile openssl-compile libgdbm-compile
 fprobe-compile: libpcap-compile
-gdbserver-compile: ncurses-compile
-gnutls-compile: libgcrypt-compile opencdk-compile libtasn1-compile
+gdb-compile: ncurses-compile
 kismet-compile: uclibc++-compile libpcap-compile ncurses-compile
 lcd4linux-compile: ncurses-compile
-libgcrypt-compile: libgpg-error-compile
 libgd-compile: libpng-compile
 libnet-compile: libpcap-compile
 libnids-compile: libnet-compile
 lighttpd-compile: openssl-compile pcre-compile
-mini_httpd-compile: matrixssl-compile
 mysql-compile: ncurses-compile zlib-compile
 net-snmp-compile: libelf-compile
 nfs-server-compile: portmap-compile
 nmap-compile: uclibc++-compile pcre-compile libpcap-compile
 nocatsplash-compile: glib-compile
-opencdk-compile: libgcrypt-compile
 openldap-compile: cyrus-sasl-compile openssl-compile
 openssh-compile: zlib-compile openssl-compile
 openssl-compile: zlib-compile
@@ -173,13 +162,11 @@ sipsak-compile: openssl-compile
 sqlite-compile: ncurses-compile readline-compile
 tcpdump-compile: libpcap-compile
 tinc-compile: zlib-compile openssl-compile lzo-compile
-tor-compile: libevent-compile openssl-compile zlib-compile
-usbutils-compile: libusb-compile
 vtun-compile: zlib-compile openssl-compile lzo-compile
-wificonf-compile: openwrt-compile wireless-tools-compile
+tor-compile: libevent-compile openssl-compile zlib-compile
 wpa_supplicant-compile: openssl-compile
 
-asterisk-compile: openssl-compile
+asterisk-compile: ncurses-compile openssl-compile
 ifneq ($(BR2_PACKAGE_ASTERISK_CODEC_SPEEX),)
 asterisk-compile: speex-compile
 endif
