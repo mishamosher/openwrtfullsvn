@@ -40,7 +40,7 @@ IPKG_KERNEL:=IPKG_TMP=$(BUILD_DIR)/tmp IPKG_INSTROOT=$(LINUX_TARGET_DIR) IPKG_CO
 PKG_BUILD_DIR := $(LINUX_BUILD_DIR)/linux-modules
 PKG_RELEASE := 2
 
-KERNEL_IPKG:=$(LINUX_BUILD_DIR)/kernel-$(LINUX_VERSION)-$(BOARD)_$(PKG_RELEASE)_$(ARCH).ipk
+KERNEL_IPKG:=$(LINUX_BUILD_DIR)/kernel_$(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE)_$(ARCH).ipk
 KERNEL_IDIR:=$(LINUX_BUILD_DIR)/kernel-ipkg
 
 PKG_MAKEOPTS:=	IPKG="$(IPKG_KERNEL)" \
@@ -51,6 +51,7 @@ PKG_MAKEOPTS:=	IPKG="$(IPKG_KERNEL)" \
 		LINUX_VERSION="$(LINUX_VERSION)" \
 		KERNEL_RELEASE="$(PKG_RELEASE)"
 
+
 include $(LINUX_KCONFIG)
 
 INSTALL_TARGETS := $(KERNEL_IPKG)
@@ -60,27 +61,9 @@ ifeq ($(BOARD),brcm)
 include ./broadcom.mk
 endif
 
-ifeq ($(BOARD),ar7)
-include ./ar7.mk
-endif
-
-$(eval $(call KMOD_template,ATM,atm,\
-	$(MODULES_DIR)/kernel/net/atm/atm.o \
-	$(MODULES_DIR)/kernel/net/atm/br2684.o \
-,CONFIG_ATM,,50,atm))
-$(eval $(call KMOD_template,PPPOATM,pppoatm,\
-	$(MODULES_DIR)/kernel/net/atm/pppoatm.o \
-,CONFIG_PPPOATM))
-$(eval $(call KMOD_template,USB_ACM,usb-acm,\
-	$(MODULES_DIR)/kernel/drivers/usb/acm.o \
-,CONFIG_USB_ACM))
 $(eval $(call KMOD_template,B44,b44,\
 	$(MODULES_DIR)/kernel/drivers/net/b44.o \
 ,CONFIG_B44))
-$(eval $(call KMOD_template,BLUETOOTH,bluetooth,\
-	$(MODULES_DIR)/kernel/net/bluetooth/*.o \
-	$(MODULES_DIR)/kernel/drivers/bluetooth/*.o \
-,CONFIG_BLUEZ))
 $(eval $(call KMOD_template,ARPT,arptables,\
 	$(MODULES_DIR)/kernel/net/ipv4/netfilter/arp*.o \
 ,CONFIG_IP_NF_ARPTABLES))
@@ -177,7 +160,7 @@ $(TARGETS): $(PACKAGE_DIR)
 $(PACKAGE_DIR):
 	mkdir -p $(PACKAGE_DIR)
 
-$(LINUX_DIR)/.unpacked: $(DL_DIR)/$(LINUX_SOURCE)
+$(LINUX_DIR)/.unpacked: $(DL_DIR)/$(LINUX_SOURCE) $(DL_DIR)/$(LINUX_BINARY_WL_DRIVER) $(DL_DIR)/$(LINUX_ET_DRIVER)
 	-mkdir -p $(LINUX_BUILD_DIR)
 	bzcat $(DL_DIR)/$(LINUX_SOURCE) | tar -C $(LINUX_BUILD_DIR) $(TAR_OPTIONS) -
 	rm -f $(LINUX_DIR)
@@ -226,8 +209,7 @@ $(TARGET_MODULES_DIR):
 $(KERNEL_IPKG):
 	rm -rf $(KERNEL_IDIR)
 	mkdir -p $(KERNEL_IDIR)/etc
-	$(SCRIPT_DIR)/make-ipkg-dir.sh $(KERNEL_IDIR) ../control/kernel.control $(PKG_RELEASE) $(ARCH)
-	echo 'Package: kernel-$(LINUX_VERSION)-$(BOARD)' >> $(KERNEL_IDIR)/CONTROL/control
+	$(SCRIPT_DIR)/make-ipkg-dir.sh $(KERNEL_IDIR) ../control/kernel.control $(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE) $(ARCH)
 	if [ -f ./config/$(BOARD).modules ]; then \
 		cp ./config/$(BOARD).modules $(KERNEL_IDIR)/etc/modules; \
 	fi

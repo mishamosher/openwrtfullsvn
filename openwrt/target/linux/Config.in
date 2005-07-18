@@ -8,12 +8,13 @@ config BR2_LINUX_2_4_BRCM
 	default y
 	help
 	  Build firmware images for Broadcom based routers
-	  (e.g. Linksys WRT54G(S), Asus WL-500g, Motorola WR850G)
-	  
+          (e.g. Linksys WRT54G(S), Asus WL-500g, Motorola WR850G)
+		               
 	  This one builds the generic .trx images, activate one of the
 	  options below for creating device specific files for use 
 	  with TFTP client too. 
 
+	  
 	config BR2_TARGET_WRT54G
 		default y
 		depends BR2_LINUX_2_4_BRCM
@@ -29,28 +30,7 @@ config BR2_LINUX_2_4_BRCM
 		depends BR2_LINUX_2_4_BRCM
 		bool "Motorola WR850G"
 
-config BR2_LINUX_2_4_AR7
-	bool "Support for TI AR7 based devices"
-	default n
-	help
-	  Build firmware images for TI AR7 based routers (w.g. Linksys WAG54G v2)
-
 comment "Kernel Modules"
-
-config BR2_PACKAGE_KMOD_SANGAM_ATM
-	tristate "AR7 Sangam ADSL Driver"
-	default y
-	depends BR2_LINUX_2_4_AR7
-	select BR2_PACKAGE_KMOD_ATM
-	help
-	  ATM driver for the Sangam ADSL chip on AR7
-
-config BR2_PACKAGE_KMOD_CPMAC
-	tristate "AR7 CPMAC Network Driver"
-	default y
-	depends BR2_LINUX_2_4_AR7
-	help
-	  Driver for the AR7 CPMAC network chip
 
 config BR2_PACKAGE_KMOD_DIAG
 	tristate "Router LED/Button Driver"
@@ -83,12 +63,6 @@ config BR2_PACKAGE_KMOD_ARPT
 	default m
 	help
 	  Kernel modules for ARP firewalling
-
-config BR2_PACKAGE_KMOD_BLUETOOTH
-	tristate "Bluetooth drivers and network stack"
-	default m
-	help
-	  Bluetooth drivers and network stack
 
 config BR2_PACKAGE_KMOD_EBT
 	tristate "Ethernet Bridge firewalling support"
@@ -167,11 +141,6 @@ config BR2_PACKAGE_KMOD_USB_STORAGE
 
 config BR2_PACKAGE_KMOD_USB_PRINTER
 	tristate "Support for USB printers"
-	default m
-	depends BR2_PACKAGE_KMOD_USB_CONTROLLER
-
-config BR2_PACKAGE_KMOD_USB_ACM
-	tristate "Support for USB modems/isdn controllers"
 	default m
 	depends BR2_PACKAGE_KMOD_USB_CONTROLLER
 
@@ -258,22 +227,6 @@ config BR2_PACKAGE_KMOD_PPPOE
 	depends BR2_PACKAGE_KMOD_PPP
 	help
 	  Support for PPP over Ethernet
-
-config BR2_PACKAGE_KMOD_PPPOATM
-	tristate "PPP over ATM"
-	default y if BR2_LINUX_2_4_AR7
-	default m
-	depends BR2_PACKAGE_KMOD_PPP
-	select BR2_PACKAGE_KMOD_ATM
-	help
-	  Support for PPP over ATM
-
-config BR2_PACKAGE_KMOD_ATM
-	tristate "ATM support"
-	default m
-	default y if BR2_LINUX_2_4_AR7
-	help
-	  ATM support
 
 config BR2_PACKAGE_KMOD_TUN
 	tristate "Universal TUN/TAP driver"
