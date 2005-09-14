@@ -22,14 +22,6 @@ choice
 		bool "gcc 3.4.4"
 		select BR2_GCC_3_4
 
-	config BR2_GCC_VERSION_4_0_0
-		bool "gcc 4.0.0"
-		select BR2_GCC_3_4
-
-	config BR2_GCC_VERSION_4_0_1
-		bool "gcc 4.0.1"
-		select BR2_GCC_3_4
-
 endchoice
 
 config BR2_GCC_VERSION

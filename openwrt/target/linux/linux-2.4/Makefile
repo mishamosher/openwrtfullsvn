@@ -1,16 +1,29 @@
+#############################################################
 # $Id$
+#
 # Linux 2.4 kernel target for the OpenWRT project
+#
+# patches are sorted by numbers
+# 0xx	needed patches for board, cpu, filesystem
+# 1xx	addon patches for new features (netfilter, ebtables, cifs,..)
+# 2xx	compile fixes, driver fixes
+#
+#############################################################
 
 include $(TOPDIR)/rules.mk
 include ../rules.mk
 
-KERNEL:=2.4
 LINUX_VERSION:=2.4.30
 MODULES_SUBDIR:=lib/modules/$(LINUX_VERSION)
 LINUX_KCONFIG:=./config/$(BOARD)
 LINUX_BUILD_DIR:=$(BUILD_DIR)/linux-2.4-$(BOARD)
 LINUX_TARGET_DIR:=$(LINUX_BUILD_DIR)/root
 LINUX_KERNEL:=$(LINUX_BUILD_DIR)/vmlinux
+LINUX_KARCH:=$(shell echo $(ARCH) | sed -e 's/i[3-9]86/i386/' \
+	-e 's/mipsel/mips/' \
+	-e 's/powerpc/ppc/' \
+	-e 's/sh[234]/sh/' \
+	)
 
 LINUX_BINARY_DRIVER_SITE := http://openwrt.org/downloads/sources/
 LINUX_SOURCE := linux-$(LINUX_VERSION).tar.bz2
@@ -22,7 +35,7 @@ IPKG_KERNEL:=IPKG_TMP=$(BUILD_DIR)/tmp IPKG_INSTROOT=$(LINUX_TARGET_DIR) IPKG_CO
 PKG_BUILD_DIR := $(LINUX_BUILD_DIR)/linux-modules
 PKG_RELEASE := 2
 
-KERNEL_IPKG:=$(LINUX_BUILD_DIR)/kernel-$(LINUX_VERSION)-$(BOARD)_$(PKG_RELEASE)_$(ARCH).ipk
+KERNEL_IPKG:=$(LINUX_BUILD_DIR)/kernel_$(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE)_$(ARCH).ipk
 KERNEL_IDIR:=$(LINUX_BUILD_DIR)/kernel-ipkg
 
 KPKG_MAKEOPTS:=	IPKG="$(IPKG_KERNEL)" \
@@ -42,32 +55,9 @@ ifeq ($(BOARD),brcm)
 include ./broadcom.mk
 endif
 
-ifeq ($(BOARD),soekris)
-include ./soekris.mk
-endif
-
-ifeq ($(BOARD),ar7)
-include ./ar7.mk
-endif
-
-$(eval $(call KMOD_template,ATM,atm,\
-	$(MODULES_DIR)/kernel/net/atm/atm.o \
-	$(MODULES_DIR)/kernel/net/atm/br2684.o \
-,CONFIG_ATM,,50,atm))
-$(eval $(call KMOD_template,PPPOATM,pppoatm,\
-	$(MODULES_DIR)/kernel/net/atm/pppoatm.o \
-,CONFIG_PPPOATM))
-$(eval $(call KMOD_template,USB_ACM,usb-acm,\
-	$(MODULES_DIR)/kernel/drivers/usb/acm.o \
-,CONFIG_USB_ACM))
 $(eval $(call KMOD_template,B44,b44,\
 	$(MODULES_DIR)/kernel/drivers/net/b44.o \
 ,CONFIG_B44))
-$(eval $(call KMOD_template,BLUETOOTH,bluetooth,\
-	$(MODULES_DIR)/kernel/net/bluetooth/*.o \
-	$(MODULES_DIR)/kernel/net/bluetooth/rfcomm/*.o \
-	$(MODULES_DIR)/kernel/drivers/bluetooth/*.o \
-,CONFIG_BLUEZ))
 $(eval $(call KMOD_template,ARPT,arptables,\
 	$(MODULES_DIR)/kernel/net/ipv4/netfilter/arp*.o \
 ,CONFIG_IP_NF_ARPTABLES))
@@ -103,23 +93,6 @@ $(eval $(call KMOD_template,USB_OHCI,usb-ohci,\
 $(eval $(call KMOD_template,USB2,usb2,\
 	$(MODULES_DIR)/kernel/drivers/usb/host/ehci-hcd.o \
 ,CONFIG_USB_EHCI_HCD,kmod-usb-core,60,ehci-hcd))
-
-$(eval $(call KMOD_template,USB_SERIAL,usb-serial,\
-	$(MODULES_DIR)/kernel/drivers/usb/serial/usbserial.o \
-,CONFIG_USB_SERIAL,kmod-usb-core,60,usbserial))
-$(eval $(call KMOD_template,USB_SERIAL_BELKIN,usb-serial-belkin,\
-	$(MODULES_DIR)/kernel/drivers/usb/serial/belkin_sa.o \
-,CONFIG_USB_SERIAL_BELKIN,kmod-usb-serial,61,belkin_sa))
-$(eval $(call KMOD_template,USB_SERIAL_FTDI,usb-serial-ftdi,\
-	$(MODULES_DIR)/kernel/drivers/usb/serial/ftdi_sio.o \
-,CONFIG_USB_SERIAL_IR,kmod-usb-serial,61,ftdi_usb))
-$(eval $(call KMOD_template,USB_SERIAL_MCT_U232,usb-serial-mct-u232,\
-	$(MODULES_DIR)/kernel/drivers/usb/serial/mct_u232.o \
-,CONFIG_USB_SERIAL_MCT_U232,kmod-usb-serial,61,mct_u232))
-$(eval $(call KMOD_template,USB_SERIAL_PL2303,usb-serial-pl2303,\
-	$(MODULES_DIR)/kernel/drivers/usb/serial/pl2303.o \
-,CONFIG_USB_SERIAL_PL2303,kmod-usb-serial,61,pl2303))
-
 $(eval $(call KMOD_template,USB_STORAGE,usb-storage,\
 	$(MODULES_DIR)/kernel/drivers/scsi/*.o \
 	$(MODULES_DIR)/kernel/drivers/usb/storage/*.o \
@@ -127,10 +100,6 @@ $(eval $(call KMOD_template,USB_STORAGE,usb-storage,\
 $(eval $(call KMOD_template,USB_PRINTER,usb-printer,\
 	$(MODULES_DIR)/kernel/drivers/usb/printer.o \
 ,CONFIG_USB_PRINTER,kmod-usb-core,60,printer))
-$(eval $(call KMOD_template,USB_AUDIO,usb-audio,\
-	$(MODULES_DIR)/kernel/drivers/sound/soundcore.o \
-	$(MODULES_DIR)/kernel/drivers/usb/audio.o \
-,CONFIG_USB_AUDIO,kmod-usb-core,60,soundcore audio))
 $(eval $(call KMOD_template,IDE,ide,\
 	$(MODULES_DIR)/kernel/drivers/ide/*.o \
 	$(MODULES_DIR)/kernel/drivers/ide/*/*.o \
@@ -155,23 +124,20 @@ $(eval $(call KMOD_template,VFAT,vfat,\
 	$(MODULES_DIR)/kernel/fs/vfat/vfat.o \
 	$(MODULES_DIR)/kernel/fs/fat/fat.o \
 ,CONFIG_VFAT_FS,,30,fat vfat))
-ifneq ($(wildcard $(MODULES_DIR)/kernel/crypto/*.o),)
-CONFIG_CRYPTO:=m
-endif
 $(eval $(call KMOD_template,CRYPTO,crypto,\
 	$(MODULES_DIR)/kernel/crypto/*.o \
-,CONFIG_CRYPTO))
+))
 $(eval $(call KMOD_template,PPP,ppp,\
 	$(MODULES_DIR)/kernel/drivers/net/ppp_async.o \
 	$(MODULES_DIR)/kernel/drivers/net/ppp_generic.o \
 	$(MODULES_DIR)/kernel/drivers/net/slhc.o \
-	$(MODULES_DIR)/kernel/drivers/net/pppox.o \
 ,CONFIG_PPP))
 $(eval $(call KMOD_template,MPPE,mppe,\
 	$(MODULES_DIR)/kernel/drivers/net/ppp_mppe_mppc.o \
 ,CONFIG_PPP_MPPE_MPPC))
 $(eval $(call KMOD_template,PPPOE,pppoe,\
 	$(MODULES_DIR)/kernel/drivers/net/pppoe.o \
+	$(MODULES_DIR)/kernel/drivers/net/pppox.o \
 ,CONFIG_PPPOE))
 $(eval $(call KMOD_template,TUN,tun,\
 	$(MODULES_DIR)/kernel/drivers/net/tun.o \
@@ -179,18 +145,15 @@ $(eval $(call KMOD_template,TUN,tun,\
 $(eval $(call KMOD_template,GRE,gre,\
 	$(MODULES_DIR)/kernel/net/ipv4/ip_gre.o \
 ,CONFIG_NET_IPGRE))
-ifneq ($(wildcard $(MODULES_DIR)/kernel/net/sched/*.o),)
-CONFIG_SCHED:=m
-endif
 $(eval $(call KMOD_template,SCHED,sched,\
 	$(MODULES_DIR)/kernel/net/sched/*.o \
-,CONFIG_SCHED))
+))
 $(eval $(call KMOD_template,VIDEODEV,videodev,\
 	$(MODULES_DIR)/kernel/drivers/media/video/videodev.o \
-,CONFIG_VIDEO_DEV))
+))
 $(eval $(call KMOD_template,PWC,pwc,\
 	$(MODULES_DIR)/kernel/drivers/usb/pwc.o \
-,CONFIG_USB_PWC))
+))
 
 $(TARGETS): $(PACKAGE_DIR)
 
@@ -255,8 +218,7 @@ $(TARGET_MODULES_DIR):
 $(KERNEL_IPKG):
 	rm -rf $(KERNEL_IDIR)
 	mkdir -p $(KERNEL_IDIR)/etc
-	$(SCRIPT_DIR)/make-ipkg-dir.sh $(KERNEL_IDIR) ../control/kernel.control $(PKG_RELEASE) $(ARCH)
-	echo 'Package: kernel-$(LINUX_VERSION)-$(BOARD)' >> $(KERNEL_IDIR)/CONTROL/control
+	$(SCRIPT_DIR)/make-ipkg-dir.sh $(KERNEL_IDIR) ../control/kernel.control $(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE) $(ARCH)
 	if [ -f ./config/$(BOARD).modules ]; then \
 		cp ./config/$(BOARD).modules $(KERNEL_IDIR)/etc/modules; \
 	fi

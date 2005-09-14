@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=sipsak
-PKG_VERSION:=0.9.1
+PKG_VERSION:=0.8.12
 PKG_RELEASE:=1
-PKG_MD5SUM:=8e407f149da894791f823e4561598f5a
+PKG_MD5SUM:=9740451fd72b5c7e6d85aa516ba5c19c
 
 PKG_SOURCE_URL:=http://download.berlios.de/sipsak/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz

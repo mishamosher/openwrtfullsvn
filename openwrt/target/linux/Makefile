@@ -9,19 +9,19 @@ IB_DIR:=$(BUILD_DIR)/$(IB_NAME)
 define kernel_template
 
 $(1)/$(2)-clean:
-	$(MAKE) -C linux-$(1) KERNEL="$(1)" BOARD="$(2)" clean
+	$(MAKE) -C linux-$(1) BOARD="$(2)" clean
 
 $(1)/$(2)-prepare:
-	$(MAKE) -C linux-$(1) KERNEL="$(1)" BOARD="$(2)" prepare
+	$(MAKE) -C linux-$(1) BOARD="$(2)" prepare
 
 $(1)/$(2)-compile:
-	$(MAKE) -C linux-$(1) KERNEL="$(1)" BOARD="$(2)" compile
+	$(MAKE) -C linux-$(1) BOARD="$(2)" compile
 
 $(1)/$(2)-rebuild:
-	$(MAKE) -C linux-$(1) KERNEL="$(1)" BOARD="$(2)" rebuild
+	$(MAKE) -C linux-$(1) BOARD="$(2)" rebuild
 
 $(1)/$(2)-install:
-	$(MAKE) -C linux-$(1) KERNEL="$(1)" BOARD="$(2)" install
+	$(MAKE) -C linux-$(1) BOARD="$(2)" install
 
 $(1)/$(2)-image: $(1)/$(2)-install
 	$(MAKE) -C image KERNEL="$(1)" BOARD="$(2)" install
@@ -36,18 +36,18 @@ clean: $(1)/$(2)-clean
 prepare: $(1)/$(2)-prepare
 compile: $(1)/$(2)-compile
 rebuild: $(1)/$(2)-rebuild
-$(BIN_DIR)/$(IB_NAME).tar.bz2 install: $(1)/$(2)-image
+kernel-install: $(1)/$(2)-image
 install-ib: $(1)/$(2)-install-ib
 endif
 
 .PHONY: $(1)/$(2)-clean $(1)/$(2)-prepare $(1)/$(2)-compile $(1)/$(2)-rebuild $(1)/$(2)-install $(1)/$(2)-image $(1)/$(2)-install-ib
 endef
 
-.PHONY: clean prepare compile rebuild install imagebuilder install-ib
+.PHONY: clean prepare compile rebuild install imagebuilder install-ib kernel-install
 
 install-ib:
 
-$(BIN_DIR)/$(IB_NAME).tar.bz2:	
+$(BIN_DIR)/$(IB_NAME).tar.bz2: kernel-install
 	rm -rf $(IB_DIR)
 	mkdir -p $(IB_DIR)/packages
 	mkdir -p $(IB_DIR)/scripts
@@ -69,11 +69,8 @@ prepare:
 	$(MAKE) -C image prepare
 compile:
 	$(MAKE) -C image compile
-install:
+install: kernel-install
 rebuild:
 clean:
 
 $(eval $(call kernel_template,2.4,brcm,2_4_BRCM))
-$(eval $(call kernel_template,2.4,ar7,2_4_AR7))
-$(eval $(call kernel_template,2.4,soekris,2_4_SOEKRIS))
-$(eval $(call kernel_template,2.6,brcm,2_6_BRCM))

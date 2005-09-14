@@ -27,15 +27,6 @@ endif
 $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx:
 	$(STAGING_DIR)/bin/trx -o $@ $(BUILD_DIR)/loader.gz $(KDIR)/vmlinux.lzma $(TRXALIGN) $(KDIR)/root.$(FS)
 
-ifeq ($(KERNEL),2.6)
-FSNAME:=$(patsubst jffs2-%,jffs2,$(FS))
-
-$(BIN_DIR)/openwrt-wgt634u-$(KERNEL)-$(FSNAME).bin: $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx
-	dd if=$(BUILD_DIR)/loader.elf of=$@ bs=131072 conv=sync
-	cat $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx >> $@
-
-install: $(BIN_DIR)/openwrt-wgt634u-$(KERNEL)-$(FSNAME).bin
-endif
 
 ifeq ($(KERNEL),2.4)
 FSNAME:=$(patsubst jffs2-%,jffs2,$(FS))
@@ -44,7 +35,10 @@ ifneq ($(FS),jffs2-8MB)
 $(BIN_DIR)/openwrt-wrt54g-$(FSNAME).bin: $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx
 	$(STAGING_DIR)/bin/addpattern -4 -p W54G -v v4.20.6 -i $< -o $@ -g
 
-install: $(BIN_DIR)/openwrt-wrt54g-$(FSNAME).bin
+$(BIN_DIR)/openwrt-wrt54gs_v4-$(FSNAME).bin: $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx
+	$(STAGING_DIR)/bin/addpattern -4 -p W54s -v v1.05.0 -i $< -o $@ -g
+
+install: $(BIN_DIR)/openwrt-wrt54g-$(FSNAME).bin $(BIN_DIR)/openwrt-wrt54gs_v4-$(FSNAME).bin
 endif
 
 ifneq ($(FS),jffs2-4MB)

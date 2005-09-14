@@ -1,6 +1,8 @@
 Package: kmod-fuse
 Priority: optional
 Section: kernel
-Maintainer: OpenWrt Developers Team <bugs@openwrt.org>, Christian Magnusson <mag@mag.cx>
-Source: http://openwrt.org/cgi-bin/viewcvs.cgi/openwrt/target/linux/package/fuse/
+Version: [TBDL]
+Architecture: [TBDL]
+Maintainer: Nico <nthill@free.fr>
+Source: http://nthill.free.fr/openwrt/sources/fuse2/
 Description: Filesystem in Userspace (kernel module)

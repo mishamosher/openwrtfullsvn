@@ -1,7 +1,9 @@
 Package: libfuse
 Priority: optional
 Section: libs
-Maintainer: OpenWrt Developers Team <bugs@openwrt.org>, Christian Magnusson <mag@mag.cx>
-Source: http://openwrt.org/cgi-bin/viewcvs.cgi/openwrt/package/fuse/
-Depends: libpthread
+Version: [TBDL]
+Architecture: [TBDL]
+Maintainer: Nico <nthill@free.fr>
+Source: http://nthill.free.fr/openwrt/sources/fuse2/
 Description: Filesystem in Userspace (library)
+Depends: libpthread

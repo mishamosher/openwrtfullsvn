@@ -6,84 +6,15 @@ config BR2_LINUX_2_4
 config BR2_LINUX_2_4_BRCM
 	bool "Support for Broadcom based routers"
 	default y
-	depends BR2_mipsel
-	depends BR2_LINUX_2_4
 	help
 	  Build firmware images for Broadcom based routers
-	  (e.g. Linksys WRT54G(S), Asus WL-500g, Motorola WR850G)
-	  
+          (e.g. Linksys WRT54G(S), Asus WL-500g, Motorola WR850G)
+		               
 	  This one builds the generic .trx images, activate one of the
 	  options below for creating device specific files for use 
 	  with TFTP client too. 
 
-config BR2_LINUX_2_4_AR7
-	bool "Support for TI AR7 based devices"
-	default n
-	depends BR2_mipsel
-	depends BR2_LINUX_2_4
-	help
-	  Build firmware images for TI AR7 based routers (w.g. Linksys WAG54G v2)
-
-config BR2_LINUX_2_4_SOEKRIS
-	bool "Support for Soekris boards"
-	default n
-	depends BR2_i386
-	depends BR2_LINUX_2_4
-	help
-	  Build firmware images for Soekris based boards
-	  (e.g. net4521, net4801)
-	  
-	config BR2_TARGET_NET4521
-		default y
-		depends BR2_LINUX_2_4_SOEKRIS
-		bool "Soekris net4521"
-
-	config BR2_TARGET_NET4801
-		default y
-		depends BR2_LINUX_2_4_SOEKRIS
-		bool "Soekris net4801"
-
-config BR2_LINUX_2_6
-	bool "Linux 2.6"
-	default n
-
-config BR2_LINUX_2_6_BRCM
-	bool "Support for Broadcom based routers"
-	default n
-	depends BR2_mipsel
-	depends BR2_LINUX_2_6
-	select BR2_PACKAGE_KMOD_B44
-	select BR2_PACKAGE_KMOD_MADWIFI
-	help
-	  Build firmware images for Broadcom based routers
-	  (e.g. Netgear WGT634u)
-	  
 comment "Kernel Modules"
-
-config BR2_PACKAGE_KMOD_SANGAM_ATM_A
-	tristate "AR7 Sangam ADSL Driver (Annex A)"
-	default m
-	depends BR2_LINUX_2_4_AR7
-	select BR2_PACKAGE_KMOD_ATM
-	help
-	  ATM driver for the Sangam ADSL chip on AR7
-	  Annex A version
-
-config BR2_PACKAGE_KMOD_SANGAM_ATM_B
-	tristate "AR7 Sangam ADSL Driver (Annex B)"
-	default y
-	depends BR2_LINUX_2_4_AR7
-	select BR2_PACKAGE_KMOD_ATM
-	help
-	  ATM driver for the Sangam ADSL chip on AR7
-	  Annex B version
-
-config BR2_PACKAGE_KMOD_CPMAC
-	tristate "AR7 CPMAC Network Driver"
-	default y
-	depends BR2_LINUX_2_4_AR7
-	help
-	  Driver for the AR7 CPMAC network chip
 
 config BR2_PACKAGE_KMOD_DIAG
 	tristate "Router LED/Button Driver"
@@ -116,12 +47,6 @@ config BR2_PACKAGE_KMOD_ARPT
 	default m
 	help
 	  Kernel modules for ARP firewalling
-
-config BR2_PACKAGE_KMOD_BLUETOOTH
-	tristate "Bluetooth drivers and network stack"
-	default m
-	help
-	  Bluetooth drivers and network stack
 
 config BR2_PACKAGE_KMOD_EBT
 	tristate "Ethernet Bridge firewalling support"
@@ -173,7 +98,7 @@ config BR2_PACKAGE_KMOD_USB
 
 config BR2_PACKAGE_KMOD_USB_CONTROLLER
 	tristate
-	depends on BR2_PACKAGE_KMOD_USB_UHCI || BR2_PACKAGE_KMOD_USB_OHCI || BR2_PACKAGE_KMOD_USB2
+	depends on BR2_PACKAGE_KMOD_USB_UHCI || BR2_PACKAGE_KMOD_USB_OHCI
 	default n
 
 config BR2_PACKAGE_KMOD_USB_UHCI
@@ -191,33 +116,7 @@ config BR2_PACKAGE_KMOD_USB_OHCI
 config BR2_PACKAGE_KMOD_USB2
 	tristate "Support for USB 2.0 controllers"
 	default m
-	depends BR2_PACKAGE_KMOD_USB
-	select BR2_PACKAGE_KMOD_USB_CONTROLLER
-
-config BR2_PACKAGE_KMOD_USB_SERIAL
-	tristate "kmod-usb-serial - Support for USB-to-serial converters"
-	default m
 	depends BR2_PACKAGE_KMOD_USB_CONTROLLER
-
-config BR2_PACKAGE_KMOD_USB_SERIAL_BELKIN
-	tristate "kmod-usb-serial-belkin - Support for Belkin USB-to-serial converters"
-	default m
-	depends BR2_PACKAGE_KMOD_USB_SERIAL
-
-config BR2_PACKAGE_KMOD_USB_SERIAL_FTDI
-	tristate "kmod-usb-serial-ftdi - Support for FTDI USB-to-serial converterr"
-	default m
-	depends BR2_PACKAGE_KMOD_USB_SERIAL
-
-config BR2_PACKAGE_KMOD_USB_SERIAL_MCT_U232
-	tristate "kmod-usb-serial-mct-u232 - Support for Magic Control Technology USB-to-Serial converters"
-	default m
-	depends BR2_PACKAGE_KMOD_USB_SERIAL
-
-config BR2_PACKAGE_KMOD_USB_SERIAL_PL2303
-	tristate "kmod-usb-serial-pl2303 - Support for Prolific PL2303 USB-to-Serial converters"
-	default m
-	depends BR2_PACKAGE_KMOD_USB_SERIAL
 
 config BR2_PACKAGE_KMOD_USB_STORAGE
 	tristate "Support for USB storage devices"
@@ -226,16 +125,6 @@ config BR2_PACKAGE_KMOD_USB_STORAGE
 
 config BR2_PACKAGE_KMOD_USB_PRINTER
 	tristate "Support for USB printers"
-	default m
-	depends BR2_PACKAGE_KMOD_USB_CONTROLLER
-
-config BR2_PACKAGE_KMOD_USB_AUDIO
-	tristate "Support for USB soundcards"
-	default m
-	depends BR2_PACKAGE_KMOD_USB_CONTROLLER
-
-config BR2_PACKAGE_KMOD_USB_ACM
-	tristate "Support for USB modems/isdn controllers"
 	default m
 	depends BR2_PACKAGE_KMOD_USB_CONTROLLER
 
@@ -323,22 +212,6 @@ config BR2_PACKAGE_KMOD_PPPOE
 	help
 	  Support for PPP over Ethernet
 
-config BR2_PACKAGE_KMOD_PPPOATM
-	tristate "PPP over ATM"
-	default y if BR2_LINUX_2_4_AR7
-	default m
-	depends BR2_PACKAGE_KMOD_PPP
-	select BR2_PACKAGE_KMOD_ATM
-	help
-	  Support for PPP over ATM
-
-config BR2_PACKAGE_KMOD_ATM
-	tristate "ATM support"
-	default m
-	default y if BR2_LINUX_2_4_AR7
-	help
-	  ATM support
-
 config BR2_PACKAGE_KMOD_TUN
 	tristate "Universal TUN/TAP driver"
 	default m
@@ -364,21 +237,5 @@ config BR2_PACKAGE_KMOD_VIDEODEV
 config BR2_PACKAGE_KMOD_PWC
 	tristate "Kernel driver for USB Philips Cameras"
 	default m
-
-config BR2_PACKAGE_KMOD_NATSEMI
-	tristate "Soekris net4801 ethernet driver"
-	default y
-	depends BR2_LINUX_2_4_SOEKRIS
-	help
-	  Driver for the National Semiconductor DP8381x series PCI Ethernet 
-	  found on Soekris net4801 boards
-
-config BR2_PACKAGE_KMOD_WD1100
-	tristate "Soekris net4801 watchdog"
-	default y
-	depends BR2_LINUX_2_4_SOEKRIS
-	help
-	  Driver for the NatSemi SC1x00 series Watchdog 
-	  found on Soekris net4801 boards
 
 source "target/linux/package/Config.in"

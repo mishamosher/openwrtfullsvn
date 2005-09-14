@@ -28,3 +28,4 @@ $(IPKG_BWM):
 	install -m 755 $(PKG_BUILD_DIR)/$(PKG_NAME) $(IDIR_BWM)/usr/bin/
 	$(STRIP) $(IDIR_BWM)/usr/bin/*
 	$(IPKG_BUILD) $(IDIR_BWM) $(PACKAGE_DIR)
+

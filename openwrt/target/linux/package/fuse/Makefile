@@ -1,12 +1,11 @@
 # $Id$
 
 include $(TOPDIR)/rules.mk
-include ../../rules.mk
 
 PKG_NAME:=fuse
-PKG_VERSION:=2.3.0
+PKG_VERSION:=2.2.1
 PKG_RELEASE:=1
-PKG_MD5SUM:=0bee98df5b2a29841f75fc188975eabc
+PKG_MD5SUM:=250d89b9c7b6ecf531df60c67f75737d
 
 PKG_SOURCE_URL:=@SF/$(PKG_NAME)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
@@ -66,8 +65,6 @@ $(PKG_BUILD_DIR)/.configured:
 $(PKG_BUILD_DIR)/.built:
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		ARCH="$(LINUX_KARCH)" \
-		PATH="$(TARGET_PATH)" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		SUBDIRS="kernel" \
 		all install

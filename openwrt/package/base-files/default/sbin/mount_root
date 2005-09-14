@@ -1,5 +1,4 @@
 #!/bin/sh
-. /etc/nvram.sh
 if [ "$1" != "failsafe" ]; then 
 	mount | grep jffs2 >&-
 	if [ $? = 0 ] ; then

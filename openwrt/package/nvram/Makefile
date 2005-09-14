@@ -10,7 +10,7 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 include $(TOPDIR)/package/rules.mk
 
 # does not depend on menuconfig
-ifneq ($(BOARD)-$(KERNEL),brcm-2.4)
+ifneq ($(BOARD),brcm)
 BR2_PACKAGE_NVRAM:=m
 else
 BR2_PACKAGE_NVRAM:=y

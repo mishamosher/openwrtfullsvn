@@ -1,7 +1,6 @@
 # $Id$
 
 include $(TOPDIR)/rules.mk
-include ../../rules.mk
 
 PKG_NAME := shfs
 PKG_VERSION := 0.35
@@ -30,8 +29,6 @@ $(PKG_BUILD_DIR)/.built:
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		ARCH="$(LINUX_KARCH)" \
-		PATH="$(TARGET_PATH)" \
 		OFLAGS="$(TARGET_CFLAGS)" \
 		CC="$(TARGET_CC)" \
 		LINKER="$(TARGET_CC)" \
@@ -43,7 +40,7 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_KMOD_SHFS):
 	install -m0755 -d $(IDIR_KMOD_SHFS)/lib/modules/$(LINUX_VERSION)
-	cp -fpR $(PKG_INSTALL_DIR)/lib/modules/$(LINUX_VERSION)/kernel/fs/shfs/shfs.*o \
+	cp -fpR $(PKG_INSTALL_DIR)/lib/modules/$(LINUX_VERSION)/kernel/fs/shfs/shfs.o \
 	 $(IDIR_KMOD_SHFS)/lib/modules/$(LINUX_VERSION)/
 	$(RSTRIP_KMOD) $(IDIR_KMOD_SHFS)
 	$(IPKG_BUILD) $(IDIR_KMOD_SHFS) $(PACKAGE_DIR)

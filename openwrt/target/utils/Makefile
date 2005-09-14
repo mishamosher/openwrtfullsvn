@@ -12,9 +12,6 @@ install: compile
 package:
 clean:
 	rm -rf $(UTILS_BUILD_DIR)
-	for f in $(TARGETS); do \
-		rm -f $(STAGING_DIR)/bin/$$f ; \
-	done
 
 $(UTILS_BUILD_DIR):
 	mkdir -p $(UTILS_BUILD_DIR)
