@@ -21,7 +21,8 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,GLIB1,glib1,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status}; \
 		glib_cv_sizeof_gmutex=24 \
 		ac_cv_sizeof_char=1 \
@@ -47,7 +48,6 @@ $(PKG_BUILD_DIR)/.configured:
 		glib_cv_byte_contents_gmutex="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
-		LDFLAGS="-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
 		  --host=$(GNU_TARGET_NAME) \
@@ -71,7 +71,7 @@ $(PKG_BUILD_DIR)/.configured:
 	);
 	touch $@
 
-$(PKG_BUILD_DIR)/.built:
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -109,5 +109,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/lib/glib
 	rm -rf $(STAGING_DIR)/usr/lib/pkgconfig/g{lib,module,thread}.pc
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=openldap
-PKG_VERSION:=2.2.29
+PKG_VERSION:=2.2.26
 PKG_RELEASE:=1
-PKG_MD5SUM:=6c4c72a1336aa45b463e738034c078d6
+PKG_MD5SUM:=afc8700b5738da863b30208e1d3e9de8
 
 PKG_SOURCE_URL:=ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release/ \
 	ftp://sunsite.cnlab-switch.ch/mirror/OpenLDAP/openldap-release/ \
@@ -78,7 +78,7 @@ $(PKG_BUILD_DIR)/.built:
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
-		LDFLAGS="-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		ac_cv_func_memcmp_clean="yes" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
@@ -128,7 +128,7 @@ $(STAGING_DIR)/usr/lib/libldap.so: $(PKG_BUILD_DIR)/.built
 	cp -fpR $(PKG_INSTALL_DIR)/usr/include/{lber,ldap}*.h $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib/
 	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/lib{lber,ldap}*.{a,so*} $(STAGING_DIR)/usr/lib/
-	touch $@
+	touch $(STAGING_DIR)/usr/lib/libldap.so
 	
 install-dev: $(STAGING_DIR)/usr/lib/libldap.so
 
@@ -136,5 +136,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/include/{lber,ldap}*.h
 	rm -rf $(STAGING_DIR)/usr/lib/lib{lber,ldap}*.{a,so*}
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

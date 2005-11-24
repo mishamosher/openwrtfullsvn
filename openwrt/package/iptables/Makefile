@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=iptables
 PKG_VERSION:=1.3.3
-PKG_RELEASE:=2
+PKG_RELEASE:=1
 PKG_MD5SUM:=86d88455520cfdc56fd7ae27897a80a4
 
 PKG_SOURCE_URL:=http://www.netfilter.org/files \
@@ -113,5 +113,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/include/libipq.h
 	rm -rf $(STAGING_DIR)/usr/lib/libipq.a
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

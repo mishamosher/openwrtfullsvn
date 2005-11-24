@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=ulogd
 PKG_VERSION:=1.23
-PKG_RELEASE:=2.1
+PKG_RELEASE:=2
 PKG_MD5SUM:=fa3dfcaacf31855626d5b731b04a077f
 
 PKG_SOURCE_URL:=ftp://ftp.netfilter.org/pub/ulogd/ \

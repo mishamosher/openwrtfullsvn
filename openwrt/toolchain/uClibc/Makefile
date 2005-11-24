@@ -14,7 +14,7 @@ UCLIBC_SOURCE:=uClibc-$(strip $(subst ",, $(BR2_USE_UCLIBC_SNAPSHOT))).tar.bz2
 UCLIBC_SITE:=http://www.uclibc.org/downloads/snapshots
 UCLIBC_VER:=PKG_VERSION:=0.${shell date +"%G%m%d"}
 else
-UCLIBC_VER:=0.9.28
+UCLIBC_VER:=0.9.27
 UCLIBC_DIR:=$(TOOL_BUILD_DIR)/uClibc-$(UCLIBC_VER)
 UCLIBC_SOURCE:=uClibc-$(UCLIBC_VER).tar.bz2
 UCLIBC_SITE:=http://www.uclibc.org/downloads
@@ -47,7 +47,7 @@ $(UCLIBC_DIR)/.unpacked: $(DL_DIR)/$(UCLIBC_SOURCE)
 
 $(UCLIBC_DIR)/.configured: $(UCLIBC_DIR)/.unpacked
 	$(SED) 's,^CROSS=.*,CROSS=$(TARGET_CROSS),g' $(UCLIBC_DIR)/Rules.mak
-	cp ./files/config.$(ARCH) $(UCLIBC_DIR)/.config
+	cp ./files/config.$(UCLIBC_TARGET_ARCH) $(UCLIBC_DIR)/.config
 	$(SED) 's,^KERNEL_SOURCE=.*,KERNEL_SOURCE=\"$(LINUX_HEADERS_DIR)\",g' \
 		$(UCLIBC_DIR)/.config
 ifeq ($(BR2_LARGEFILE),y)

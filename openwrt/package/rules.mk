@@ -1,4 +1,6 @@
 # invoke ipkg with configuration in $(STAGING_DIR)/etc/ipkg.conf 
+IPKG := IPKG_INSTROOT=$(TARGET_DIR) IPKG_CONF_DIR=$(IPKG_CONF) $(SCRIPT_DIR)/ipkg -force-defaults -force-depends
+IPKG_STATE_DIR := $(TARGET_DIR)/usr/lib/ipkg
 
 define PKG_template
 IPKG_$(1):=$(PACKAGE_DIR)/$(2)_$(3)_$(4).ipk
@@ -31,14 +33,12 @@ $$(INFO_$(1)): $$(IPKG_$(1))
 
 $(2)-clean:
 	rm -f $$(IPKG_$(1))
-clean: $(2)-clean
+clean-targets: $(2)-clean
 endef
-
 
 ifneq ($(strip $(PKG_SOURCE)),)
 $(DL_DIR)/$(PKG_SOURCE):
-	@$(CMD_TRACE) "downloading... "
-	$(SCRIPT_DIR)/download.pl "$(DL_DIR)" "$(PKG_SOURCE)" "$(PKG_MD5SUM)" $(PKG_SOURCE_URL) $(MAKE_TRACE) 
+	$(SCRIPT_DIR)/download.pl "$(DL_DIR)" "$(PKG_SOURCE)" "$(PKG_MD5SUM)" $(PKG_SOURCE_URL)
 endif
 
 ifneq ($(strip $(PKG_CAT)),)
@@ -54,48 +54,29 @@ endif
 
 all: compile
 
-source: $(DL_DIR)/$(PKG_SOURCE)
-prepare: source
-	@[ -f $(PKG_BUILD_DIR)/.prepared ] || { \
-		$(CMD_TRACE) "preparing... "; \
-		$(MAKE) $(PKG_BUILD_DIR)/.prepared $(MAKE_TRACE); \
-	}
-
-configure: prepare
-	@[ -f $(PKG_BUILD_DIR)/.configured ] || { \
-		$(CMD_TRACE) "configuring... "; \
-		$(MAKE) $(PKG_BUILD_DIR)/.configured $(MAKE_TRACE); \
-	}
-
 compile-targets:
-compile: configure
-	@$(CMD_TRACE) "compiling... " 
-	@$(MAKE) compile-targets $(MAKE_TRACE)
-
 install-targets:
-install:
-	@$(CMD_TRACE) "installing... "
-	@$(MAKE) install-targets $(MAKE_TRACE)
+clean-targets:
 
+source: $(DL_DIR)/$(PKG_SOURCE)
+prepare: $(PKG_BUILD_DIR)/.prepared
+compile: compile-targets
+install: install-targets
 mostlyclean:
 rebuild:
-	$(CMD_TRACE) "rebuilding... "
-	@-$(MAKE) mostlyclean 2>&1 >/dev/null
+	-$(MAKE) mostlyclean
 	if [ -f $(PKG_BUILD_DIR)/.built ]; then \
-		$(MAKE) clean $(MAKE_TRACE); \
+		$(MAKE) clean; \
 	fi
-	$(MAKE) compile $(MAKE_TRACE)
+	$(MAKE) compile
 
-$(PKG_BUILD_DIR)/.configured:
-$(PKG_BUILD_DIR)/.built:
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 
 $(PACKAGE_DIR):
 	mkdir -p $@
 
-clean-targets:
-clean: 
-	@$(CMD_TRACE) "cleaning... " 
-	@$(MAKE) clean-targets $(MAKE_TRACE)
+clean: clean-targets
 	rm -rf $(PKG_BUILD_DIR)
 
 .PHONY: all source prepare compile install clean

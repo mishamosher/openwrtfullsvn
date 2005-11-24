@@ -1,15 +1,3 @@
-LINUX_KARCH:=$(shell echo $(ARCH) | sed -e 's/i[3-9]86/i386/' \
-	-e 's/mipsel/mips/' \
-	-e 's/powerpc/ppc/' \
-	-e 's/sh[234]/sh/' \
-)
-
-ifeq ($(KERNEL),2.6)
-LINUX_KMOD_SUFFIX=ko
-else
-LINUX_KMOD_SUFFIX=o
-endif
-
 define KMOD_template
 ifeq ($$(strip $(4)),)
 KDEPEND_$(1):=m
@@ -45,9 +33,6 @@ ifneq ($(6),)
 		echo $$$$module >> $$(I_$(1))/etc/modules.d/$(6)-$(2); \
 	done
 endif
-	$(8)
-	$(IPKG_BUILD) $$(I_$(1)) $(PACKAGE_DIR) $(MAKE_TRACE)
+	$(IPKG_BUILD) $$(I_$(1)) $(PACKAGE_DIR)
 
 endef
-
-

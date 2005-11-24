@@ -1,7 +1,7 @@
 config BR2_PACKAGE_PORTMAP
-	prompt "portmap........................... RPC Portmapper"
-	tristate
+	tristate "portmap - RPC Portmapper"
 	default m if CONFIG_DEVEL
 	help
 	  The RPC Portmapper (used by the NFS Server)
-
+	  
+	

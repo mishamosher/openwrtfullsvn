@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libdb
-PKG_VERSION:=4.2.52
+PKG_VERSION:=4.3.28
 PKG_RELEASE:=1
-PKG_MD5SUM:=x
+PKG_MD5SUM:=e27759537db6054b31d8cb3e99ba6fbb
 
 PKG_SOURCE_URL:=ftp://ftp.sleepycat.com/releases/ \
 	http://downloads.sleepycat.com/
@@ -19,7 +19,7 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,LIBDB,libdb,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR)/build_unix ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
@@ -48,29 +48,28 @@ $(PKG_BUILD_DIR)/.configured:
 		--enable-shared \
 		--enable-static \
 		--disable-java \
-		--enable-cxx \
-		--disable-posixmutexes \
-		--disable-uimutexes \
+		--disable-cxx \
 		--disable-tcl \
 		--disable-rpc \
-		--enable-compat185 \
-		--enable-debug \
-		--enable-statistics \
-		--enable-replication \
-		--enable-cryptography \
+		--disable-compat185 \
+		--disable-debug \
+		--disable-statistics \
+		--disable-replication \
+		--disable-cryptography \
+		--enable-smallbuild \
 	);
 	touch $@
 
-$(PKG_BUILD_DIR)/.built:
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR)/build_unix \
 		DESTDIR="$(PKG_INSTALL_DIR)" install
 	touch $@
 
-$(IPKG_LIBDB): 
+$(IPKG_LIBDB): $(STAGING_DIR)/usr/lib/libdb.so
 	install -m0755 -d $(IDIR_LIBDB)/usr/lib
-	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libdb*.so $(IDIR_LIBDB)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libdb-*.so $(IDIR_LIBDB)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBDB)
 	$(IPKG_BUILD) $(IDIR_LIBDB) $(PACKAGE_DIR)
 
@@ -79,7 +78,7 @@ $(STAGING_DIR)/usr/lib/libdb.so: $(PKG_BUILD_DIR)/.built
 	cp -fpR $(PKG_INSTALL_DIR)/usr/include/db.h $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
 	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libdb*.{a,so} $(STAGING_DIR)/usr/lib/
-	touch $(STAGING_DIR)/usr/lib/libdb.so
+	touch $@
 
 install-dev: $(STAGING_DIR)/usr/lib/libdb.so
 
@@ -87,5 +86,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/include/db.h
 	rm -rf $(STAGING_DIR)/usr/lib/libdb*.{a,so}
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

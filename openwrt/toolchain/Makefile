@@ -1,6 +1,6 @@
 # Main makefile for the toolchain
 include $(TOPDIR)/rules.mk
-TARGETS:=sed utils binutils gcc uClibc ipkg-utils gdb libnotimpl
+TARGETS:=sed utils binutils gcc uClibc ipkg-utils gdb
 
 TARGETS_INSTALL:=$(patsubst %,%-install,$(TARGETS))
 TARGETS_CLEAN:=$(patsubst %,%-clean,$(TARGETS))
@@ -30,28 +30,18 @@ $(TOOL_BUILD_DIR):
 	@mkdir -p $(TOOL_BUILD_DIR)
 
 %-prepare: $(TOOLCHAIN_STAMP_DIR) $(STAGING_DIR) $(TOOL_BUILD_DIR)
-	@[ -f $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@ ] || { \
-		$(TRACE) toolchain/$(patsubst %-prepare,%,$@)/prepare; \
-		$(MAKE) -C $(patsubst %-prepare,%,$@) prepare $(MAKE_TRACE); \
-	}
+	@[ -f $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@ ] || $(MAKE) -C $(patsubst %-prepare,%,$@) prepare
 	@touch $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@
 
 %-compile: %-prepare 
-	@[ -f $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@ ] || { \
-		$(TRACE) toolchain/$(patsubst %-compile,%,$@)/compile; \
-		$(MAKE) -C $(patsubst %-compile,%,$@) compile $(MAKE_TRACE); \
-	}
+	@[ -f $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@ ] || $(MAKE) -C $(patsubst %-compile,%,$@) compile
 	@touch $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@
 
 %-install: %-compile
-	@[ -f $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@ ] || { \
-		$(TRACE) toolchain/$(patsubst %-install,%,$@)/install; \
-		$(MAKE) -C $(patsubst %-install,%,$@) install $(MAKE_TRACE); \
-	}
+	@[ -f $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@ ] || $(MAKE) -C $(patsubst %-install,%,$@) install
 	@touch $(TOOLCHAIN_STAMP_DIR)/.toolchain_$@
 
 %-clean:
-	$(TRACE) toolchain/$(patsubst %-clean,%,$@)/clean
-	@$(MAKE) -C $(patsubst %-clean,%,$@) clean $(MAKE_TRACE)
+	@$(MAKE) -C $(patsubst %-clean,%,$@) clean
 	@rm -f $(TOOLCHAIN_STAMP_DIR)/.toolchain_$(patsubst %-clean,%,$@)-*
 

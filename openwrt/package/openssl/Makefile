@@ -24,6 +24,8 @@ include $(TOPDIR)/package/rules.mk
 $(eval $(call PKG_template,LIBOPENSSL,libopenssl,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,OPENSSL_UTIL,openssl-util,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
+.NOTPARALLEL:
+
 $(PKG_BUILD_DIR)/.configured:
 	$(SED) 's,/CFLAG=,/CFLAG= $(TARGET_SOFT_FLOAT) ,g' $(PKG_BUILD_DIR)/Configure
 	(cd $(PKG_BUILD_DIR); \
@@ -34,7 +36,7 @@ $(PKG_BUILD_DIR)/.configured:
 		  -I$(STAGING_DIR)/usr/include \
 		  -L$(STAGING_DIR)/usr/lib -ldl \
 		  $(OPENSSL_NO_CIPHERS) \
-		  shared no-asm no-ec no-err no-fips no-hw no-krb5 no-threads zlib-dynamic \
+		  shared no-asm no-ec no-engine no-err no-fips no-hw no-krb5 no-threads zlib-dynamic \
 	)
 	touch $@
 
@@ -92,5 +94,5 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/include/openssl \
 		$(STAGING_DIR)/usr/lib/lib{crypto,ssl}.{a,so*} \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

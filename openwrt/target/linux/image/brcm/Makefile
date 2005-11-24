@@ -33,17 +33,6 @@ $(KDIR)/loader.tmp.gz:
 $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx: $(KDIR)/loader.tmp.gz
 	$(STAGING_DIR)/bin/trx -o $@ $(KDIR)/loader.tmp.gz $(KDIR)/vmlinux.lzma $(TRXALIGN) $(KDIR)/root.$(FS)
 
-ifeq ($(KERNEL),2.6)
-FSNAME:=$(patsubst jffs2-%,jffs2,$(FS))
-
-ifneq ($(FS),jffs2-4MB)
-$(BIN_DIR)/openwrt-wgt634u-$(KERNEL)-$(FSNAME).bin: $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx
-	dd if=$(BUILD_DIR)/loader.elf of=$@ bs=131072 conv=sync
-	cat $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx >> $@
-
-install: $(BIN_DIR)/openwrt-wgt634u-$(KERNEL)-$(FSNAME).bin
-endif
-endif
 
 ifeq ($(KERNEL),2.4)
 FSNAME:=$(patsubst jffs2-%,jffs2,$(FS))
@@ -56,10 +45,11 @@ $(BIN_DIR)/openwrt-wap54g-$(FSNAME).trx: $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$
 install: $(BIN_DIR)/openwrt-wap54g-$(FSNAME).trx
 endif
 
+
 ifneq ($(FS),jffs2-8MB)
 $(BIN_DIR)/openwrt-wrt54g3g-$(FSNAME).bin: $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx
 	$(STAGING_DIR)/bin/addpattern -4 -p W54F -v v1.99.5 -i $< -o $@ -g
-	
+
 $(BIN_DIR)/openwrt-wrt54g-$(FSNAME).bin: $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-$(FS).trx
 	$(STAGING_DIR)/bin/addpattern -4 -p W54G -v v4.20.6 -i $< -o $@ -g
 
@@ -96,5 +86,4 @@ install-ib:
 	cp -fpR $(STAGING_DIR)/bin/addpattern $(STAGING_DIR)/bin/trx $(STAGING_DIR)/bin/motorola-bin $(IB_DIR)/staging_dir_$(ARCH)/bin
 	mkdir -p $(IB_DIR)/build_$(ARCH)/linux-$(KERNEL)-$(BOARD)
 	cp -fpR $(BUILD_DIR)/loader.gz $(IB_DIR)/build_$(ARCH)/
-	cp -fpR $(BUILD_DIR)/loader.elf $(IB_DIR)/build_$(ARCH)/
 	cp -fpR $(KDIR)/vmlinux.lzma $(IB_DIR)/build_$(ARCH)/linux-$(KERNEL)-$(BOARD)/

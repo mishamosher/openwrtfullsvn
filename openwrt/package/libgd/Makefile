@@ -22,9 +22,11 @@ $(PKG_BUILD_DIR)/.configured:
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
-		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include" \
-		LDFLAGS="-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
+		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		LIBPNG12_CONFIG="$(STAGING_DIR)/usr/bin/libpng12-config" \
+		sys_lib_dlsearch_path_spec="$(STAGING_DIR)/lib $(STAGING_DIR)/usr/lib" \
+		sys_lib_search_path_spec="$(STAGING_DIR)/lib $(STAGING_DIR)/usr/lib" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
 		  --host=$(GNU_TARGET_NAME) \
@@ -48,12 +50,8 @@ $(PKG_BUILD_DIR)/.configured:
 		  --enable-shared \
 		  --enable-static \
 		  --disable-rpath \
-		  --with-gnu-ld \
 		  --without-x \
-		  --without-freetype \
-		  --without-jpeg \
 		  --with-png=$(STAGING_DIR)/usr \
-		  --without-xpm \
 	)
 	touch $@
 
@@ -90,6 +88,6 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/include/gd*.h \
 		$(STAGING_DIR)/usr/lib/libgd.{a,so*} \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev
 

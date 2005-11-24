@@ -116,5 +116,5 @@ uninstall-dev:
 	  $(STAGING_DIR)/usr/lib/lib{howl,mDNSResponder}.{a,so*} \
 	  $(STAGING_DIR)/usr/lib/pkgconfig/howl.pc \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

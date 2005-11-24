@@ -1,10 +1,7 @@
 config BR2_PACKAGE_SER
-	prompt "ser............................... SIP Express Router"
-	tristate
+	tristate "SIP Express Router"
 	default m if CONFIG_DEVEL
 	help
-	  SIP Express Router (ser) is a high-performance,
-	  configurable, free SIP server.
-	  
-	  http://www.iptel.org/ser/
+	 SIP Express Router (ser) is a high-performance,
+	 configurable, free SIP server.
 

@@ -24,7 +24,7 @@ $(PKG_BUILD_DIR)/.configured:
 $(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
-		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include -I$(STAGING_DIR)/usr/include/madwifi" \
+		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include" \
 		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		OPT_FLAGS="$(TARGET_CFLAGS)" \
 		KERNEL=$(LINUX_DIR) \

@@ -9,14 +9,18 @@ PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 
 include $(TOPDIR)/package/rules.mk
 
+# does not depend on menuconfig
+ifneq ($(BOARD),brcm)
+BR2_PACKAGE_NVRAM:=m
+else
+BR2_PACKAGE_NVRAM:=y
+endif
+
 $(eval $(call PKG_template,NVRAM,nvram,$(PKG_RELEASE),$(ARCH)))
 
 $(PKG_BUILD_DIR)/.prepared:
 	mkdir -p $(PKG_BUILD_DIR)
 	cp -a ./src/* $(PKG_BUILD_DIR)
-	touch $@
-
-$(PKG_BUILD_DIR)/.configured:
 	touch $@
 
 $(PKG_BUILD_DIR)/.built:
@@ -34,7 +38,7 @@ $(IPKG_NVRAM):
 	$(IPKG_BUILD) $(IDIR_NVRAM) $(PACKAGE_DIR)
 
 
-compile-targets: install-dev
+compile: install-dev
 install-dev: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/lib
 	cp $(PKG_BUILD_DIR)/*.so $(STAGING_DIR)/usr/lib

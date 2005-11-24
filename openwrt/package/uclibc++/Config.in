@@ -1,7 +1,5 @@
 config BR2_PACKAGE_UCLIBCXX
-	prompt "uClibc++.......................... C++ library for embedded systems"
-	tristate
+	tristate "uClibc++ - C++ library for embedded systems"
 	default m if CONFIG_DEVEL
 	help
 	  A standard C++ library for embedded systems
-

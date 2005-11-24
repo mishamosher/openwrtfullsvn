@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=postgresql
-PKG_VERSION:=7.4.9
-PKG_RELEASE:=1
-PKG_MD5SUM:=d7cf0f0a0e1dda19268f55cb1e124c77
+PKG_VERSION:=7.4.7
+PKG_RELEASE:=3
+PKG_MD5SUM:=32dac2916d16287d95e0c958a75161fa
 
 PKG_SOURCE_URL:=\
 	ftp://ftp3.us.postgresql.org/pub/postgresql/source/v$(PKG_VERSION)/ \
@@ -23,8 +23,8 @@ include $(TOPDIR)/package/rules.mk
 $(eval $(call PKG_template,LIBPQ,libpq,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,PGSQL_CLI,pgsql-cli,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-#	./configure advertise "--infodir", but does not support it, replaced with "--docdir"
 $(PKG_BUILD_DIR)/.configured:
+#	./configure advertise "--infodir", but does not support it, replaced with "--docdir"
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
@@ -76,11 +76,6 @@ $(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C "$(PKG_BUILD_DIR)/src/interfaces/libpq" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all install
-	$(MAKE) -C "$(PKG_BUILD_DIR)/src/bin/pg_config" \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		includedir="$(STAGING_DIR)/usr/include" \
-		libdir="$(STAGING_DIR)/usr/lib" \
-		all install
 	$(MAKE) -C "$(PKG_BUILD_DIR)/src/bin/psql" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all install
@@ -99,12 +94,8 @@ $(IPKG_PGSQL_CLI):
 	$(IPKG_BUILD) $(IDIR_PGSQL_CLI) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libpq.so: $(PKG_BUILD_DIR)/.built
-	mkdir -p $(STAGING_DIR)/usr/bin
-	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/pg_config $(STAGING_DIR)/usr/bin/
 	mkdir -p $(STAGING_DIR)/usr/include
-	cp -fpR $(PKG_INSTALL_DIR)/usr/include/libpq $(STAGING_DIR)/usr/include/
 	cp -fpR $(PKG_INSTALL_DIR)/usr/include/libpq-fe.h $(STAGING_DIR)/usr/include/
-	cp -fpR $(PKG_INSTALL_DIR)/usr/include/pg_config.h $(STAGING_DIR)/usr/include/
 	cp -fpR $(PKG_INSTALL_DIR)/usr/include/postgres_ext.h $(STAGING_DIR)/usr/include/
 	cp -fpR $(PKG_INSTALL_DIR)/usr/include/postgresql $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
@@ -115,13 +106,10 @@ install-dev: $(STAGING_DIR)/usr/lib/libpq.so
 
 uninstall-dev:
 	rm -rf \
-		$(STAGING_DIR)/usr/bin/pg_config \
-		$(STAGING_DIR)/usr/include/libpq \
 		$(STAGING_DIR)/usr/include/libpq-fe.h \
-		$(STAGING_DIR)/usr/include/pg_config.h \
 		$(STAGING_DIR)/usr/include/postgres_ext.h \
 		$(STAGING_DIR)/usr/include/postgresql \
 		$(STAGING_DIR)/usr/lib/libpq.{a,so*} \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

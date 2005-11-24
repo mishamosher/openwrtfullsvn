@@ -16,11 +16,6 @@ PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
 include $(TOPDIR)/package/rules.mk
 
-ENDIAN:=lil
-ifeq ($(ARCH),mips)
-ENDIAN:=big
-endif
-
 $(eval $(call PKG_template,LIBNET,libnet,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
 $(PKG_BUILD_DIR)/.configured:
@@ -36,7 +31,7 @@ $(PKG_BUILD_DIR)/.configured:
 		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		ac_libnet_have_pf_packet=yes \
 		ac_cv_lbl_unaligned_fail=no \
-		ac_cv_libnet_endianess=$(ENDIAN) \
+		ac_cv_libnet_endianess=lil \
 		./configure \
 		--target=$(GNU_TARGET_NAME) \
 		--host=$(GNU_TARGET_NAME) \
@@ -96,5 +91,5 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/include/libnet*  \
 		$(STAGING_DIR)/usr/lib/libnet.{a,so*} \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

@@ -1,6 +1,5 @@
 config BR2_PACKAGE_SIPSAK
-	prompt "sipsak............................ SIP (Session Initiation Protocol) stress and diagnostics utility"
-	tristate
+	tristate "sipsak - SIP (Session Initiation Protocol) stress and diagnostics utility"
 	default m if CONFIG_DEVEL
 	select BR2_PACKAGE_LIBOPENSSL
 	help
@@ -9,4 +8,4 @@ config BR2_PACKAGE_SIPSAK
 	  http://www.sipsak.org/
 	  
 	  Depends: openssl
-
+	  

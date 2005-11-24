@@ -1,8 +1,6 @@
 config BR2_PACKAGE_CHILLISPOT
-	prompt "chillispot........................ Wireless LAN access point controller"
-	tristate
+	tristate "chillispot - Wireless LAN access point controller"
 	default m if CONFIG_DEVEL
-	select BR2_PACKAGE_KMOD_TUN
 	help
 	  ChilliSpot is an open source captive portal or wireless LAN
 	  access point controller. It is used for authenticating users
@@ -13,4 +11,4 @@ config BR2_PACKAGE_CHILLISPOT
 	  radius server.
 	  
 	  http://www.chillispot.org/
-
+	  

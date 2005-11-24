@@ -26,7 +26,7 @@ $(PKG_BUILD_DIR)/.configured:
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(strip $(TARGET_CFLAGS))" \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
-		LDFLAGS="-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
 		  --host=$(GNU_TARGET_NAME) \
@@ -89,5 +89,5 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/lib/libosip{,parser}2.{a,so*} \
 		$(STAGING_DIR)/usr/lib/pkgconfig/libosip2.pc \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

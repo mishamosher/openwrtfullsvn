@@ -50,7 +50,6 @@
 
 #define CODE_ID		"U2ND"		/* from code_pattern.h */
 #define CODE_PATTERN   "W54S"	/* from code_pattern.h */
-#define PBOT_PATTERN   "PBOT"
 
 #define CYBERTAN_VERSION	"v3.37.2" /* from cyutils.h */
 
@@ -76,7 +75,7 @@ void usage(void) __attribute__ (( __noreturn__ ));
 
 void usage(void)
 {
-	fprintf(stderr, "Usage: addpattern [-i trxfile] [-o binfile] [-p pattern] [-g] [-b] [-v v#.#.#] [-{0|1|2|4}]\n");
+	fprintf(stderr, "Usage: addpattern [-i trxfile] [-o binfile] [-p pattern] [-g] [-v v#.#.#] [-{0|1|2|4}]\n");
 	exit(EXIT_FAILURE);
 }
 
@@ -89,10 +88,8 @@ int main(int argc, char **argv)
 	char *ifn = NULL;
 	char *ofn = NULL;
 	char *pattern = CODE_PATTERN;
-	char *pbotpat = PBOT_PATTERN;
 	char *version = CYBERTAN_VERSION;
 	int gflag = 0;
-	int pbotflag = 0;
 	int c;
 	int v0, v1, v2;
 	size_t off, n;
@@ -104,7 +101,7 @@ int main(int argc, char **argv)
 	hdr = (struct code_header *) buf;
 	memset(hdr, 0, sizeof(struct code_header));
 
-	while ((c = getopt(argc, argv, "i:o:p:gbv:0124")) != -1) {
+	while ((c = getopt(argc, argv, "i:o:p:gv:0124")) != -1) {
 		switch (c) {
 			case 'i':
 				ifn = optarg;
@@ -117,9 +114,6 @@ int main(int argc, char **argv)
 				break;
 			case 'g':
 				gflag = 1;
-				break;
-			case 'b':
-				pbotflag = 1;
 				break;
 			case 'v':			/* extension to allow setting version */
 				version = optarg;
@@ -180,8 +174,6 @@ int main(int argc, char **argv)
 	}
 
 	memcpy(&hdr->magic, pattern, 4);
-	if (pbotflag)
-		memcpy(&hdr->res1, pbotpat, 4);
 	hdr->fwdate[0] = ptm->tm_year % 100;
 	hdr->fwdate[1] = ptm->tm_mon + 1;
 	hdr->fwdate[2] = ptm->tm_mday;

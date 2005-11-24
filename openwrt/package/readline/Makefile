@@ -78,5 +78,5 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/include/readline \
 		$(STAGING_DIR)/usr/lib/lib{history,readline}.{a,so*} \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

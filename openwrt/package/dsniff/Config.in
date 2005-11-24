@@ -1,6 +1,5 @@
 config BR2_PACKAGE_DSNIFF
-	prompt "dsniff............................ A collection of tools for betwork auditing and penetration testing"
-	tristate
+	tristate "dsniff - network auditing and penetration testing"
 	select BR2_PACKAGE_LIBPCAP
 	select BR2_PACKAGE_LIBNIDS
 	select BR2_PACKAGE_LIBNET
@@ -8,7 +7,7 @@ config BR2_PACKAGE_DSNIFF
 	select BR2_PACKAGE_LIBGDBM
 	default m if CONFIG_DEVEL
 	help
-	  A collection of tools for network auditing and penetration testing
-	  
-	  http://www.monkey.org/~dugsong/dsniff/
 
+	collection of tools for network auditing and penetration testing
+
+	http://www.monkey.org/~dugsong/dsniff/

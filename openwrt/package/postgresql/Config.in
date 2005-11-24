@@ -1,13 +1,13 @@
-config BR2_COMPILE_POSTGRESQL
+config BR2_PACKAGE_POSTGRESQL
 	tristate
 	default n
 	depends BR2_PACKAGE_LIBPQ
 
 config BR2_PACKAGE_LIBPQ
-	prompt "libpq............................. PostgreSQL client library"
+	prompt "libpq - PostgreSQL client library"
 	tristate
 	default m if CONFIG_DEVEL
-	select BR2_COMPILE_POSTGRESQL
+	select BR2_PACKAGE_POSTGRESQL
 	help
 	  PostgreSQL is an object-relational database management system (ORDBMS) 
 	  based on POSTGRES, Version 4.2, developed at the University of 
@@ -30,7 +30,7 @@ config BR2_PACKAGE_LIBPQ
 	  This package contains the shared client library, needed by other programs.
 
 config BR2_PACKAGE_PGSQL_CLI
-	prompt   "pgsql-cli....................... Command Line Interface (CLI) to PostgreSQL databases"
+	prompt "pgsql-cli - Command Line Interface (CLI) to PostgreSQL databases"
 	tristate
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_LIBPQ

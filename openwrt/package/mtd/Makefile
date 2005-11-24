@@ -13,10 +13,7 @@ $(eval $(call PKG_template,MTD,$(PKG_NAME),$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,MTD_STATIC,mtd-static,$(PKG_RELEASE),$(ARCH)))
 
 $(PKG_BUILD_DIR)/.prepared:
-	mkdir -p $(PKG_BUILD_DIR)
-	touch $@
-
-$(PKG_BUILD_DIR)/.configured:
+	mkdir -p $@
 	touch $@
 
 $(PKG_BUILD_DIR)/.built:

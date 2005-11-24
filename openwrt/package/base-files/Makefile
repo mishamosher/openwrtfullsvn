@@ -3,34 +3,26 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=base-files
-PKG_RELEASE:=6
+PKG_RELEASE:=5
 PKG_BUILD_DIR:=$(BUILD_DIR)/base-files
-
-REV:=${shell svn info | grep Revision | cut -d ' ' -f 2}
-ifeq ($(REV),)
-REV:=0
-endif
 
 include $(TOPDIR)/package/rules.mk
 
 IDIR_BASE:=$(PKG_BUILD_DIR)/base-files
 IPKG_BASE:=$(PACKAGE_DIR)/$(PKG_NAME)_$(PKG_RELEASE)_$(ARCH).ipk
 
-UCLIBC_VERSION:=${shell cat $(STAGING_DIR)/uclibc_version}
-IDIR_UCLIBC:=$(PKG_BUILD_DIR)/uclibc
-IPKG_UCLIBC:=$(PACKAGE_DIR)/uclibc_$(UCLIBC_VERSION)-$(PKG_RELEASE)_$(ARCH).ipk
+LIBC_VERSION:=${shell cat $(STAGING_DIR)/uclibc_version}
+IDIR_LIBC:=$(PKG_BUILD_DIR)/uclibc
+IPKG_LIBC:=$(PACKAGE_DIR)/uclibc_$(LIBC_VERSION)-$(PKG_RELEASE)_$(ARCH).ipk
 
-LIBGCC_VERSION:=${shell cat $(STAGING_DIR)/gcc_version}
-IDIR_LIBGCC:=$(PKG_BUILD_DIR)/libgcc
-IPKG_LIBGCC:=$(PACKAGE_DIR)/libgcc_$(LIBGCC_VERSION)-$(PKG_RELEASE)_$(ARCH).ipk
+GCC_VERSION:=${shell cat $(STAGING_DIR)/gcc_version}
+IDIR_GCC:=$(PKG_BUILD_DIR)/libgcc
+IPKG_GCC:=$(PACKAGE_DIR)/libgcc_$(GCC_VERSION)-$(PKG_RELEASE)_$(ARCH).ipk
 
-PACKAGES:=$(IPKG_BASE) $(IPKG_UCLIBC) $(IPKG_LIBGCC)
+PACKAGES:=$(IPKG_BASE) $(IPKG_LIBC) $(IPKG_GCC)
 
 $(PKG_BUILD_DIR)/.prepared:
 	mkdir -p $(PKG_BUILD_DIR) $(PACKAGE_DIR)
-	touch $@
-
-$(PKG_BUILD_DIR)/.configured:
 	touch $@
 
 $(PKG_BUILD_DIR)/.built:
@@ -39,7 +31,6 @@ $(PKG_BUILD_DIR)/.built:
 $(IPKG_BASE):
 	$(SCRIPT_DIR)/make-ipkg-dir.sh $(IDIR_BASE) ipkg/$(PKG_NAME).control $(PKG_RELEASE) $(ARCH)
 	cp -a ./default/* $(IDIR_BASE)
-	$(SED) 's,$$R,r$(REV),g' $(IDIR_BASE)/etc/banner
 	mkdir -p $(IDIR_BASE)/jffs
 	mkdir -p $(IDIR_BASE)/dev
 	mkdir -p $(IDIR_BASE)/proc
@@ -47,6 +38,7 @@ $(IPKG_BASE):
 	mkdir -p $(IDIR_BASE)/lib
 	mkdir -p $(IDIR_BASE)/usr/lib
 	mkdir -p $(IDIR_BASE)/usr/bin
+	mkdir -p $(IDIR_BASE)/www
 	ln -sf /tmp/resolv.conf $(IDIR_BASE)/etc/resolv.conf
 	rm -rf $(IDIR_BASE)/var
 	ln -sf /tmp $(IDIR_BASE)/var
@@ -57,29 +49,28 @@ $(IPKG_BASE):
 	-grep \^BR2_SYSCONF $(TOPDIR)/.config > $(IDIR_BASE)/etc/sysconf
 	$(IPKG_BUILD) $(IDIR_BASE) $(PACKAGE_DIR)
 
-$(IPKG_UCLIBC):
-	$(SCRIPT_DIR)/make-ipkg-dir.sh $(IDIR_UCLIBC) ipkg/uclibc.control $(UCLIBC_VERSION)-$(PKG_RELEASE) $(ARCH)
-	mkdir -p $(IDIR_UCLIBC)/lib
+$(IPKG_LIBC):
+	$(SCRIPT_DIR)/make-ipkg-dir.sh $(IDIR_LIBC) ipkg/uclibc.control $(LIBC_VERSION)-$(PKG_RELEASE) $(ARCH)
+	mkdir -p $(IDIR_LIBC)/lib
 	for file in ld-uClibc libc libcrypt libdl libm libnsl libresolv librt libuClibc libutil; do \
-		cp -fpR $(STAGING_DIR)/lib/$$file.so.* $(IDIR_UCLIBC)/lib/; \
-		cp -fpR $(STAGING_DIR)/lib/$$file-$(UCLIBC_VERSION).so $(IDIR_UCLIBC)/lib/; \
+		cp -fpR $(STAGING_DIR)/lib/$$file.so.* $(IDIR_LIBC)/lib/; \
+		cp -fpR $(STAGING_DIR)/lib/$$file-$(LIBC_VERSION).so $(IDIR_LIBC)/lib/; \
 	done
-	-$(STRIP) $(IDIR_UCLIBC)/lib/*
-	$(IPKG_BUILD) $(IDIR_UCLIBC) $(PACKAGE_DIR)
+	-$(STRIP) $(IDIR_LIBC)/lib/*
+	$(IPKG_BUILD) $(IDIR_LIBC) $(PACKAGE_DIR)
 
-$(IPKG_LIBGCC):
-	$(SCRIPT_DIR)/make-ipkg-dir.sh $(IDIR_LIBGCC) ipkg/libgcc.control $(LIBGCC_VERSION)-$(PKG_RELEASE) $(ARCH)
-	mkdir -p $(IDIR_LIBGCC)/lib
-	cp -fpR $(STAGING_DIR)/lib/libgcc_s.so.* $(IDIR_LIBGCC)/lib/
-	-$(STRIP) $(IDIR_LIBGCC)/lib/*
-	$(IPKG_BUILD) $(IDIR_LIBGCC) $(PACKAGE_DIR)
+$(IPKG_GCC):
+	$(SCRIPT_DIR)/make-ipkg-dir.sh $(IDIR_GCC) ipkg/libgcc.control $(GCC_VERSION)-$(PKG_RELEASE) $(ARCH)
+	mkdir -p $(IDIR_GCC)/lib
+	cp -fpR $(STAGING_DIR)/lib/libgcc*.so.* $(IDIR_GCC)/lib/
+	-$(STRIP) $(IDIR_GCC)/lib/*
+	$(IPKG_BUILD) $(IDIR_GCC) $(PACKAGE_DIR)
 
 package-clean:
 	rm -f $(PACKAGES)
-	
-clean-targets: package-clean
+clean: package-clean
 prepare:
-compile-targets: $(PACKAGES)
-install-targets: compile
+compile: $(PACKAGES)
+install: compile
 	mkdir -p $(TARGET_DIR)
 	$(IPKG) install $(PACKAGES)

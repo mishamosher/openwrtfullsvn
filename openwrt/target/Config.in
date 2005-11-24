@@ -12,12 +12,6 @@ menu "Target Root Filesystem"
 		help
 		  Build a squashfs-lzma root filesystem
 
-	config BR2_TARGET_ROOTFS_TGZ
-		bool "tgz"
-		default y
-		help
-		  Build a compressed tar archive of the kernel and the root filesystem
-
 endmenu
 
 menu "Kernel Configuration / Device Support"

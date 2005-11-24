@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=uClibc++
 PKG_VERSION:=0.1.11
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_MD5SUM:=8a8e0ee8fefef150c08a649fd7da04aa
 
 PKG_SOURCE_URL:=http://cxx.uclibc.org/src/
@@ -32,31 +32,29 @@ UCLIBC_TARGET_ARCH:=$(shell echo $(ARCH) | sed -e s'/-.*//' \
 )
 
 $(PKG_BUILD_DIR)/.configured:
-	cp ./files/config.$(UCLIBC_TARGET_ARCH) $(PKG_BUILD_DIR)/.config
+	cp ./uclibc++.config $(PKG_BUILD_DIR)/.config
+	$(SED) 's,^.*TARGET_ARCH.*,TARGET_ARCH="$(UCLIBC_TARGET_ARCH)",g' $(PKG_BUILD_DIR)/.config
+	$(SED) 's,^.*ARCH_CFLAGS.*,ARCH_CFLAGS="-mno-split-addresses $(TARGET_CFLAGS)",g' $(PKG_BUILD_DIR)/.config
 	touch $@
 
 $(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		TOPDIR="$(PKG_BUILD_DIR)/" \
 		$(TARGET_CONFIGURE_OPTS) \
-		ARCH_CFLAGS="$(TARGET_CFLAGS)" \
 		CROSS="$(TARGET_CROSS)" \
 		all
 	touch $@
 
 $(IPKG_UCLIBCXX):
 	install -d -m0755 $(IDIR_UCLIBCXX)/usr/lib
-	cp -fpR $(PKG_BUILD_DIR)/src/libuClibc++*.so* $(IDIR_UCLIBCXX)/usr/lib/
+	cp -fpR $(PKG_BUILD_DIR)/src/libuClibc++-$(PKG_VERSION).so $(IDIR_UCLIBCXX)/usr/lib/
+	cp -fpR $(PKG_BUILD_DIR)/src/libuClibc++.so.* $(IDIR_UCLIBCXX)/usr/lib/
 	$(STRIP) $(IDIR_UCLIBCXX)/usr/lib/*.so*
 	mkdir -p $(PACKAGE_DIR)
 	$(IPKG_BUILD) $(IDIR_UCLIBCXX) $(PACKAGE_DIR)
 
-compile-targets: install-dev
+compile: install-dev
 install-dev: $(PKG_BUILD_DIR)/.built
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		TOPDIR="$(PKG_BUILD_DIR)/" \
-		$(TARGET_CONFIGURE_OPTS) \
-		ARCH_CFLAGS="$(TARGET_CFLAGS)" \
-		CROSS="$(TARGET_CROSS)" \
+		$(TARGET_CONFIGURE_OPTS) CROSS="$(TARGET_CROSS)" \
 		DESTDIR="$(STAGING_DIR)" \
 		install

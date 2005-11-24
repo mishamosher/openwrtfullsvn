@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=cups
 PKG_VERSION:=1.1.23
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_MD5SUM:=4ce09b1dce09b6b9398af0daae9adf63
 
 PKG_SOURCE_URL:=http://ftp.funet.fi/pub/mirrors/ftp.easysw.com/ftp.easysw.com/pub/cups/$(PKG_VERSION) \
@@ -114,6 +114,6 @@ uninstall-dev:
 	  $(STAGING_DIR)/usr/include/cups \
 	  $(STAGING_DIR)/usr/lib/libcups.{a,so*}
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev
 

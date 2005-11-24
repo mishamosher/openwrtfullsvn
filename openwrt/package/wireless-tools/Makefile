@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=wireless-tools
-PKG_VERSION:=28.pre10
+PKG_VERSION:=28.pre7
 PKG_RELEASE:=1
-PKG_MD5SUM:=9d4709f06db2137f11ebe7cfc93117ba
+PKG_MD5SUM:=bf598d6ded79e9e6b9bc2dbeb8258f48
 
 PKG_SOURCE_URL:=http://www.hpl.hp.com/personal/Jean_Tourrilhes/Linux
 PKG_SOURCE:=wireless_tools.$(PKG_VERSION).tar.gz
@@ -18,7 +18,7 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,WIRELESS_TOOLS,wireless-tools,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	touch $@
 
 $(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
@@ -41,7 +41,7 @@ $(IPKG_WIRELESS_TOOLS):
 	$(RSTRIP) $(IDIR_WIRELESS_TOOLS)
 	$(IPKG_BUILD) $(IDIR_WIRELESS_TOOLS) $(PACKAGE_DIR)
 
-install-dev: $(PKG_BUILD_DIR)/.built
+install-dev:
 	mkdir -p $(STAGING_DIR)/usr/{lib,include}
 	cp -a $(PKG_BUILD_DIR)/libiw.so* $(STAGING_DIR)/usr/lib/
 	ln -sf libiw.so.28 $(STAGING_DIR)/usr/lib/libiw.so
@@ -51,5 +51,5 @@ uninstall-dev:
 	rm -f $(STAGING_DIR)/usr/lib/libiw.*
 	rm -f $(STAGING_DIR)/usr/include/{iwlib,wireless}.h
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

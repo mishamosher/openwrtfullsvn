@@ -1,12 +1,11 @@
 # $Id$
 
 include $(TOPDIR)/rules.mk
-include ../../rules.mk
 
 PKG_NAME:=openswan
-PKG_VERSION:=2.4.2
+PKG_VERSION:=2.4.4
 PKG_RELEASE:=1
-PKG_MD5SUM:=38c7ad91312bdd67fa57fe987b21183e
+PKG_MD5SUM:=bd1a46c64727674149de61da2a32ca63
 
 PKG_SOURCE_URL:=http://www.openswan.org/download
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
@@ -19,7 +18,7 @@ ifeq ($(KERNEL_DIR),)
 KERNEL_DIR:=$(LINUX_DIR)
 endif
 
-$(eval $(call PKG_template,KMOD_OPENSWAN,kmod-openswan,$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(KERNEL_RELEASE))))
+$(eval $(call PKG_template,KMOD_OPENSWAN,kmod-openswan,$(LINUX_VERSION)$(BOARD)+$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(KERNEL_RELEASE))))
 
 FLAGS := $(TARGET_CFLAGS) -I$(PKG_BUILD_DIR)/linux/include -L$(STAGING_DIR)/usr/lib -I$(STAGING_DIR)/usr/include
 
@@ -27,13 +26,12 @@ $(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
 		KERNELSRC="$(KERNEL_DIR)" \
-		ARCH="$(LINUX_KARCH)" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
+		ARCH="mips" \
 		USERCOMPILE="$(FLAGS)" \
 		AS="$(TARGET_CC) -c $(TARGET_CFLAGS)" \
 		module
 
 $(IPKG_KMOD_OPENSWAN):
 	mkdir -p $(IDIR_KMOD_OPENSWAN)/lib/modules/$(LINUX_VERSION)
-	cp -fpR $(PKG_BUILD_DIR)/modobj*/ipsec.$(LINUX_KMOD_SUFFIX) $(IDIR_KMOD_OPENSWAN)/lib/modules/$(LINUX_VERSION)/
+	cp $(PKG_BUILD_DIR)/modobj/ipsec.*o $(IDIR_KMOD_OPENSWAN)/lib/modules/$(LINUX_VERSION)/
 	$(IPKG_BUILD) $(IDIR_KMOD_OPENSWAN) $(PACKAGE_DIR)
