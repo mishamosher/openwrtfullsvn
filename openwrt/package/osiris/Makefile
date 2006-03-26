@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=osiris
-PKG_VERSION:=4.1.9
+PKG_VERSION:=4.1.8
 PKG_RELEASE:=1
-PKG_MD5SUM:=a8e3720b05a8dc5d257a7effb6d68224
+PKG_MD5SUM:=27a362ba5ad3025d5bca6d9c92196875
 
 PKG_SOURCE_URL:=http://www.hostintegrity.com/osiris/data/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
@@ -23,7 +23,7 @@ $(PKG_BUILD_DIR)/.configured:
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
-		LDFLAGS="-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		ac_cv_openssldir="$(STAGING_DIR)/usr" \
 		ac_cv_have_accrights_in_msghdr=no \
 		ac_cv_have_control_in_msghdr=yes \
@@ -49,7 +49,6 @@ $(PKG_BUILD_DIR)/.configured:
 		  $(DISABLE_NLS) \
 		  --with-osiris-user=root \
 		  --with-root-dir=/var/lib/osiris \
-		  --with-readline=no \
 	);
 	touch $@
 
@@ -57,8 +56,6 @@ $(PKG_BUILD_DIR)/.built:
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		$(TARGET_CONFIGURE_OPTS) \
-		ar=$(TARGET_CROSS)ar \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		INTERACTIVE=0 \
 		all install
@@ -68,6 +65,6 @@ $(IPKG_OSIRISD):
 	install -d -m0755 $(IDIR_OSIRISD)/etc/init.d
 	install -m0755 ./files/osirisd.init $(IDIR_OSIRISD)/etc/init.d/osirisd
 	install -d -m0755 $(IDIR_OSIRISD)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/osirisd $(IDIR_OSIRISD)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/osirisd $(IDIR_OSIRISD)/usr/sbin/
 	$(RSTRIP) $(IDIR_OSIRISD)
 	$(IPKG_BUILD) $(IDIR_OSIRISD) $(PACKAGE_DIR)

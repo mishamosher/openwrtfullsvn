@@ -1,4 +1,14 @@
 #!/bin/sh
-# set leds to normal state
-[ -f /proc/sys/diag ] && echo "0x00" > /proc/sys/diag
 sysctl -p >&-
+
+# automagically run firstboot
+[ "$(nvram get no_root_swap)" != 1 ] && {
+	{ mount|grep "on / type tmpfs" 1>&-; } && {
+		lock /tmp/.switch2jffs
+		firstboot switch2jffs
+		lock -u /tmp/.switch2jffs
+	}
+}
+
+# set leds to normal state
+echo "0x00" > /proc/sys/diag

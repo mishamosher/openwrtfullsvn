@@ -7,7 +7,7 @@ PKG_VERSION:=1.8.3
 PKG_RELEASE:=0
 PKG_MD5SUM:=1d1b1d5c0245b1c00aff92da751e9aa1
 
-PKG_SOURCE_URL:=@GNU/gdbm
+PKG_SOURCE_URL:=http://ftp.gnu.org/gnu/gdbm/
 PKG_SOURCE:=gdbm-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
@@ -18,7 +18,7 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,LIBGDBM,libgdbm,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
@@ -49,7 +49,7 @@ $(PKG_BUILD_DIR)/.configured:
 	);
 	touch $@
 
-$(PKG_BUILD_DIR)/.built:
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -62,15 +62,15 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_LIBGDBM): $(STAGING_DIR)/usr/lib/libgdbm.so
 	install -m0755 -d $(IDIR_LIBGDBM)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgdbm.so.* $(IDIR_LIBGDBM)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libgdbm.so.* $(IDIR_LIBGDBM)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBGDBM)
 	$(IPKG_BUILD) $(IDIR_LIBGDBM) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libgdbm.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/gdbm.h $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/gdbm.h $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgdbm.{a,so*} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libgdbm.{a,so*} $(STAGING_DIR)/usr/lib/
 	touch $(STAGING_DIR)/usr/lib/libgdbm.so
 
 install-dev: $(STAGING_DIR)/usr/lib/libgdbm.so
@@ -79,5 +79,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/include/gdbm.h
 	rm -rf $(STAGING_DIR)/usr/lib/libgdbm.{a,so*}
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

@@ -7,9 +7,9 @@ PKG_VERSION:=1.0.5
 PKG_RELEASE:=1
 PKG_MD5SUM:=00d06fc31e3b8279f6456d25401c81cb
 
-PKG_SOURCE_URL:=ftp://ftp.freeradius.org/pub/radius/ \
-	http://freeradius.portal-to-web.de/ \
-	ftp://ftp.uk.freeradius.org/pub/radius/
+PKG_SOURCE_URL:=ftp://ftp.freeradius.org/pub/radius/old/ \
+	http://freeradius.portal-to-web.de/old/ \
+	ftp://ftp.uk.freeradius.org/pub/radius/old/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
@@ -83,12 +83,12 @@ define PKG_mod_template
 $$(IPKG_$(1)):
 	[ -z "$(2)" ] || install -d -m0755 $$(IDIR_$(1))/usr/lib/freeradius
 	for m in $(2); do \
-		$(CP) $(PKG_INSTALL_DIR)/usr/lib/freeradius/$$$${m}{,-*}.so \
+		cp -fpR $(PKG_INSTALL_DIR)/usr/lib/freeradius/$$$${m}{,-*}.so \
 		  $$(IDIR_$(1))/usr/lib/freeradius/ ; \
 	done
 	[ -z "$(3)" ] || install -d -m0755 $$(IDIR_$(1))/etc/freeradius
 	for f in $(3); do \
-		$(CP) $(PKG_INSTALL_DIR)/etc/freeradius/$$$${f} \
+		cp -fpR $(PKG_INSTALL_DIR)/etc/freeradius/$$$${f} \
 		  $$(IDIR_$(1))/etc/freeradius/ ; \
 	done
 	$(RSTRIP) $$(IDIR_$(1))
@@ -186,29 +186,29 @@ $(IPKG_FREERADIUS):
 	install -m0755 ./files/radiusd.init $(IDIR_FREERADIUS)/etc/init.d/radiusd
 	install -m0755 -d $(IDIR_FREERADIUS)/etc/freeradius
 	for f in clients.conf dictionary radiusd.conf; do \
-		$(CP) $(PKG_INSTALL_DIR)/etc/freeradius/$${f} \
-		  $(IDIR_FREERADIUS)/etc/freeradius/ ; \
+		cp -fpR $(PKG_INSTALL_DIR)/etc/freeradius/$${f} \
+			$(IDIR_FREERADIUS)/etc/freeradius/ ; \
 	done
 	install -m0755 -d $(IDIR_FREERADIUS)/usr/share/freeradius
-	$(CP) $(PKG_INSTALL_DIR)/usr/share/freeradius/dictionary \
+	cp -fpR $(PKG_INSTALL_DIR)/usr/share/freeradius/dictionary \
 		$(IDIR_FREERADIUS)/usr/share/freeradius/
 	for f in cisco freeradius microsoft tunnel wispr; do \
-		$(CP) $(PKG_INSTALL_DIR)/usr/share/freeradius/dictionary.$${f} \
-		  $(IDIR_FREERADIUS)/usr/share/freeradius/ ; \
+		cp -fpR $(PKG_INSTALL_DIR)/usr/share/freeradius/dictionary.$${f} \
+			$(IDIR_FREERADIUS)/usr/share/freeradius/ ; \
 	done
 	install -m0755 -d $(IDIR_FREERADIUS)/usr/lib/freeradius
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/freeradius/libradius{,-*}.so \
-	  $(IDIR_FREERADIUS)/usr/lib/freeradius/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/freeradius/libradius{,-*}.so \
+		$(IDIR_FREERADIUS)/usr/lib/freeradius/
 	install -m0755 -d $(IDIR_FREERADIUS)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/radiusd \
-	  $(IDIR_FREERADIUS)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/radiusd \
+		$(IDIR_FREERADIUS)/usr/sbin/
 	$(RSTRIP) $(IDIR_FREERADIUS)
 	$(IPKG_BUILD) $(IDIR_FREERADIUS) $(PACKAGE_DIR)
 
 $(IPKG_FREERADIUS_DEMOCERTS):
 	install -m0755 -d $(IDIR_FREERADIUS_DEMOCERTS)/etc/freeradius
-	$(CP) $(PKG_INSTALL_DIR)/etc/freeradius/certs \
-	  $(IDIR_FREERADIUS_DEMOCERTS)/etc/freeradius/
+	cp -fpR $(PKG_INSTALL_DIR)/etc/freeradius/certs \
+		$(IDIR_FREERADIUS_DEMOCERTS)/etc/freeradius/
 	rm -rf $(IDIR_FREERADIUS_DEMOCERTS)/etc/freeradius/certs/README
 	rm -rf $(IDIR_FREERADIUS_DEMOCERTS)/etc/freeradius/certs/new*
 	rm -rf $(IDIR_FREERADIUS_DEMOCERTS)/etc/freeradius/certs/demoCA/index*
@@ -218,9 +218,9 @@ $(IPKG_FREERADIUS_DEMOCERTS):
 
 $(IPKG_FREERADIUS_UTILS):
 	install -m0755 -d $(IDIR_FREERADIUS_UTILS)/usr/bin
-	for f in radclient radeapclient; do \
-	  $(CP) $(PKG_INSTALL_DIR)/usr/bin/$${f} \
-	    $(IDIR_FREERADIUS_UTILS)/usr/bin/ ; \
+	for f in radclient radeapclient radtest; do \
+		cp -fpR $(PKG_INSTALL_DIR)/usr/bin/$${f} \
+			$(IDIR_FREERADIUS_UTILS)/usr/bin/ ; \
 	done
 	$(RSTRIP) $(IDIR_FREERADIUS_UTILS)
 	$(IPKG_BUILD) $(IDIR_FREERADIUS_UTILS) $(PACKAGE_DIR)

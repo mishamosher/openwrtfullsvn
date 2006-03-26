@@ -1,7 +1,6 @@
 config BR2_PACKAGE_LIBPTHREAD
-	prompt "libpthread........................ POSIX threads library"
-	tristate
+	tristate "libpthread - POSIX threads library"
 	default m if CONFIG_DEVEL
 	help
 	  POSIX threads library
-
+	  

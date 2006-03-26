@@ -1,5 +1,5 @@
 Package: iptables-mod-ipsec
 Priority: optional
 Section: net
-Depends: iptables, kmod-ipt-ipsec
+Depends: kmod-ipt-ipsec
 Description: Iptables (IPv4) extensions for matching special IPsec packets

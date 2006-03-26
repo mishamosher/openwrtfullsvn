@@ -1,8 +1,5 @@
-menu "busybox........................... The Swiss Army Knife of embedded Linux"
-
 config BR2_PACKAGE_BUSYBOX
-	prompt "busybox........................... The Swiss Army Knife of embedded Linux"
-	bool
+	bool "busybox - The Swiss Army Knife of embedded Linux"
 	default y
 	help
 	  The Swiss Army Knife of embedded Linux.  It slices, it dices, it
@@ -19,14 +16,12 @@ config BR2_PACKAGE_BUSYBOX_SNAPSHOT
 	default n
 	help
 	  Use the latest busybox CVS snapshot instead of release.
-	  
-	  For fun, you should say Y.
 
+	  For fun, you should say Y.
+	  
 menu "Busybox Configuration"
 	depends BR2_PACKAGE_BUSYBOX
 
 source package/busybox/config/Config.in
-
-endmenu
 
 endmenu

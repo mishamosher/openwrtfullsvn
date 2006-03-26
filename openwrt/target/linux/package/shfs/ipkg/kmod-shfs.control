@@ -1,4 +1,4 @@
 Package: kmod-shfs
 Priority: optional
-Section: sys
+Section: net
 Description: SHell FileSystem Linux kernel module

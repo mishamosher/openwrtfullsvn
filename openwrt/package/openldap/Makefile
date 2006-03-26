@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=openldap
-PKG_VERSION:=2.2.29
+PKG_VERSION:=2.2.26
 PKG_RELEASE:=1
-PKG_MD5SUM:=6c4c72a1336aa45b463e738034c078d6
+PKG_MD5SUM:=afc8700b5738da863b30208e1d3e9de8
 
 PKG_SOURCE_URL:=ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release/ \
 	ftp://sunsite.cnlab-switch.ch/mirror/OpenLDAP/openldap-release/ \
@@ -78,7 +78,7 @@ $(PKG_BUILD_DIR)/.built:
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
-		LDFLAGS="-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		ac_cv_func_memcmp_clean="yes" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
@@ -109,26 +109,26 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_LIBOPENLDAP):
 	mkdir -p $(IDIR_LIBOPENLDAP)/etc/openldap
-	$(CP) $(PKG_INSTALL_DIR)/etc/openldap/ldap.conf $(IDIR_LIBOPENLDAP)/etc/openldap/
+	cp -fpR $(PKG_INSTALL_DIR)/etc/openldap/ldap.conf $(IDIR_LIBOPENLDAP)/etc/openldap/
 	mkdir -p $(IDIR_LIBOPENLDAP)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/lib{lber,ldap}*.so.* $(IDIR_LIBOPENLDAP)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/lib{lber,ldap}*.so.* $(IDIR_LIBOPENLDAP)/usr/lib/
 	mkdir -p $(IDIR_LIBOPENLDAP)/usr/share/openldap
-	$(CP) $(PKG_INSTALL_DIR)/usr/share/openldap/* $(IDIR_LIBOPENLDAP)/usr/share/openldap/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/share/openldap/* $(IDIR_LIBOPENLDAP)/usr/share/openldap/
 	$(RSTRIP) $(IDIR_LIBOPENLDAP)
 	$(IPKG_BUILD) $(IDIR_LIBOPENLDAP) $(PACKAGE_DIR)
 	
 $(IPKG_OPENLDAP_UTILS):
 	mkdir -p $(IDIR_OPENLDAP_UTILS)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/ldap* $(IDIR_OPENLDAP_UTILS)/usr/bin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/ldap* $(IDIR_OPENLDAP_UTILS)/usr/bin/
 	$(RSTRIP) $(IDIR_OPENLDAP_UTILS)
 	$(IPKG_BUILD) $(IDIR_OPENLDAP_UTILS) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libldap.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/{lber,ldap}*.h $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/{lber,ldap}*.h $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/lib{lber,ldap}*.{a,so*} $(STAGING_DIR)/usr/lib/
-	touch $@
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/lib{lber,ldap}*.{a,so*} $(STAGING_DIR)/usr/lib/
+	touch $(STAGING_DIR)/usr/lib/libldap.so
 	
 install-dev: $(STAGING_DIR)/usr/lib/libldap.so
 
@@ -136,5 +136,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/include/{lber,ldap}*.h
 	rm -rf $(STAGING_DIR)/usr/lib/lib{lber,ldap}*.{a,so*}
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

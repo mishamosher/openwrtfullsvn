@@ -8,13 +8,17 @@ PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
 include $(TOPDIR)/package/rules.mk
 
-$(eval $(call PKG_template,KMOD_WLCOMPAT,$(PKG_NAME),$(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE))))
-$(eval $(call PKG_template,KMOD_WLCOMPAT_DEBUG,$(PKG_NAME)-debug,$(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE))))
+$(eval $(call PKG_template,KMOD_WLCOMPAT,$(PKG_NAME),$(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(KERNEL_RELEASE))))
+$(eval $(call PKG_template,KMOD_WLCOMPAT_DEBUG,$(PKG_NAME)-debug,$(LINUX_VERSION)-$(BOARD)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(KERNEL_RELEASE))))
+
+ifeq ($(KERNEL_DIR),)
+KERNEL_DIR:=$(LINUX_DIR)
+endif
 
 WLCOMPAT_FLAGS:=$(TARGET_CFLAGS) -D__KERNEL__ -fno-strict-aliasing -fno-common -fomit-frame-pointer -G 0 \
 		-mno-abicalls -fno-pic -finline-limit=100000 -mabi=32 -march=mips32 -Wa,-32 -Wa,-march=mips32 \
 		-Wa,-mips32 -Wa,--trap -DMODULE -mlong-calls -fno-common -I. -I linux-2.4 -funsigned-char -nostdinc \
-		-iwithprefix include -I$(LINUX_DIR)/include -I$(LINUX_DIR)/include/asm/gcc -I$(STAGING_DIR)/usr/include -c
+		-iwithprefix include -I$(KERNEL_DIR)/include -I$(KERNEL_DIR)/include/asm/gcc -I../openwrt/include -c
 
 $(PKG_BUILD_DIR)/.prepared:
 	mkdir -p $(PKG_BUILD_DIR)
@@ -31,13 +35,13 @@ $(PKG_BUILD_DIR)/wlcompat-debug.o: $(PKG_BUILD_DIR)/.prepared
 
 $(IPKG_KMOD_WLCOMPAT): $(PKG_BUILD_DIR)/wlcompat.o
 	mkdir -p $(IDIR_KMOD_WLCOMPAT)/etc/modules.d
-	echo "wlcompat" > $(IDIR_KMOD_WLCOMPAT)/etc/modules.d/30-wlcompat
+	echo "wlcompat" > $(IDIR_KMOD_WLCOMPAT)/etc/modules.d/10-wlcompat
 	mkdir -p $(IDIR_KMOD_WLCOMPAT)/lib/modules/$(LINUX_VERSION)
-	$(CP) $(PKG_BUILD_DIR)/wlcompat.o $(IDIR_KMOD_WLCOMPAT)/lib/modules/$(LINUX_VERSION)/
+	cp $(PKG_BUILD_DIR)/wlcompat.o $(IDIR_KMOD_WLCOMPAT)/lib/modules/$(LINUX_VERSION)/
 	$(IPKG_BUILD) $(IDIR_KMOD_WLCOMPAT) $(PACKAGE_DIR)
 
 $(IPKG_KMOD_WLCOMPAT_DEBUG): $(PKG_BUILD_DIR)/wlcompat-debug.o
 	mkdir -p $(IDIR_KMOD_WLCOMPAT_DEBUG)/lib/modules/$(LINUX_VERSION)
-	$(CP) $(PKG_BUILD_DIR)/wlcompat-debug.o $(IDIR_KMOD_WLCOMPAT_DEBUG)/lib/modules/$(LINUX_VERSION)/
+	cp $(PKG_BUILD_DIR)/wlcompat-debug.o $(IDIR_KMOD_WLCOMPAT_DEBUG)/lib/modules/$(LINUX_VERSION)/
 	$(IPKG_BUILD) $(IDIR_KMOD_WLCOMPAT_DEBUG) $(PACKAGE_DIR)
 

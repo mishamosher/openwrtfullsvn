@@ -20,14 +20,14 @@ PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,LIBLUA,liblua,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
-$(eval $(call PKG_template,LUA,lua,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
-$(eval $(call PKG_template,LUAC,luac,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
+$(eval $(call PKG_template,LUA_INTERPRETER,lua,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
+$(eval $(call PKG_template,LUA_COMPILER,luac,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,LUA_EXAMPLES,lua-examples,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
 $(PKG_BUILD_DIR)/.configured:
 	touch $@
 
-$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
+$(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CROSS)gcc" \
 		LD="$(TARGET_CROSS)ld" \
@@ -57,21 +57,21 @@ $(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 
 $(IPKG_LIBLUA):
 	install -d -m0755 $(IDIR_LIBLUA)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/liblua{,lib}.so.* $(IDIR_LIBLUA)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/liblua{,lib}.so.* $(IDIR_LIBLUA)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBLUA)
 	$(IPKG_BUILD) $(IDIR_LIBLUA) $(PACKAGE_DIR)
 
-$(IPKG_LUA):
-	install -d -m0755 $(IDIR_LUA)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/lua $(IDIR_LUA)/usr/bin/
-	$(RSTRIP) $(IDIR_LUA)
-	$(IPKG_BUILD) $(IDIR_LUA) $(PACKAGE_DIR)
+$(IPKG_LUA_INTERPRETER):
+	install -d -m0755 $(IDIR_LUA_INTERPRETER)/usr/bin
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/lua $(IDIR_LUA_INTERPRETER)/usr/bin/
+	$(RSTRIP) $(IDIR_LUA_INTERPRETER)
+	$(IPKG_BUILD) $(IDIR_LUA_INTERPRETER) $(PACKAGE_DIR)
 
-$(IPKG_LUAC):
-	install -d -m0755 $(IDIR_LUAC)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/luac $(IDIR_LUAC)/usr/bin/
-	$(RSTRIP) $(IDIR_LUAC)
-	$(IPKG_BUILD) $(IDIR_LUAC) $(PACKAGE_DIR)
+$(IPKG_LUA_COMPILER):
+	install -d -m0755 $(IDIR_LUA_COMPILER)/usr/bin
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/luac $(IDIR_LUA_COMPILER)/usr/bin/
+	$(RSTRIP) $(IDIR_LUA_COMPILER)
+	$(IPKG_BUILD) $(IDIR_LUA_COMPILER) $(PACKAGE_DIR)
 
 $(IPKG_LUA_EXAMPLES):
 	install -d -m0755 $(IDIR_LUA_EXAMPLES)/usr/share/lua/examples
@@ -82,10 +82,10 @@ $(IPKG_LUA_EXAMPLES):
 
 $(STAGING_DIR)/usr/lib/liblua.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/lua{,lib}.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/lauxlib.h $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/lua{,lib}.h $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/lauxlib.h $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/liblua{,lib}.{a,so*} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/liblua{,lib}.{a,so*} $(STAGING_DIR)/usr/lib/
 	touch $@
 
 install-dev: $(STAGING_DIR)/usr/lib/liblua.so
@@ -96,5 +96,5 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/include/lauxlib.h \
 		$(STAGING_DIR)/usr/lib/liblua{,lib}.{a,so*} \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

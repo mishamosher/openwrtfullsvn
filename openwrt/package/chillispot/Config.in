@@ -1,6 +1,5 @@
 config BR2_PACKAGE_CHILLISPOT
-	prompt "chillispot........................ Wireless LAN access point controller"
-	tristate
+	tristate "chillispot - Wireless LAN access point controller"
 	default m if CONFIG_DEVEL
 	select BR2_PACKAGE_KMOD_TUN
 	help
@@ -13,4 +12,4 @@ config BR2_PACKAGE_CHILLISPOT
 	  radius server.
 	  
 	  http://www.chillispot.org/
-
+	  

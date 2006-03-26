@@ -18,13 +18,13 @@ include $(TOPDIR)/package/rules.mk
 $(eval $(call PKG_template,WPA_SUPPLICANT,wpa-supplicant,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
 $(PKG_BUILD_DIR)/.configured:
-	$(CP) ./files/config $(PKG_BUILD_DIR)/.config
+	cp -fpR ./files/config $(PKG_BUILD_DIR)/.config
 	touch $@
 
 $(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
-		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include -I$(STAGING_DIR)/usr/include/madwifi" \
+		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include" \
 		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		OPT_FLAGS="$(TARGET_CFLAGS)" \
 		KERNEL=$(LINUX_DIR) \

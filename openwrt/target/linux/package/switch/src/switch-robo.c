@@ -51,7 +51,6 @@
 #define SIOCGETCPHYRD           (SIOCDEVPRIVATE + 9)
 #define SIOCSETCPHYWR           (SIOCDEVPRIVATE + 10)
 
-static char *device;
 static int use_et = 0;
 static int is_5350 = 0;
 static struct ifreq ifr;
@@ -426,18 +425,17 @@ static int handle_reset(void *driver, char *buf, int nr)
 
 static int __init robo_init()
 {
+	char *device = "ethX";
 	int notfound = 1;
 
-	device = strdup("ethX");
 	for (device[3] = '0'; (device[3] <= '3') && notfound; device[3]++) {
 		notfound = robo_probe(device);
 	}
 	device[3]--;
 	
-	if (notfound) {
-		kfree(device);
+	if (notfound)
 		return -ENODEV;
-	} else {
+	else {
 		switch_config cfg[] = {
 			{"enable", handle_enable_read, handle_enable_write},
 			{"enable_vlan", handle_enable_vlan_read, handle_enable_vlan_write},
@@ -467,7 +465,6 @@ static int __init robo_init()
 static void __exit robo_exit()
 {
 	switch_unregister_driver(DRIVER_NAME);
-	kfree(device);
 }
 
 

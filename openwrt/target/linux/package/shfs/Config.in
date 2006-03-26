@@ -1,5 +1,5 @@
 config BR2_PACKAGE_KMOD_SHFS
-	prompt "kmod-shfs......................... Shell FileSystem kernel module (ShFS) kernel module"
+	prompt "kmod-shfs - Shell FileSystem kernel module (ShFS) kernel module"
 	tristate
 	default m if CONFIG_DEVEL
 	help
@@ -20,3 +20,5 @@ config BR2_PACKAGE_KMOD_SHFS
 	   * persistent connection (reconnect after SSH dies) 
 	  
 	  http://shfs.sourceforge.net/
+	  
+	  This package contains the shfs.o kernel module.

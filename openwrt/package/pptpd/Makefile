@@ -59,11 +59,11 @@ $(IPKG_PPTPD):
 	install -d -m0755 $(IDIR_PPTPD)/etc
 	install -m0644 ./files/pptpd.conf $(IDIR_PPTPD)/etc/
 	install -d -m0755 $(IDIR_PPTPD)/etc/init.d
-	install -m0755 ./files/pptpd.init $(IDIR_PPTPD)/etc/init.d/pptpd
+	install -m0755 ./files/pptpd.init $(IDIR_PPTPD)/etc/init.d/S50pptpd
 	install -d -m0755 $(IDIR_PPTPD)/etc/ppp
 	install -m0644 ./files/options.pptpd $(IDIR_PPTPD)/etc/ppp/
 	install -d -m0755 $(IDIR_PPTPD)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/pptpd $(IDIR_PPTPD)/usr/sbin/
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/pptpctrl $(IDIR_PPTPD)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/pptpd $(IDIR_PPTPD)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/pptpctrl $(IDIR_PPTPD)/usr/sbin/
 	$(RSTRIP) $(IDIR_PPTPD)
 	$(IPKG_BUILD) $(IDIR_PPTPD) $(PACKAGE_DIR)

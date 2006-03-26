@@ -21,7 +21,8 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,GLIB1,glib1,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status}; \
 		glib_cv_sizeof_gmutex=24 \
 		ac_cv_sizeof_char=1 \
@@ -47,7 +48,6 @@ $(PKG_BUILD_DIR)/.configured:
 		glib_cv_byte_contents_gmutex="0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0" \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
-		LDFLAGS="-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
 		  --host=$(GNU_TARGET_NAME) \
@@ -71,7 +71,7 @@ $(PKG_BUILD_DIR)/.configured:
 	);
 	touch $@
 
-$(PKG_BUILD_DIR)/.built:
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -81,22 +81,22 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_GLIB1):
 	install -m0755 -d $(IDIR_GLIB1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libg{lib,module,thread}-1.2.so.* $(IDIR_GLIB1)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libg{lib,module,thread}-1.2.so.* $(IDIR_GLIB1)/usr/lib/
 	$(RSTRIP) $(IDIR_GLIB1)
 	$(IPKG_BUILD) $(IDIR_GLIB1) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libglib.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/glib-config $(STAGING_DIR)/usr/bin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/glib-config $(STAGING_DIR)/usr/bin/
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/glib-1.2 $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_BUILD_DIR)/glibconfig-sysdefs.h $(STAGING_DIR)/usr/include/glib-1.2/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/glib-1.2 $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_BUILD_DIR)/glibconfig-sysdefs.h $(STAGING_DIR)/usr/include/glib-1.2/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libg{lib,module,thread}.{a,so} $(STAGING_DIR)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libg{lib,module,thread}-*.so.* $(STAGING_DIR)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/glib $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libg{lib,module,thread}.{a,so} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libg{lib,module,thread}-*.so.* $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/glib $(STAGING_DIR)/usr/lib/
 	mkdir -p $(STAGING_DIR)/usr/lib/pkgconfig
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/g{lib,module,thread}.pc $(STAGING_DIR)/usr/lib/pkgconfig/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/g{lib,module,thread}.pc $(STAGING_DIR)/usr/lib/pkgconfig/
 	touch $(STAGING_DIR)/usr/lib/libglib.so
 
 install-dev: $(STAGING_DIR)/usr/lib/libglib.so
@@ -109,5 +109,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/lib/glib
 	rm -rf $(STAGING_DIR)/usr/lib/pkgconfig/g{lib,module,thread}.pc
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

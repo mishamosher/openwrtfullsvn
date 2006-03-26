@@ -18,7 +18,7 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,LIBPCAP,libpcap,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
@@ -54,7 +54,7 @@ $(PKG_BUILD_DIR)/.configured:
 	);
 	touch $@
 
-$(PKG_BUILD_DIR)/.built:
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -65,15 +65,15 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_LIBPCAP):
 	install -m0755 -d $(IDIR_LIBPCAP)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libpcap.so.* $(IDIR_LIBPCAP)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libpcap.so.* $(IDIR_LIBPCAP)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBPCAP)
 	$(IPKG_BUILD) $(IDIR_LIBPCAP) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libpcap.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/pcap* $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/pcap* $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libpcap.{a,so*} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libpcap.{a,so*} $(STAGING_DIR)/usr/lib/
 	touch $(STAGING_DIR)/usr/lib/libpcap.so
 
 install-dev: $(STAGING_DIR)/usr/lib/libpcap.so
@@ -82,5 +82,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/include/pcap*
 	rm -rf $(STAGING_DIR)/usr/lib/libpcap.{a,so*}
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

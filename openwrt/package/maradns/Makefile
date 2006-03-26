@@ -3,9 +3,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=maradns
-PKG_VERSION:=1.0.35
+PKG_VERSION:=1.0.26
 PKG_RELEASE:=1
-PKG_MD5SUM:=1b2ba196ddde5f545af177b4531e0d70
+PKG_MD5SUM:=b3180ad1f250a4e3820613e711ae159b
 
 PKG_SOURCE_URL:=http://www.maradns.org/download
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
@@ -18,7 +18,7 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,MARADNS,maradns,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		./configure \
@@ -66,8 +66,8 @@ $(IPKG_MARADNS):
 	install -d -m0755 $(IDIR_MARADNS)/etc/init.d
 	install -m0755 ./files/maradns.init $(IDIR_MARADNS)/etc/init.d/S60maradns
 	install -d -m0755 $(IDIR_MARADNS)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/{askmara,getzone} $(IDIR_MARADNS)/usr/bin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/{askmara,getzone} $(IDIR_MARADNS)/usr/bin/
 	install -d -m0755 $(IDIR_MARADNS)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/{maradns,zoneserver} $(IDIR_MARADNS)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/{maradns,zoneserver} $(IDIR_MARADNS)/usr/sbin/
 	$(RSTRIP) $(IDIR_MARADNS)
 	$(IPKG_BUILD) $(IDIR_MARADNS) $(PACKAGE_DIR)

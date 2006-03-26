@@ -1,5 +1,5 @@
 Package: uclibc
 Priority: optional
 Section: net
-Depends: base-files
+Depends: base-files, libgcc
 Description: Standard C library for embedded Linux systems

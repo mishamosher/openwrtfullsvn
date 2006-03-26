@@ -1,6 +1,5 @@
 config BR2_PACKAGE_STRACE
-	prompt "strace............................ System call tracer"
-	tristate
+	tristate "strace - System call tracer"
 	default m if CONFIG_DEVEL
 	help
 	  A useful diagnostic, instructional, and debugging tool.
@@ -8,4 +7,4 @@ config BR2_PACKAGE_STRACE
 	  while it is running.
 	  
 	  http://sourceforge.net/projects/strace/
-
+	  

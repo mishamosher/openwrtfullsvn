@@ -53,16 +53,16 @@ $(PKG_BUILD_DIR)/.built:
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		all install
+		install-exec install-data
 	touch $@
 
 $(IPKG_SIPROXD):
 	install -d -m0755 $(IDIR_SIPROXD)/etc
-	$(CP) $(PKG_INSTALL_DIR)/etc/siproxd.conf.example $(IDIR_SIPROXD)/etc/siproxd.conf
-	$(CP) $(PKG_INSTALL_DIR)/etc/siproxd_passwd.cfg $(IDIR_SIPROXD)/etc/
+	cp -fpR $(PKG_INSTALL_DIR)/etc/siproxd.conf.example $(IDIR_SIPROXD)/etc/siproxd.conf
+	cp -fpR $(PKG_INSTALL_DIR)/etc/siproxd_passwd.cfg $(IDIR_SIPROXD)/etc/
 	install -d -m0755 $(IDIR_SIPROXD)/etc/init.d
 	install -m0755 files/siproxd.init $(IDIR_SIPROXD)/etc/init.d/siproxd
 	install -d -m0755 $(IDIR_SIPROXD)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/siproxd $(IDIR_SIPROXD)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/siproxd $(IDIR_SIPROXD)/usr/sbin/
 	$(RSTRIP) $(IDIR_SIPROXD)
 	$(IPKG_BUILD) $(IDIR_SIPROXD) $(PACKAGE_DIR)

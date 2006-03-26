@@ -2,7 +2,6 @@
 
 name=quagga
 id=51
-dir=/var/run/quagga
 
 # do not change below
 # check if we are on real system
@@ -44,5 +43,3 @@ echo "ospf6d        2606/tcp" >>${IPKG_INSTROOT}/etc/services
 echo "ospfapi       2607/tcp" >>${IPKG_INSTROOT}/etc/services
 echo "isisd         2608/tcp" >>${IPKG_INSTROOT}/etc/services
 fi
-
-chown -R $name:$name $dir

@@ -1,5 +1,5 @@
 Package: iptables-mod-conntrack
 Priority: optional
 Section: net
-Depends: iptables, kmod-ipt-conntrack
+Depends: kmod-ipt-conntrack
 Description: Iptables (IPv4) extensions for connection tracking

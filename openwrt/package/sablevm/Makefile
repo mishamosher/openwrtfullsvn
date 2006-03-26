@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=sablevm
 PKG_VERSION:=1.11.3
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_MD5SUM:=aea6e808c5f2e3646a60971485220bff
 
 PKG_SOURCE_URL:=http://sablevm.org/download/release/$(PKG_VERSION)/
@@ -61,8 +61,8 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_SABLEVM):
 	install -m0755 -d $(IDIR_SABLEVM)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/{java-,}sablevm $(IDIR_SABLEVM)/usr/bin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/{java-,}sablevm $(IDIR_SABLEVM)/usr/bin/
 	install -m0755 -d $(IDIR_SABLEVM)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libsablevm-*.so $(IDIR_SABLEVM)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libsablevm-*.so $(IDIR_SABLEVM)/usr/lib/
 	$(RSTRIP) $(IDIR_SABLEVM)
 	$(IPKG_BUILD) $(IDIR_SABLEVM) $(PACKAGE_DIR)

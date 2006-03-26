@@ -7,7 +7,10 @@ PKG_VERSION:=2.2.0
 PKG_RELEASE:=1
 PKG_MD5SUM:=f1237af0250c59b318bd64a59f5750ea
 
-PKG_SOURCE_URL:=@GNU/osip
+PKG_SOURCE_URL:=http://ftp.gnu.org/gnu/osip/ \
+	ftp://ftp.belnet.be/mirror/ftp.gnu.org/gnu/osip/ \
+	ftp://ftp.mirror.nl/pub/mirror/gnu/osip/ \
+	http://mirror.switch.ch/ftp/mirror/gnu/osip/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
@@ -23,7 +26,7 @@ $(PKG_BUILD_DIR)/.configured:
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(strip $(TARGET_CFLAGS))" \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
-		LDFLAGS="-L$(STAGING_DIR)/lib -L$(STAGING_DIR)/usr/lib" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
 		  --host=$(GNU_TARGET_NAME) \
@@ -65,17 +68,17 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_LIBOSIP2):
 	install -m0755 -d $(IDIR_LIBOSIP2)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libosip{,parser}2.so.* $(IDIR_LIBOSIP2)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libosip{,parser}2.so.* $(IDIR_LIBOSIP2)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBOSIP2)
 	$(IPKG_BUILD) $(IDIR_LIBOSIP2) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libosip2.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/osip{,parser}2 $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/osip{,parser}2 $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libosip{,parser}2.{a,so*} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libosip{,parser}2.{a,so*} $(STAGING_DIR)/usr/lib/
 	mkdir -p $(STAGING_DIR)/usr/lib/pkgconfig
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/libosip2.pc $(STAGING_DIR)/usr/lib/pkgconfig/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/libosip2.pc $(STAGING_DIR)/usr/lib/pkgconfig/
 	touch $@
 
 install-dev: $(STAGING_DIR)/usr/lib/libosip2.so
@@ -86,5 +89,5 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/lib/libosip{,parser}2.{a,so*} \
 		$(STAGING_DIR)/usr/lib/pkgconfig/libosip2.pc \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

@@ -28,14 +28,12 @@ $$(IPKG_$(1)):
 endef
 
 $(eval $(call PKG_template,PPP,ppp,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
-$(eval $(call PKG_template,PPP_MOD_PPPOA,ppp-mod-pppoa,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,PPP_MOD_PPPOE,ppp-mod-pppoe,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,PPP_MOD_RADIUS,ppp-mod-radius,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,CHAT,chat,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,PPPDUMP,pppdump,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,PPPSTATS,pppstats,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(eval $(call PKG_mod_template,PPP_MOD_PPPOA,pppoatm))
 $(eval $(call PKG_mod_template,PPP_MOD_PPPOE,rp-pppoe))
 $(eval $(call PKG_mod_template,PPP_MOD_RADIUS,radius))
 
@@ -103,12 +101,6 @@ $(IPKG_PPP):
 	$(RSTRIP) $(IDIR_PPP)
 	$(IPKG_BUILD) $(IDIR_PPP) $(PACKAGE_DIR)
 	
-$(IDIR_PPP_MOD_PPPOA)/sbin/ifup.pppoa:
-	install -d -m0755 $(IDIR_PPP_MOD_PPPOA)/sbin
-	install -m0755 ./files/ifup.pppoa $(IDIR_PPP_MOD_PPPOA)/sbin/
-
-$(IPKG_PPP_MOD_PPPOA): $(IDIR_PPP_MOD_PPPOA)/sbin/ifup.pppoa
-
 $(IDIR_PPP_MOD_PPPOE)/sbin/ifup.pppoe:
 	install -d -m0755 $(IDIR_PPP_MOD_PPPOE)/sbin
 	install -m0755 ./files/ifup.pppoe $(IDIR_PPP_MOD_PPPOE)/sbin/
@@ -116,6 +108,7 @@ $(IDIR_PPP_MOD_PPPOE)/sbin/ifup.pppoe:
 $(IPKG_PPP_MOD_PPPOE): $(IDIR_PPP_MOD_PPPOE)/sbin/ifup.pppoe
 
 $(IDIR_PPP_MOD_RADIUS)/etc/ppp/radius.conf:
+
 	install -d -m0755 $(IDIR_PPP_MOD_RADIUS)/etc/ppp
 	install -m644 ./files/etc/ppp/radius.conf $(IDIR_PPP_MOD_RADIUS)/etc/ppp/
 	install -d -m0755 $(IDIR_PPP_MOD_RADIUS)/etc/ppp/radius
@@ -128,19 +121,19 @@ $(IPKG_PPP_MOD_RADIUS): $(IDIR_PPP_MOD_RADIUS)/etc/ppp/radius.conf
 
 $(IPKG_CHAT):
 	install -d -m0755 $(IDIR_CHAT)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/chat $(IDIR_CHAT)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/chat $(IDIR_CHAT)/usr/sbin/
 	$(RSTRIP) $(IDIR_CHAT)
 	$(IPKG_BUILD) $(IDIR_CHAT) $(PACKAGE_DIR)
 
 $(IPKG_PPPDUMP):
 	install -d -m0755 $(IDIR_PPPDUMP)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/pppdump $(IDIR_PPPDUMP)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/pppdump $(IDIR_PPPDUMP)/usr/sbin/
 	$(RSTRIP) $(IDIR_PPPDUMP)
 	$(IPKG_BUILD) $(IDIR_PPPDUMP) $(PACKAGE_DIR)
 
 $(IPKG_PPPSTATS): $(IPKG_PPP)
 	install -d -m0755 $(IDIR_PPPSTATS)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/pppstats $(IDIR_PPPSTATS)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/pppstats $(IDIR_PPPSTATS)/usr/sbin/
 	$(RSTRIP) $(IDIR_PPPSTATS)
 	$(IPKG_BUILD) $(IDIR_PPPSTATS) $(PACKAGE_DIR)
 

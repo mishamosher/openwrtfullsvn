@@ -1,9 +1,9 @@
 include $(TOPDIR)/rules.mk
 
-SQUASHFSLZMA_DIR=$(BUILD_DIR)/squashfs3.0
-SQUASHFSLZMA_SOURCE=squashfs3.0.tar.gz
+SQUASHFSLZMA_DIR=$(BUILD_DIR)/squashfs2.1-r2
+SQUASHFSLZMA_SOURCE=squashfs2.1-r2.tar.gz
 SQUASHFSLZMA_SITE=@SF/squashfs
-SQUASHFSLZMA_MD5SUM=9fd05d0bfbb712f5fb95edafea5bc733
+SQUASHFSLZMA_MD5SUM=ffa24eff13b2ca51ed6990d15237e4c1
 
 $(DL_DIR)/$(SQUASHFSLZMA_SOURCE):
 	$(SCRIPT_DIR)/download.pl $(DL_DIR) $(SQUASHFSLZMA_SOURCE) $(SQUASHFSLZMA_MD5SUM) $(SQUASHFSLZMA_SITE)
@@ -17,7 +17,7 @@ $(SQUASHFSLZMA_DIR)/squashfs-tools/mksquashfs-lzma: $(SQUASHFSLZMA_DIR)/.unpacke
 	$(MAKE) -C $(SQUASHFSLZMA_DIR)/squashfs-tools mksquashfs-lzma LZMAPATH=$(BUILD_DIR)/lzma
 
 $(STAGING_DIR)/bin/mksquashfs-lzma: $(SQUASHFSLZMA_DIR)/squashfs-tools/mksquashfs-lzma
-	$(CP) $< $@
+	cp $< $@
 
 source: $(DL_DIR)/$(SQUASHFSLZMA_SOURCE)
 prepare: $(SQUASHFSLZMA_DIR)/.unpacked

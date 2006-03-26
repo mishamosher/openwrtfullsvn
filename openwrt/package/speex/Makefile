@@ -18,12 +18,13 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,LIBSPEEX,libspeex,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured:
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
-		CFLAGS="$(strip $(TARGET_CFLAGS))" \
+		CFLAGS="$(strip $(TARGET_CFLAGS)) -I$(STAGING_DIR)/include -I$(STAGING_DIR)/usr/include" \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
 		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
+		OGG_CFLAGS="" \
 		./configure \
 		--target=$(GNU_TARGET_NAME) \
 		--host=$(GNU_TARGET_NAME) \
@@ -55,23 +56,24 @@ $(PKG_BUILD_DIR)/.built:
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
+		OGG_CFLAGS="" \
 	  	bin_PROGRAMS="" \
 		all install
 	touch $@
 
 $(IPKG_LIBSPEEX):
 	install -d -m0755 $(IDIR_LIBSPEEX)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libspeex.so.* $(IDIR_LIBSPEEX)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libspeex.so.* $(IDIR_LIBSPEEX)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBSPEEX)
 	$(IPKG_BUILD) $(IDIR_LIBSPEEX) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libspeex.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/speex $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/speex $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libspeex.{a,so*} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libspeex.{a,so*} $(STAGING_DIR)/usr/lib/
 	mkdir -p $(STAGING_DIR)/usr/lib/pkgconfig
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/speex.pc $(STAGING_DIR)/usr/lib/pkgconfig/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/speex.pc $(STAGING_DIR)/usr/lib/pkgconfig/
 	touch $@
 
 install-dev: $(STAGING_DIR)/usr/lib/libspeex.so
@@ -82,5 +84,5 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/lib/libspeex.{a,so*} \
 		$(STAGING_DIR)/usr/lib/pkgconfig/speex.pc \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

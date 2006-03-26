@@ -14,12 +14,8 @@ case $1 in
  stop)
   [ -f $PID_F ] && kill $(cat $PID_F)
   ;;
- restart)
-  $0 stop
-  $0 start
-  ;;
  *)
-  echo "usage: $0 (start|stop|restart)"
+  echo "usage: $0 (start|stop)"
   exit 1
 esac
 exit $?

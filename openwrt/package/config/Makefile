@@ -2,7 +2,6 @@
 #
 # Copyright (C) 2002-2004 Erik Andersen <andersen@codepoet.org>
 
-CP=cp -fpR
 
 # Select the compiler needed to build binaries for your development system
 HOSTCC    = gcc
@@ -78,16 +77,16 @@ lex.zconf.o: lex.zconf.c $(SHARED_DEPS)
 	$(HOSTCC) $(HOSTCFLAGS) -I. -c $< -o $@
 
 lex.zconf.c: lex.zconf.c_shipped
-	$(CP) lex.zconf.c_shipped lex.zconf.c
+	cp lex.zconf.c_shipped lex.zconf.c
 
 zconf.tab.o: zconf.tab.c lex.zconf.c confdata.c expr.c symbol.c menu.c $(SHARED_DEPS)
 	$(HOSTCC) $(HOSTCFLAGS) -I. -c $< -o $@
 
 zconf.tab.c: zconf.tab.c_shipped
-	$(CP) zconf.tab.c_shipped zconf.tab.c
+	cp zconf.tab.c_shipped zconf.tab.c
 
 zconf.tab.h: zconf.tab.h_shipped
-	$(CP) zconf.tab.h_shipped zconf.tab.h
+	cp zconf.tab.h_shipped zconf.tab.h
 endif
 
 .PHONY: ncurses

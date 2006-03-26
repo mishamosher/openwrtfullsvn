@@ -1,7 +1,7 @@
 config BR2_PACKAGE_SABLEVM
-	prompt "sablevm........................... A Java Virtual Machine (JVM) implementation"
-	tristate
-	default m if CONFIG_DEVEL
+	tristate "sablevm - A Java Virtual Machine (JVM) implementation"
+#	default m if CONFIG_DEVEL
+	default n
 	select BR2_PACKAGE_LIBFFI_SABLE
 	select BR2_PACKAGE_LIBLTDL
 	select BR2_PACKAGE_LIBPOPT
@@ -14,4 +14,4 @@ config BR2_PACKAGE_SABLEVM
 	  many robustness features that have been the object of careful design.  
 	  
 	  http://sablevm.org/
-
+	  

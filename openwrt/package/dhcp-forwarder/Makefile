@@ -30,7 +30,6 @@ $(PKG_BUILD_DIR)/.configured:
 		  --program-prefix="" \
 		  --program-suffix="" \
 		  --prefix=/usr \
-		  --disable-dietlibc \
 		  --exec-prefix=/usr \
 		  --bindir=/usr/bin \
 		  --datadir=/usr/share \
@@ -44,6 +43,7 @@ $(PKG_BUILD_DIR)/.configured:
 		  --sysconfdir=/etc \
 		  $(DISABLE_LARGEFILE) \
 		  $(DISABLE_NLS) \
+		  --disable-dietlibc \
 	)
 	touch $@
 
@@ -62,6 +62,6 @@ $(IPKG_DHCP_FORWARDER):
 	install -m0755 -d $(IDIR_DHCP_FORWARDER)/etc/init.d
 	install -m0755 ./files/dhcp-fwd.init $(IDIR_DHCP_FORWARDER)/etc/init.d/dhcp-fwd
 	install -m0755 -d $(IDIR_DHCP_FORWARDER)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/dhcp-fwd $(IDIR_DHCP_FORWARDER)/usr/bin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/dhcp-fwd $(IDIR_DHCP_FORWARDER)/usr/bin/
 	$(RSTRIP) $(IDIR_DHCP_FORWARDER)
 	$(IPKG_BUILD) $(IDIR_DHCP_FORWARDER) $(PACKAGE_DIR)

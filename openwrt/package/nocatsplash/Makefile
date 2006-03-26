@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=nocatsplash
 PKG_VERSION:=0.92
-PKG_RELEASE:=1
+PKG_RELEASE:=2
 PKG_MD5SUM:=e0fcc0effe52e63bc31070d16d0b4a81
 
 PKG_SOURCE_URL:=http://wifi.rulez.org/~josephus/
@@ -58,7 +58,7 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_NOCATSPLASH):
 	mkdir -p $(IDIR_NOCATSPLASH)
-	$(CP) $(PKG_INSTALL_DIR)/* $(IDIR_NOCATSPLASH)/ 
+	cp -fpR $(PKG_INSTALL_DIR)/* $(IDIR_NOCATSPLASH)/ 
 	$(RSTRIP) $(IDIR_NOCATSPLASH)
 	$(IPKG_BUILD) $(IDIR_NOCATSPLASH) $(PACKAGE_DIR)
 

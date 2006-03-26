@@ -7,7 +7,10 @@ PKG_VERSION:=4.0.2
 PKG_RELEASE:=1
 PKG_MD5SUM:=ed68ea9b43d9fba0972cb017a24940a1
 
-PKG_SOURCE_URL:=@GNU/screen
+PKG_SOURCE_URL:=http://ftp.gnu.org/gnu/screen \
+	ftp://ftp.belnet.be/mirror/ftp.gnu.org/gnu/screen/ \
+	ftp://ftp.mirror.nl/pub/mirror/gnu/screen/ \
+	http://mirror.switch.ch/ftp/mirror/gnu/screen/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
@@ -18,7 +21,7 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,SCREEN,screen,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-$(PKG_BUILD_DIR)/.configured: 
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		$(foreach flag,rename fchmod fchown strerror lstat _exit utimes vsnprintf getcwd setlocale strftime,ac_cv_func_$(flag)=yes ) \
@@ -50,7 +53,7 @@ $(PKG_BUILD_DIR)/.configured:
 	);
 	touch $@
 
-$(PKG_BUILD_DIR)/.built:
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	$(MAKE) -C $(PKG_BUILD_DIR)
 	touch $@
 

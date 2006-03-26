@@ -1,11 +1,6 @@
 #!/bin/sh
-. /etc/sysconf 2>&-
-
-[ "$FAILSAFE" != "true" ] &&
-[ "$BR2_SYSCONF_TELNET_FAILSAFE_ONLY" = "y" ] &&
+grep '^root:[^!]' /etc/passwd >&- 2>&- &&
 {
-  grep '^root:[^!]' /etc/passwd >&- 2>&- &&
-  {
     echo "Login failed."
     exit 0
   } || {
@@ -15,6 +10,6 @@ cat << EOF
   this will disable telnet and enable SSH
  ------------------------------------------
 EOF
-  }
 }
+
 exec /bin/ash --login

@@ -1,18 +1,21 @@
 # $Id$
 
 include $(TOPDIR)/rules.mk
-include ../../rules.mk
 
-PKG_NAME:=madwifi-ng
-PKG_VERSION:=r1456-20060225
+PKG_NAME:=madwifi
+PKG_VERSION:=r1208-20060106
 PKG_RELEASE:=1
-PKG_MD5SUM:=27ccc5ba2e463fd8bee6da74d717731d
+PKG_MD5SUM:=d475d75d87d3d4ee2f6e8f905f7d0acc
 
-PKG_SOURCE_URL:=http://snapshots.madwifi.org/$(PKG_NAME)
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_SOURCE_URL:=http://snapshots.madwifi.org/madwifi-old
+PKG_SOURCE:=$(PKG_NAME)-old-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-old-$(PKG_VERSION)
+
+ifeq ($(KERNEL_DIR),)
+KERNEL_DIR:=$(LINUX_DIR)
+endif
 
 ifeq ($(ARCH),mips)
 HAL_TARGET:=mips-be-elf
@@ -24,79 +27,30 @@ ifeq ($(ARCH),i386)
 HAL_TARGET:=i386-elf
 endif
 
-BUS := PCI
-
-ifneq ($(BR2_LINUX_2_4_AR531X),)
-	BUS := AHB
-endif
-ifneq ($(BR2_LINUX_2_6_ARUBA),)
-	BUS := PCI AHB	# no suitable HAL for AHB yet.
-endif
-
-BUS_MODULES:=
-ifeq ($(findstring AHB,$(BUS)),AHB)
-BUS_MODULES+=$(PKG_BUILD_DIR)/ath/ath_ahb.$(LINUX_KMOD_SUFFIX)
-endif
-ifeq ($(findstring PCI,$(BUS)),PCI)
-BUS_MODULES+=$(PKG_BUILD_DIR)/ath/ath_pci.$(LINUX_KMOD_SUFFIX)
-endif
-
-
 include $(TOPDIR)/package/rules.mk
 
-$(eval $(call PKG_template,KMOD_MADWIFI,kmod-madwifi,$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE))))
+$(eval $(call PKG_template,KMOD_MADWIFI,kmod-madwifi,$(LINUX_VERSION)$(BOARD)+$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH),kernel ($(LINUX_VERSION)-$(BOARD)-$(KERNEL_RELEASE))))
 
 $(PKG_BUILD_DIR)/.configured:
 	touch $@
 
-MADWIFI_MAKEOPTS= -C $(PKG_BUILD_DIR) \
-		PATH="$(TARGET_PATH)" \
-		ARCH="$(LINUX_KARCH)" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
+$(PKG_BUILD_DIR)/.built:
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		TARGET="$(HAL_TARGET)" \
 		TOOLPREFIX="$(KERNEL_CROSS)" \
-		TOOLPATH="$(KERNEL_CROSS)" \
-		KERNELPATH="$(LINUX_DIR)" \
-		DOMULTI=1
-
-
-$(PKG_BUILD_DIR)/.built:
-ifeq ($(findstring AHB,$(BUS)),AHB)
-	$(MAKE) $(MADWIFI_MAKEOPTS) BUS="AHB" all
-endif
-ifeq ($(findstring PCI,$(BUS)),PCI)
-	$(MAKE) $(MADWIFI_MAKEOPTS) BUS="PCI" all
-endif
-	$(RSTRIP) $(PKG_BUILD_DIR)/tools/madwifi_multi
+		KERNELPATH="$(KERNEL_DIR)"
 	touch $@
 
 $(IPKG_KMOD_MADWIFI):
 	mkdir -p $(IDIR_KMOD_MADWIFI)/etc/modules.d
 	mkdir -p $(IDIR_KMOD_MADWIFI)/etc/init.d
 	mkdir -p $(IDIR_KMOD_MADWIFI)/lib/modules/$(LINUX_VERSION)
-	mkdir -p $(IDIR_KMOD_MADWIFI)/usr/sbin
 	install -m0644 ./files/madwifi.modules $(IDIR_KMOD_MADWIFI)/etc/modules.d/20-madwifi
 	install -m0755 ./files/madwifi.init $(IDIR_KMOD_MADWIFI)/etc/init.d/S20madwifi
-	$(CP)	$(PKG_BUILD_DIR)/net80211/wlan*.$(LINUX_KMOD_SUFFIX) \
-		$(PKG_BUILD_DIR)/ath_hal/ath_hal.$(LINUX_KMOD_SUFFIX) \
-		$(BUS_MODULES) \
-		$(PKG_BUILD_DIR)/ath_rate/sample/ath_rate_sample.$(LINUX_KMOD_SUFFIX) \
-		$(PKG_BUILD_DIR)/net80211/*.$(LINUX_KMOD_SUFFIX) \
+	cp -fpR $(PKG_BUILD_DIR)/net80211/wlan*.o \
+		$(PKG_BUILD_DIR)/ath_hal/ath_hal.o \
+		$(PKG_BUILD_DIR)/ath_rate/sample/ath_rate_sample.o \
+		$(PKG_BUILD_DIR)/ath/ath_pci.o \
 		$(IDIR_KMOD_MADWIFI)/lib/modules/$(LINUX_VERSION)/
-	$(CP) $(PKG_BUILD_DIR)/tools/{madwifi_multi,80211debug,80211stats,athchans,athctrl,athdebug,athkey,athstats,wlanconfig} $(IDIR_KMOD_MADWIFI)/usr/sbin/
 	$(IPKG_BUILD) $(IDIR_KMOD_MADWIFI) $(PACKAGE_DIR)
 
-$(STAGING_DIR)/usr/include/madwifi/net80211/ieee80211.h: $(PKG_BUILD_DIR)/.built
-	mkdir -p $(STAGING_DIR)/usr/include/madwifi
-	$(CP) $(PKG_BUILD_DIR)/include $(STAGING_DIR)/usr/include/madwifi/
-	mkdir -p $(STAGING_DIR)/usr/include/madwifi/net80211
-	$(CP) $(PKG_BUILD_DIR)/net80211/*.h $(STAGING_DIR)/usr/include/madwifi/net80211/
-	touch $@
-
-install-dev: $(STAGING_DIR)/usr/include/madwifi/net80211/ieee80211.h
-
-uninstall-dev:
-	rm -rf $(STAGING_DIR)/usr/include/madwifi
-
-compile-targets: install-dev
-clean-targets: uninstall-dev

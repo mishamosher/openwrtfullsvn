@@ -18,6 +18,8 @@ include $(TOPDIR)/package/rules.mk
 
 $(eval $(call PKG_template,LIBELF,libelf,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
+.NOTPARALLEL:
+
 $(PKG_BUILD_DIR)/.configured:
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
@@ -67,15 +69,15 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_LIBELF):
 	install -d -m0755 $(IDIR_LIBELF)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libelf.so.* $(IDIR_LIBELF)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libelf.so.* $(IDIR_LIBELF)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBELF)
 	$(IPKG_BUILD) $(IDIR_LIBELF) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libelf.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/libelf* $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/libelf* $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libelf.{a,so*} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libelf.{a,so*} $(STAGING_DIR)/usr/lib/
 
 install-dev: $(STAGING_DIR)/usr/lib/libelf.so
 
@@ -83,5 +85,5 @@ uninstall-dev:
 	rm -rf $(STAGING_DIR)/usr/include/libelf*
 	rm -rf $(STAGING_DIR)/usr/lib/libelf.{a,so*}
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev

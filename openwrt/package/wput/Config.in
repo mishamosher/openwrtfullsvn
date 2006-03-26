@@ -1,9 +1,9 @@
 config BR2_PACKAGE_WPUT
-	prompt "wput.............................. A wget-like command-line FTP client"
-	tristate
+	tristate "wput - A wget-like command-line FTP client"
 	default m if CONFIG_DEVEL
 	help
 	  A wget-like command-line FTP client.
 	  
 	  http://itooktheredpill.dyndns.org/wput/
+	  
 

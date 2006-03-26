@@ -1,26 +1,16 @@
-menu "iptables.......................... IPv4 / IPv6 firewall administration"
-
-config BR2_COMPILE_IPTABLES
-	bool
-	default n
-	depends BR2_PACKAGE_IPTABLES || BR2_PACKAGE_IP6TABLES
-
 config BR2_PACKAGE_IPTABLES
-	prompt "iptables.......................... IPv4 firewall administration tool"
-	tristate
+	tristate "iptables - IPv4 firewall administration tool"
 	default y
-	select BR2_COMPILE_IPTABLES
 	help
-	  IPv4 firewall, NAT, and packet mangling tools.
+	  Linux kernel (2.4+) firewall, NAT, and packet mangling tools.
 	  
 	  http://www.iptables.org/
 
 config BR2_PACKAGE_IPTABLES_EXTRA
-	prompt   "iptables-extra.................. Extra Iptables extensions for IPv4 firewalling (meta-package)"
-	tristate
+	tristate "iptables-extra - Extra Iptables extensions for IPv4 firewalling (meta-package)"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
-	select BR2_PACKAGE_KMOD_IPTABLES_EXTRA
+	select BR2_PACKAGE_KMOD_IPT_EXTRA
 	select BR2_PACKAGE_IPTABLES_MOD_CONNTRACK
 	select BR2_PACKAGE_IPTABLES_MOD_EXTRA
 	select BR2_PACKAGE_IPTABLES_MOD_FILTER
@@ -33,8 +23,7 @@ config BR2_PACKAGE_IPTABLES_EXTRA
 	  Extra Iptables extensions for IPv4 firewalling (meta-package)
 
 config BR2_PACKAGE_IPTABLES_MOD_CONNTRACK
-	prompt   "iptables-mod-conntrack.......... Iptables extensions for connection tracking"
-	tristate
+	tristate "iptables-mod-conntrack - Iptables extensions for connection tracking"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
 	select BR2_PACKAGE_KMOD_IPT_CONNTRACK
@@ -45,10 +34,24 @@ config BR2_PACKAGE_IPTABLES_MOD_CONNTRACK
             * libipt_conntrack
             * libipt_helper
             * libipt_connmark/CONNMARK
+  
+config BR2_PACKAGE_IPTABLES_MOD_EXTRA
+	tristate "iptables-mod-extra - Other extra Iptables extensions"
+	default m if CONFIG_DEVEL
+	depends BR2_PACKAGE_IPTABLES
+	select BR2_PACKAGE_KMOD_IPT_EXTRA
+	help
+	  Other extra Iptables (IPv4) extensions
+
+	  Includes:
+            * libipt_limit
+            * libipt_owner
+            * libipt_physdev
+            * libipt_pkttype
+            * libipt_recent
 
 config BR2_PACKAGE_IPTABLES_MOD_FILTER
-	prompt   "iptables-mod-filter............. Iptables extension for packet content inspection"
-	tristate
+	tristate "iptables-mod-filter - Iptables extension for packet content inspection"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
 	select BR2_PACKAGE_KMOD_IPT_FILTER
@@ -59,21 +62,8 @@ config BR2_PACKAGE_IPTABLES_MOD_FILTER
             * libipt_ipp2p
             * libipt_layer7
 
-config BR2_PACKAGE_IPTABLES_MOD_IMQ
-       	prompt "iptables-mod-imq................ Iptables extensions for Intermediate Queuing Device QoS-support"
-       	tristate
-       	default m if CONFIG_DEVEL
-       	depends BR2_PACKAGE_IPTABLES
-       	select BR2_PACKAGE_KMOD_IMQ
-       	help
-          Iptables (IPv4) extensions for Intermediate Queuing Device QoS-support
-
-          Includes:
-            * libipt_IMQ
-
 config BR2_PACKAGE_IPTABLES_MOD_IPOPT
-	prompt   "iptables-mod-ipopt.............. Iptables extensions for matching/changing IP packet options"
-	tristate
+	tristate "iptables-mod-ipopt - Iptables extensions for matching/changing IP packet options"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
 	select BR2_PACKAGE_KMOD_IPT_IPOPT
@@ -91,8 +81,7 @@ config BR2_PACKAGE_IPTABLES_MOD_IPOPT
             * libipt_unclean
 
 config BR2_PACKAGE_IPTABLES_MOD_IPSEC
-	prompt   "iptables-mod-ipsec.............. Iptables extensions for matching special IPsec packets"
-	tristate
+	tristate "iptables-mod-ipsec - Iptables extensions for matching special IPsec packets"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
 	select BR2_PACKAGE_KMOD_IPT_IPSEC
@@ -104,8 +93,7 @@ config BR2_PACKAGE_IPTABLES_MOD_IPSEC
             * libipt_esp
 
 config BR2_PACKAGE_IPTABLES_MOD_NAT
-	prompt   "iptables-mod-nat................ Iptables extensions for different NAT targets"
-	tristate
+	tristate "iptables-mod-nat - Iptables extensions for different NAT targets"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
 	select BR2_PACKAGE_KMOD_IPT_NAT
@@ -115,53 +103,38 @@ config BR2_PACKAGE_IPTABLES_MOD_NAT
 	  Includes:
 	    * libipt_REDIRECT
 
+config BR2_PACKAGE_IPTABLES_MOD_IMQ
+       tristate "iptables-mod-imq - Iptables extensions for Intermediate Queuing Device QoS-support"
+       default m if CONFIG_DEVEL
+       depends BR2_PACKAGE_IPTABLES
+       select BR2_PACKAGE_KMOD_IMQ
+       help
+         Iptables (IPv4) extensions for Intermediate Queuing Device QoS-support
+
 config BR2_PACKAGE_IPTABLES_MOD_ULOG
-	prompt   "iptables-mod-ulog............... Iptables extensions for user-space packet logging"
-	tristate
+	tristate "iptables-mod-ulog - Iptables extensions for user-space packet logging"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
 	select BR2_PACKAGE_KMOD_IPT_ULOG
 	help
 	  Iptables (IPv4) extensions for user-space packet logging
-
-          Includes:
-            * libipt_ULOG
-
-config BR2_PACKAGE_IPTABLES_MOD_EXTRA
-	prompt   "iptables-mod-extra.............. Other extra Iptables extensions"
-	tristate
-	default m if CONFIG_DEVEL
-	depends BR2_PACKAGE_IPTABLES
-	select BR2_PACKAGE_KMOD_IPT_EXTRA
-	help
-	  Other extra Iptables (IPv4) extensions
-
-          Includes:
-            * libipt_limit
-            * libipt_owner
-            * libipt_physdev
-            * libipt_pkttype
-            * libipt_recent
+	  
+	  Includes:
+	  * libipt_ULOG
 
 config BR2_PACKAGE_IPTABLES_UTILS
-	prompt   "iptables-utils.................. Save and restore utilities"
-	tristate
+	tristate "iptables-utils - Save and restore utilities"
 	default m if CONFIG_DEVEL
 	depends BR2_PACKAGE_IPTABLES
 	help
 	  iptables-save and iptables-restore for Iptables (IPv4)
-	  
-	  http://www.iptables.org/
 
 config BR2_PACKAGE_IP6TABLES
-	prompt "ip6tables......................... IPv6 firewall administration tool"
-	tristate
+	tristate "ip6tables - IPv6 firewall administration tool"
 	default m if CONFIG_DEVEL
-	select BR2_COMPILE_IPTABLES
+	depends BR2_PACKAGE_IPTABLES
 	select BR2_PACKAGE_KMOD_IPV6
 	help
-	  IPv6 firewall, NAT, and packet mangling tools.
-	  
-	  http://www.iptables.org/
+	  IPv6 firewalling
 
-endmenu
+

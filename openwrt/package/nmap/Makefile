@@ -23,10 +23,10 @@ $(PKG_BUILD_DIR)/.configured:
 		$(TARGET_CONFIGURE_OPTS) \
 		libpcapdir="$(STAGING_DIR)/usr/lib" \
 		CFLAGS="$(TARGET_CFLAGS)" \
-		CXXFLAGS="$(TARGET_CFLAGS) -fno-builtin -fno-rtti -nostdinc++" \
+		CXXFLAGS="$(TARGET_CFLAGS) -fno-builtin -nostdinc++" \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include" \
-		LDFLAGS="-nodefaultlibs -L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
-		LIBS="-luClibc++ -lc -lm -lgcc" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
+		LIBS="-nodefaultlibs -luClibc++ -lc -lm -lgcc" \
 		ac_cv_prog_CXX="$(TARGET_CXX)" \
 		./configure \
 		  --target=$(GNU_TARGET_NAME) \
@@ -67,10 +67,10 @@ $(PKG_BUILD_DIR)/.built:
 $(IPKG_NMAP):
 	install -d -m0755 $(IDIR_NMAP)/usr/share/nmap
 	for file in mac-prefixes os-fingerprints protocols rpc service-probes services; do \
-		$(CP) $(PKG_INSTALL_DIR)/usr/share/nmap/nmap-$$file $(IDIR_NMAP)/usr/share/nmap; \
+		cp -fpR $(PKG_INSTALL_DIR)/usr/share/nmap/nmap-$$file $(IDIR_NMAP)/usr/share/nmap; \
 	done
 	install -d -m0755 $(IDIR_NMAP)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/nmap $(IDIR_NMAP)/usr/bin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/nmap $(IDIR_NMAP)/usr/bin/
 	$(RSTRIP) $(IDIR_NMAP)
 	$(IPKG_BUILD) $(IDIR_NMAP) $(PACKAGE_DIR)
 

@@ -25,41 +25,41 @@ $(PKG_BUILD_DIR)/.configured:
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)"  \
-		CXXFLAGS="$(TARGET_CFLAGS) -fno-builtin -fno-rtti -nostdinc++"  \
-		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include -I$(LINUX_DIR)/include" \
-		LDFLAGS="-nodefaultlibs -L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
-		LIBS="-luClibc++ -lc -lm -lgcc" \
+		CXXFLAGS="$(TARGET_CFLAGS) -I$(STAGING_DIR)/usr/include  -fno-builtin -nostdinc++ -nodefaultlibs"  \
+		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(LINUX_DIR)/include" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		./configure \
-			--target=$(GNU_TARGET_NAME) \
-			--host=$(GNU_TARGET_NAME) \
-			--build=$(GNU_HOST_NAME) \
-			--program-prefix="" \
-			--program-suffix="" \
-			--prefix=/usr \
-			--exec-prefix=/usr \
-			--bindir=/usr/bin \
-			--datadir=/usr/share \
-			--includedir=/usr/include \
-			--infodir=/usr/share/info \
-			--libdir=/usr/lib \
-			--libexecdir=/usr/lib \
-			--localstatedir=/var \
-			--mandir=/usr/share/man \
-			--sbindir=/usr/sbin \
-			--sysconfdir=/etc/kismet \
-			$(DISABLE_LARGEFILE) \
-			$(DISABLE_NLS) \
-			--enable-syspcap=yes \
-			--disable-setuid \
-			--disable-wsp100 \
-			--disable-gpsmap \
+		  --target=$(GNU_TARGET_NAME) \
+		  --host=$(GNU_TARGET_NAME) \
+		  --build=$(GNU_HOST_NAME) \
+		  --program-prefix="" \
+		  --program-suffix="" \
+		  --prefix=/usr \
+		  --exec-prefix=/usr \
+		  --bindir=/usr/bin \
+		  --datadir=/usr/share \
+		  --includedir=/usr/include \
+		  --infodir=/usr/share/info \
+		  --libdir=/usr/lib \
+		  --libexecdir=/usr/lib \
+		  --localstatedir=/var \
+		  --mandir=/usr/share/man \
+		  --sbindir=/usr/sbin \
+		  --sysconfdir=/etc/kismet \
+		  $(DISABLE_LARGEFILE) \
+		  $(DISABLE_NLS) \
+		  --enable-syspcap=yes \
+		  --disable-setuid \
+		  --disable-wsp100 \
+		  --disable-gpsmap \
 	);
 	touch $@
 
 $(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		LIBS="-luClibc++ -lc -lm -lgcc" \
-		all
+		CC=$(TARGET_CC) \
+		LIBS="-L$(STAGING_DIR)/lib -fno-builtin -nostdinc++ -nodefaultlibs -luClibc++ -lc -lm -lgcc" \
+		CPPFLAGS="-I$(STAGING_DIR)/include -I$(STAGING_DIR)/usr/include -I$(LINUX_DIR)/include" 
 	touch $@
 
 $(IPKG_KISMET):
@@ -74,7 +74,7 @@ $(IPKG_KISMET_CLIENT):
 	install -m0644 ./files/kismet.conf $(IDIR_KISMET_CLIENT)/etc/kismet/
 	install -m0644 ./files/kismet_ui.conf $(IDIR_KISMET_CLIENT)/etc/kismet/
 	install -d -m0755 $(IDIR_KISMET_CLIENT)/usr/bin
-	$(CP) $(PKG_BUILD_DIR)/kismet_client $(IDIR_KISMET_CLIENT)/usr/bin/
+	cp -fpR $(PKG_BUILD_DIR)/kismet_client $(IDIR_KISMET_CLIENT)/usr/bin/
 	$(RSTRIP) $(IDIR_KISMET_CLIENT)
 	$(IPKG_BUILD) $(IDIR_KISMET_CLIENT) $(PACKAGE_DIR)
 
@@ -82,7 +82,7 @@ $(IPKG_KISMET_DRONE):
 	install -d -m0755 $(IDIR_KISMET_DRONE)/etc/kismet/
 	install -m0644 ./files/kismet_drone.conf $(IDIR_KISMET_DRONE)/etc/kismet/
 	install -d -m0755 $(IDIR_KISMET_DRONE)/usr/bin
-	$(CP) $(PKG_BUILD_DIR)/kismet_drone $(IDIR_KISMET_DRONE)/usr/bin/
+	cp -fpR $(PKG_BUILD_DIR)/kismet_drone $(IDIR_KISMET_DRONE)/usr/bin/
 	$(RSTRIP) $(IDIR_KISMET_DRONE)
 	$(IPKG_BUILD) $(IDIR_KISMET_DRONE) $(PACKAGE_DIR)
 
@@ -92,7 +92,7 @@ $(IPKG_KISMET_SERVER):
 	install -m0644 ./files/client_manuf $(IDIR_KISMET_SERVER)/etc/kismet/
 	install -m0644 ./files/kismet.conf $(IDIR_KISMET_SERVER)/etc/kismet/
 	mkdir -p $(IDIR_KISMET_SERVER)/usr/bin
-	$(CP)  $(PKG_BUILD_DIR)/kismet_server $(IDIR_KISMET_SERVER)/usr/bin/
+	cp -fpR  $(PKG_BUILD_DIR)/kismet_server $(IDIR_KISMET_SERVER)/usr/bin/
 	$(RSTRIP) $(IDIR_KISMET_SERVER)
 	$(IPKG_BUILD) $(IDIR_KISMET_SERVER) $(PACKAGE_DIR)
 

@@ -1,53 +1,28 @@
-menu "openvpn........................... Open source VPN solution using SSL"
-
 config BR2_PACKAGE_OPENVPN
-	prompt "openvpn........................... Open source VPN solution using SSL"
-	tristate
+	tristate "openvpn - Open source VPN solution using SSL"
 	default m if CONFIG_DEVEL
 	select BR2_PACKAGE_KMOD_TUN
+	select BR2_PACKAGE_LIBOPENSSL
 	help
 	  Open Source VPN solution using SSL
 	  
 	  http://openvpn.net/
 	  
-	  Depends: kmod-tun, libpthread
+	  Depends: kmod-tun, libpthread, openssl
+	  
 
-config BR2_COMPILE_OPENVPN_WITH_SERVER
-	prompt "Enable server support"
-	bool
+config BR2_PACKAGE_OPENVPN_SERVER
+	bool "Enable server support"
 	default y
 	depends BR2_PACKAGE_OPENVPN
 
-config BR2_COMPILE_OPENVPN_WITH_HTTP
-	prompt "Enable http proxy support"
-	bool
+config BR2_PACKAGE_OPENVPN_HTTP
+	bool "Enable http proxy support"
 	default y
 	depends BR2_PACKAGE_OPENVPN
 
-config BR2_COMPILE_OPENVPN_WITH_OPENSSL
-	prompt "Enable openssl support"
-	bool
-	default y
-	depends BR2_PACKAGE_OPENVPN
-	select BR2_PACKAGE_LIBOPENSSL
-
-config BR2_COMPILE_OPENVPN_WITH_LZO
-	prompt "Enable transparent compression (lzo)"
-	bool
+config BR2_PACKAGE_OPENVPN_LZO
+	bool "Enable transparent compression (lzo)"
 	default y
 	depends BR2_PACKAGE_OPENVPN
 	select BR2_PACKAGE_LIBLZO
-
-config BR2_COMPILE_OPENVPN_WITH_PASSWORD_SAVE
-	prompt "Enable password saving"
-	bool
-	default y
-	depends BR2_PACKAGE_OPENVPN
-
-config BR2_COMPILE_OPENVPN_WITH_SMALL
-	prompt "Enable smaller executable size (disable OCC, usage message, and verb 4 parm list)"
-	bool
-	default n
-	depends BR2_PACKAGE_OPENVPN
-
-endmenu

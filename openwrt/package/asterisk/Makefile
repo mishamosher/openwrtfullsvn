@@ -3,11 +3,11 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=asterisk
-PKG_VERSION:=1.2.1
+PKG_VERSION:=1.0.10
 PKG_RELEASE:=1
-PKG_MD5SUM:=04657086791e80f319c0d728af705001
+PKG_MD5SUM:=f60f4c4edc36fa61dc55a5385fd82e71
 
-PKG_SOURCE_URL:=http://ftp.digium.com/pub/asterisk/old-releases/ ftp://ftp.digium.com/pub/asterisk/old-releases/
+PKG_SOURCE_URL:=http://ftp.digium.com/pub/asterisk/ ftp://ftp.digium.com/pub/asterisk/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
@@ -19,11 +19,8 @@ $(eval $(call PKG_template,ASTERISK,asterisk,$(PKG_VERSION)-$(PKG_RELEASE),$(ARC
 $(eval $(call PKG_template,ASTERISK_MINI,asterisk-mini,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_MYSQL,asterisk-mysql,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_PGSQL,asterisk-pgsql,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
-$(eval $(call PKG_template,ASTERISK_SQLITE,asterisk-sqlite,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_VOICEMAIL,asterisk-voicemail,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_SOUNDS,asterisk-sounds,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
-$(eval $(call PKG_template,ASTERISK_CHAN_BLUETOOTH,asterisk-chan-bluetooth,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
-$(eval $(call PKG_template,ASTERISK_CHAN_H323,asterisk-chan-h323,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_CHAN_MGCP,asterisk-chan-mgcp,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_CHAN_SKINNY,asterisk-chan-skinny,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_CODEC_ILBC,asterisk-codec-ilbc,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
@@ -32,82 +29,59 @@ $(eval $(call PKG_template,ASTERISK_CODEC_SPEEX,asterisk-codec-speex,$(PKG_VERSI
 $(eval $(call PKG_template,ASTERISK_PBX_DUNDI,asterisk-pbx-dundi,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 $(eval $(call PKG_template,ASTERISK_RES_AGI,asterisk-res-agi,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-EXTRA_CFLAGS := -I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include
-EXTRA_LDFLAGS := -L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib
-
+ifneq ($(DEVELOPER),)
+APPS:=app_sql_mysql.so app_sql_postgres.so
+MODS:=cdr_mysql.so cdr_pgsql.so
+SPEEX:=codec_speex.so
+else
+APPS:=
+MODS:=
 ifneq ($(BR2_PACKAGE_ASTERISK_MYSQL),)
-EXTRA_CFLAGS += -I$(STAGING_DIR)/usr/include/mysql
-EXTRA_LDFLAGS += -L$(STAGING_DIR)/usr/lib/mysql
-EXTRA_APP_MODULES += app_sql_mysql.so
-EXTRA_CDR_MODULES += cdr_mysql.so
-EXTRA_RES_MODULES += res_config_mysql.so
+APPS += app_sql_mysql.so
+MODS += cdr_mysql.so
 endif
 ifneq ($(BR2_PACKAGE_ASTERISK_PGSQL),)
-EXTRA_APP_MODULES += app_sql_postgres.so
-EXTRA_CDR_MODULES += cdr_pgsql.so
-endif
-ifneq ($(BR2_PACKAGE_ASTERISK_SQLITE),)
-EXTRA_CDR_MODULES += cdr_sqlite.so
+APPS += app_sql_postgres.so
+MODS += cdr_pgsql.so
 endif
 ifneq ($(BR2_PACKAGE_ASTERISK_CODEC_SPEEX),)
-EXTRA_CFLAGS += -I$(STAGING_DIR)/usr/include/speex
-EXTRA_CODEC_MODULES += codec_speex.so
+SPEEX:=codec_speex.so
+endif
 endif
 
 $(PKG_BUILD_DIR)/.configured:
 	touch $@
 
 $(PKG_BUILD_DIR)/.built:
-	(cd $(PKG_BUILD_DIR)/channels/h323/ ; \
-		$(MAKE) \
-		CROSS_ARCH="Linux" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		CROSS_COMPILE_BIN="/void/" \
-		CROSS_COMPILE_TARGET="/void/" \
-		$(TARGET_CONFIGURE_OPTS) \
-		HOST_CC="$(HOSTCC)" \
-		OPTIMIZE="$(TARGET_CFLAGS)" \
-		PROC="$(ARCH)" \
-		DEBUG="" \
-		OPTIONS="-DLOW_MEMORY -Dlinux" \
-		OPENH323DIR=$(BUILD_DIR)/openh323-cvs-20051230 \
-		opt ; \
-	);
+	$(MAKE) -C "$(PKG_BUILD_DIR)/channels" \
+		CC="$(HOSTCC)" \
+		gentone 
 	$(MAKE) -C "$(PKG_BUILD_DIR)" \
-		CROSS_ARCH="Linux" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		CROSS_COMPILE_BIN="/void/" \
-		CROSS_COMPILE_TARGET="/void/" \
+		CC_FOR_BUILD="$(HOSTCC)" \
 		$(TARGET_CONFIGURE_OPTS) \
-		HOST_CC="$(HOSTCC)" \
 		OPTIMIZE="$(TARGET_CFLAGS)" \
 		PROC="$(ARCH)" \
-		DEBUG="" \
-		OPTIONS="-DLOW_MEMORY -Dlinux" \
-		NOCRYPTO="yes" \
-		EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
-		EXTRA_LDFLAGS="$(EXTRA_LDFLAGS)" \
-		EXTRA_APP_MODULES="$(EXTRA_APP_MODULES)" \
-		EXTRA_CDR_MODULES="$(EXTRA_CDR_MODULES)" \
-		EXTRA_CODEC_MODULES="$(EXTRA_CODEC_MODULES)" \
-		EXTRA_RES_MODULES="$(EXTRA_RES_MODULES)" \
+		CFLAGS_EXTRA="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/usr/include/speex" \
+		LDFLAGS_EXTRA="-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/usr/lib/mysql" \
+		CRYPTO_LIBS="-L$(STAGING_DIR)/usr/lib -Wl,-Bstatic -lssl -lcrypto -Wl,-Bdynamic" \
+		EXTRA_APPS="$(APPS)" \
+		EXTRA_MODS="$(MODS)" \
+		MODSPEEX="$(SPEEX)"
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		ASTVARLIBDIR="/usr/lib/asterisk" \
-		OPENH323DIR=$(BUILD_DIR)/openh323-cvs-20051230 \
-		PWLIBDIR=$(BUILD_DIR)/pwlib \
-		all install samples
+		install samples
 	rm -f $(PKG_INSTALL_DIR)/etc/asterisk/*.old
 	touch $@
 
 $(IPKG_ASTERISK):
-	$(CP) $(PKG_INSTALL_DIR)/* $(IDIR_ASTERISK)
+	cp -fpR $(PKG_INSTALL_DIR)/* $(IDIR_ASTERISK)
 	rm -rf $(IDIR_ASTERISK)/usr/sbin/astgenkey
 	rm -rf $(IDIR_ASTERISK)/usr/bin
 	rm -rf $(IDIR_ASTERISK)/usr/share
 	rm -rf $(IDIR_ASTERISK)/usr/include
 	rm -rf $(IDIR_ASTERISK)/var
 	(cd $(IDIR_ASTERISK)/usr/lib/asterisk; \
-		rm -rf agi-bin; \
+		rm -rf agi-bin/*; \
 		rm -rf images; \
 		rm -rf keys/*; \
 		rm -rf mohmp3/*.mp3; \
@@ -116,7 +90,6 @@ $(IPKG_ASTERISK):
 		rm -rf	*adsi* *festival* *modem* *meetme* *oss* *phone* *intercom* \
 			*mp3* *nbscat* *mysql* *postgres* *pgsql* *voicemail* *speex* \
 			*zapateller* *jpeg*; \
-		rm -f chan_bluetooth.so ; \
 		rm -f chan_mgcp.so ; \
 		rm -f chan_skinny.so ; \
 		rm -f {codec,format}_ilbc.so ; \
@@ -128,13 +101,12 @@ $(IPKG_ASTERISK):
 		rm -f 	*odbc* *mysql* *postgres* *pgsql* *voicemail* *adsi* *oss* *alsa* \
 			*festival* *modem* *meetme* *phone* *tds* *vofr* *rpt* *vpb* \
 			*zapata*; \
-		rm -f bluetooth.conf ; \
 		rm -f mgcp.conf ; \
 		rm -f skinny.conf ; \
 		rm -f dundi.conf ; \
 	)
+	$(SED) 's|/var/lib/asterisk|/usr/lib/asterisk|g' $(IDIR_ASTERISK)/etc/asterisk/musiconhold.conf
 	install -m0644 ./files/modules.conf $(IDIR_ASTERISK)/etc/asterisk/
-	$(SED) 's|/var/lib/asterisk|/usr/lib/asterisk|g' $(PKG_INSTALL_DIR)/etc/asterisk/musiconhold.conf
 	install -d -m0755 $(IDIR_ASTERISK)/etc/default
 	install -m0644  ./files/asterisk.default $(IDIR_ASTERISK)/etc/default/asterisk
 	install -d -m0755 $(IDIR_ASTERISK)/etc/init.d
@@ -146,23 +118,23 @@ $(IPKG_ASTERISK):
 $(IPKG_ASTERISK_MINI):
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/etc/asterisk
 	for f in asterisk enum extconfig extensions features iax iaxprov logger manager modules musiconhold rtp sip; do \
-	  $(CP) $(PKG_INSTALL_DIR)/etc/asterisk/$$f.conf $(IDIR_ASTERISK_MINI)/etc/asterisk/ ; \
+	  cp -fpR $(PKG_INSTALL_DIR)/etc/asterisk/$$f.conf $(IDIR_ASTERISK_MINI)/etc/asterisk/ ; \
 	done
 	install -m0644 ./files/modules.conf $(IDIR_ASTERISK)/etc/asterisk/
 	$(SED) 's|/var/lib/asterisk|/usr/lib/asterisk|g' $(PKG_INSTALL_DIR)/etc/asterisk/musiconhold.conf
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/usr/lib/asterisk
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/asterisk/firmware $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/asterisk/firmware $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/keys
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/modules
 	for f in chan_iax2 chan_local chan_sip codec_gsm codec_ulaw format_gsm format_pcm format_wav \
 	  format_wav_gsm pbx_config res_features res_musiconhold; do \
-	  $(CP) $(PKG_INSTALL_DIR)/usr/lib/asterisk/modules/$$f.so $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/modules/ ; \
+	  cp -fpR $(PKG_INSTALL_DIR)/usr/lib/asterisk/modules/$$f.so $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/modules/ ; \
 	done
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/mohmp3
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/usr/lib/asterisk/sounds
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/asterisk $(IDIR_ASTERISK_MINI)/usr/sbin/
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/safe_asterisk $(IDIR_ASTERISK_MINI)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/asterisk $(IDIR_ASTERISK_MINI)/usr/sbin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/sbin/safe_asterisk $(IDIR_ASTERISK_MINI)/usr/sbin/
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/etc/default
 	install -m0644  ./files/asterisk.default $(IDIR_ASTERISK_MINI)/etc/default/asterisk
 	install -d -m0755 $(IDIR_ASTERISK_MINI)/etc/init.d
@@ -189,15 +161,9 @@ $(IPKG_ASTERISK_PGSQL):
 	$(RSTRIP) $(IDIR_ASTERISK_PGSQL)
 	$(IPKG_BUILD) $(IDIR_ASTERISK_PGSQL) $(PACKAGE_DIR)
 
-$(IPKG_ASTERISK_SQLITE):
-	install -d -m0755 $(IDIR_ASTERISK_SQLITE)/usr/lib/asterisk/modules
-	install -m0755 $(PKG_BUILD_DIR)/cdr/cdr_sqlite.so $(IDIR_ASTERISK_SQLITE)/usr/lib/asterisk/modules/
-	$(RSTRIP) $(IDIR_ASTERISK_SQLITE)
-	$(IPKG_BUILD) $(IDIR_ASTERISK_SQLITE) $(PACKAGE_DIR)
-
 $(IPKG_ASTERISK_SOUNDS):
 	install -d -m0755 $(IDIR_ASTERISK_SOUNDS)/usr/lib/asterisk/sounds
-	$(CP) $(PKG_BUILD_DIR)/sounds/* $(IDIR_ASTERISK_SOUNDS)/usr/lib/asterisk/sounds/
+	cp -fpR $(PKG_BUILD_DIR)/sounds/* $(IDIR_ASTERISK_SOUNDS)/usr/lib/asterisk/sounds/
 	rm -f $(IDIR_ASTERISK_SOUNDS)/usr/lib/asterisk/sounds/*.mp3
 	rm -f $(IDIR_ASTERISK_SOUNDS)/usr/lib/asterisk/sounds/vm-*
 	$(IPKG_BUILD) $(IDIR_ASTERISK_SOUNDS) $(PACKAGE_DIR)
@@ -209,25 +175,9 @@ $(IPKG_ASTERISK_VOICEMAIL):
 	install -m0755 $(PKG_BUILD_DIR)/apps/*voicemail.so $(IDIR_ASTERISK_VOICEMAIL)/usr/lib/asterisk/modules/
 	install -m0755 $(PKG_BUILD_DIR)/res/res_adsi.so $(IDIR_ASTERISK_VOICEMAIL)/usr/lib/asterisk/modules/
 	install -d -m0755 $(IDIR_ASTERISK_VOICEMAIL)/usr/lib/asterisk/sounds
-	$(CP) $(PKG_BUILD_DIR)/sounds/vm-*.gsm $(IDIR_ASTERISK_VOICEMAIL)/usr/lib/asterisk/sounds/
+	cp -fpR $(PKG_BUILD_DIR)/sounds/vm-*.gsm $(IDIR_ASTERISK_VOICEMAIL)/usr/lib/asterisk/sounds/
 	$(RSTRIP) $(IDIR_ASTERISK_VOICEMAIL)
 	$(IPKG_BUILD) $(IDIR_ASTERISK_VOICEMAIL) $(PACKAGE_DIR)
-
-$(IPKG_ASTERISK_CHAN_BLUETOOTH):
-	install -d -m0755 $(IDIR_ASTERISK_CHAN_BLUETOOTH)/etc/asterisk
-	install -m0644 $(PKG_BUILD_DIR)/configs/bluetooth.conf $(IDIR_ASTERISK_CHAN_BLUETOOTH)/etc/asterisk/bluetooth.conf
-	install -d -m0755 $(IDIR_ASTERISK_CHAN_BLUETOOTH)/usr/lib/asterisk/modules
-	install -m0755 $(PKG_BUILD_DIR)/channels/chan_bluetooth.so $(IDIR_ASTERISK_CHAN_BLUETOOTH)/usr/lib/asterisk/modules/
-	$(RSTRIP) $(IDIR_ASTERISK_CHAN_BLUETOOTH)
-	$(IPKG_BUILD) $(IDIR_ASTERISK_CHAN_BLUETOOTH) $(PACKAGE_DIR)
-
-$(IPKG_ASTERISK_CHAN_H323):
-	install -d -m0755 $(IDIR_ASTERISK_CHAN_H323)/etc/asterisk
-	install -m0644 $(PKG_BUILD_DIR)/channels/h323/h323.conf.sample $(IDIR_ASTERISK_CHAN_H323)/etc/asterisk/h323.conf
-	install -d -m0755 $(IDIR_ASTERISK_CHAN_H323)/usr/lib/asterisk/modules
-	install -m0755 $(PKG_BUILD_DIR)/channels/chan_h323.so $(IDIR_ASTERISK_CHAN_H323)/usr/lib/asterisk/modules/
-	$(RSTRIP) $(IDIR_ASTERISK_CHAN_H323)
-	$(IPKG_BUILD) $(IDIR_ASTERISK_CHAN_H323) $(PACKAGE_DIR)
 
 $(IPKG_ASTERISK_CHAN_MGCP):
 	install -d -m0755 $(IDIR_ASTERISK_CHAN_MGCP)/etc/asterisk

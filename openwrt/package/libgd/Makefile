@@ -4,7 +4,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gd
 PKG_VERSION:=2.0.33
-PKG_RELEASE:=2
+PKG_RELEASE:=1
 PKG_MD5SUM:=be0a6d326cd8567e736fbc75df0a5c45
 
 PKG_SOURCE_URL:=http://www.boutell.com/gd/http
@@ -22,38 +22,36 @@ $(PKG_BUILD_DIR)/.configured:
 	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status} ; \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
-		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include" \
-		LDFLAGS="-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
+		CPPFLAGS="-I$(STAGING_DIR)/usr/include" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
 		LIBPNG12_CONFIG="$(STAGING_DIR)/usr/bin/libpng12-config" \
+		sys_lib_dlsearch_path_spec="$(STAGING_DIR)/lib $(STAGING_DIR)/usr/lib" \
+		sys_lib_search_path_spec="$(STAGING_DIR)/lib $(STAGING_DIR)/usr/lib" \
 		./configure \
-			--target=$(GNU_TARGET_NAME) \
-			--host=$(GNU_TARGET_NAME) \
-			--build=$(GNU_HOST_NAME) \
-			--program-prefix="" \
-			--program-suffix="" \
-			--prefix=/usr \
-			--exec-prefix=/usr \
-			--bindir=/usr/bin \
-			--datadir=/usr/share \
-			--includedir=/usr/include \
-			--infodir=/usr/share/info \
-			--libdir=/usr/lib \
-			--libexecdir=/usr/lib \
-			--localstatedir=/var \
-			--mandir=/usr/share/man \
-			--sbindir=/usr/sbin \
-			--sysconfdir=/etc \
-			$(DISABLE_LARGEFILE) \
-			$(DISABLE_NLS) \
-			--enable-shared \
-			--enable-static \
-			--disable-rpath \
-			--with-gnu-ld \
-			--without-x \
-			--without-freetype \
-			--with-jpeg=$(STAGING_DIR)/usr \
-			--with-png=$(STAGING_DIR)/usr \
-			--without-xpm \
+		  --target=$(GNU_TARGET_NAME) \
+		  --host=$(GNU_TARGET_NAME) \
+		  --build=$(GNU_HOST_NAME) \
+		  --program-prefix="" \
+		  --program-suffix="" \
+		  --prefix=/usr \
+		  --exec-prefix=/usr \
+		  --bindir=/usr/bin \
+		  --datadir=/usr/share \
+		  --includedir=/usr/include \
+		  --infodir=/usr/share/info \
+		  --libdir=/usr/lib \
+		  --libexecdir=/usr/lib \
+		  --localstatedir=/var \
+		  --mandir=/usr/share/man \
+		  --sbindir=/usr/sbin \
+		  --sysconfdir=/etc \
+		  $(DISABLE_LARGEFILE) \
+		  $(DISABLE_NLS) \
+		  --enable-shared \
+		  --enable-static \
+		  --disable-rpath \
+		  --without-x \
+		  --with-png=$(STAGING_DIR)/usr \
 	)
 	touch $@
 
@@ -67,18 +65,18 @@ $(PKG_BUILD_DIR)/.built:
 
 $(IPKG_LIBGD):
 	install -d -m0755 $(IDIR_LIBGD)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgd.so.* $(IDIR_LIBGD)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libgd.so.* $(IDIR_LIBGD)/usr/lib/
 	$(RSTRIP) $(IDIR_LIBGD)
 	$(IPKG_BUILD) $(IDIR_LIBGD) $(PACKAGE_DIR)
 
 $(STAGING_DIR)/usr/lib/libgd.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/bin
-	$(CP) $(PKG_INSTALL_DIR)/usr/bin/gdlib-config $(STAGING_DIR)/usr/bin/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/bin/gdlib-config $(STAGING_DIR)/usr/bin/
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/entities.h $(STAGING_DIR)/usr/include/
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/gd*.h $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/entities.h $(STAGING_DIR)/usr/include/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/include/gd*.h $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgd.{a,so*} $(STAGING_DIR)/usr/lib/
+	cp -fpR $(PKG_INSTALL_DIR)/usr/lib/libgd.{a,so*} $(STAGING_DIR)/usr/lib/
 	touch $@
 
 install-dev: $(STAGING_DIR)/usr/lib/libgd.so
@@ -90,6 +88,6 @@ uninstall-dev:
 		$(STAGING_DIR)/usr/include/gd*.h \
 		$(STAGING_DIR)/usr/lib/libgd.{a,so*} \
 
-compile-targets: install-dev
-clean-targets: uninstall-dev
+compile: install-dev
+clean: uninstall-dev
 

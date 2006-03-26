@@ -1,6 +1,6 @@
 #
 
-mainmenu "OpenWrt Configuration"
+mainmenu "OpenWRT Configuration"
 
 config MODULES
 	bool
@@ -10,52 +10,51 @@ config BR2_HAVE_DOT_CONFIG
 	bool
 	default y
 
-# Supported architectures
-
-config BR2_i386
-	tristate
-	
-config BR2_mips
-	tristate
-
-config BR2_mipsel
-	tristate
-
-# Unsupported architectures
-
-if CONFIG_DEVEL
+choice
+	default BR2_mipsel
+	help
+	  Stuff
 
 config BR2_arm
-	tristate
+	bool "arm"
 
 config BR2_armeb
-	tristate
+	bool "armeb"
 
 config BR2_cris
-	tristate
+	bool "cris"
+
+config BR2_i386
+	bool "i386"
 
 config BR2_m68k
-	tristate
+	bool "m68k"
+
+config BR2_mips
+	bool "mips"
+
+config BR2_mipsel
+	bool "mipsel"
 
 config BR2_powerpc
-	tristate
+	bool "powerpc"
 
 config BR2_sh3
-	tristate
+	bool "sh3"
 
 config BR2_sh3eb
-	tristate
+	bool "sh3eb"
 
 config BR2_sh4
-	tristate
+	bool "sh4"
 
 config BR2_sh4eb
-	tristate
+	bool "sh4eb"
 
 config BR2_sparc
-	tristate
+	bool "sparc"
 
-endif
+endchoice
 
 config BR2_ARCH
 	string
@@ -82,11 +81,14 @@ config BR2_TAR_VERBOSITY
 	bool 
 	default n
 
+config BR2_STAGING_DIR
+	string
+	default "$(BASE_DIR)/staging_dir_$(ARCH)$(ARCH_FPU_SUFFIX)"
+
 config BR2_JLEVEL
 	int
 	default "1"
 
-source "target/Config.in"
 source "toolchain/Config.in"
 source "package/Config.in"
-source "target/linux/Config.in"
+source "target/Config.in"
