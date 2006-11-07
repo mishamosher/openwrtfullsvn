@@ -1,9 +1,3 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
@@ -11,33 +5,37 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=ebtables
 PKG_VERSION:=2.0.8-rc2
 PKG_RELEASE:=1
-
-PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=@SF/ebtables
 PKG_MD5SUM:=f07111fcc1966be669278433c35dcc28
+
+PKG_SOURCE_URL:=@SF/ebtables
+PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/ebtables-v$(PKG_VERSION)
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/ebtables
-  SECTION:=net
-  CATEGORY:=Network
-  TITLE:=Ethernet bridge firewall administration utility
-  URL:=http://ebtables.sourceforge.net/
-endef
+$(eval $(call PKG_template,EBTABLES,$(PKG_NAME),$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Package/ebtables/install
-	install -d -m0755 $(1)/etc
-	install -m0644 $(PKG_BUILD_DIR)/ethertypes $(1)/etc/
-	install -d -m0755 $(1)/usr/lib/ebtables
-	install -m0755 $(PKG_BUILD_DIR)/lib*.so $(1)/usr/lib/
-	install -m0755 $(PKG_BUILD_DIR)/extensions/*.so $(1)/usr/lib/ebtables/
-	install -d -m0755 $(1)/usr/sbin
-	install -m0755 $(PKG_BUILD_DIR)/ebtables $(1)/usr/sbin/
-	install -m0755 $(PKG_BUILD_DIR)/ebtables-save $(1)/usr/sbin/
-	install -m0755 $(PKG_BUILD_DIR)/ebtables-restore $(1)/usr/sbin/
-endef
+$(PKG_BUILD_DIR)/.configured:
+	touch $@
 
-$(eval $(call BuildPackage,ebtables))
+$(PKG_BUILD_DIR)/.built:
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		CC=$(TARGET_CC) LD=$(TARGET_CROSS)ld \
+		CFLAGS="$(TARGET_CFLAGS) -Wall"
+	touch $@
+
+$(IPKG_EBTABLES):
+	install -d -m0755 $(IDIR_EBTABLES)/etc
+	install -m0644 $(PKG_BUILD_DIR)/ethertypes $(IDIR_EBTABLES)/etc/
+	install -d -m0755 $(IDIR_EBTABLES)/usr/lib
+	install -m0755 $(PKG_BUILD_DIR)/lib*.so $(IDIR_EBTABLES)/usr/lib/
+	install -d -m0755 $(IDIR_EBTABLES)/usr/lib/ebtables
+	install -m0755 $(PKG_BUILD_DIR)/extensions/*.so $(IDIR_EBTABLES)/usr/lib/ebtables/
+	install -d -m0755 $(IDIR_EBTABLES)/usr/sbin
+	install -m0755 $(PKG_BUILD_DIR)/ebtables $(IDIR_EBTABLES)/usr/sbin/
+	install -m0755 $(PKG_BUILD_DIR)/ebtables-save $(IDIR_EBTABLES)/usr/sbin/
+	install -m0755 $(PKG_BUILD_DIR)/ebtables-restore $(IDIR_EBTABLES)/usr/sbin/
+	$(RSTRIP) $(IDIR_EBTABLES)
+	$(IPKG_BUILD) $(IDIR_EBTABLES) $(PACKAGE_DIR)

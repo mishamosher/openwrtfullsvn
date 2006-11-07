@@ -1,23 +1,24 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 include $(TOPDIR)/rules.mk
-include $(INCLUDE_DIR)/target.mk
 
-PKG_NAME:=uClibc
-PKG_VERSION:=0.9.28
+#############################################################
+#
+# uClibc (the C library)
+#
+#############################################################
 
-PKG_SOURCE:=uClibc-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=http://www.uclibc.org/downloads
-PKG_MD5SUM:=1ada58d919a82561061e4741fb6abd29
-PKG_CAT:=bzcat
-
-PKG_BUILD_DIR:=$(TOOLCHAIN_BUILD_DIR)/uClibc-$(PKG_VERSION)
-
-include $(INCLUDE_DIR)/host-build.mk
+ifeq ($(BR2_UCLIBC_VERSION_SNAPSHOT),y)
+# Be aware that this changes daily....
+UCLIBC_DIR:=$(TOOL_BUILD_DIR)/uClibc
+UCLIBC_SOURCE:=uClibc-$(strip $(subst ",, $(BR2_USE_UCLIBC_SNAPSHOT))).tar.bz2
+#"
+UCLIBC_SITE:=http://www.uclibc.org/downloads/snapshots
+UCLIBC_VER:=PKG_VERSION:=0.${shell date +"%G%m%d"}
+else
+UCLIBC_VER:=0.9.27
+UCLIBC_DIR:=$(TOOL_BUILD_DIR)/uClibc-$(UCLIBC_VER)
+UCLIBC_SOURCE:=uClibc-$(UCLIBC_VER).tar.bz2
+UCLIBC_SITE:=http://www.uclibc.org/downloads
+endif
 
 UCLIBC_TARGET_ARCH:=$(shell echo $(ARCH) | sed -e s'/-.*//' \
 		-e 's/i.86/i386/' \
@@ -33,69 +34,70 @@ UCLIBC_TARGET_ARCH:=$(shell echo $(ARCH) | sed -e s'/-.*//' \
 		-e 's/cris.*/cris/' \
 )
 
-define Build/Prepare
-	$(call Build/Prepare/Default)
-	$(SED) 's,^CROSS=.*,CROSS=$(TARGET_CROSS),g' $(PKG_BUILD_DIR)/Rules.mak
-	if [ -e config/$(ARCH).$(BOARD) ]; then \
-		$(CP) config/$(ARCH).$(BOARD) $(PKG_BUILD_DIR)/.config; \
-	else \
-		$(CP) config/$(ARCH) $(PKG_BUILD_DIR)/.config; \
-	fi
+
+$(DL_DIR)/$(UCLIBC_SOURCE):
+	mkdir -p $(DL_DIR)
+	$(SCRIPT_DIR)/download.pl $(DL_DIR) $(UCLIBC_SOURCE) x $(UCLIBC_SITE)
+
+$(UCLIBC_DIR)/.unpacked: $(DL_DIR)/$(UCLIBC_SOURCE)
+	mkdir -p $(TOOL_BUILD_DIR)
+	bzcat $(DL_DIR)/$(UCLIBC_SOURCE) | tar -C $(TOOL_BUILD_DIR) $(TAR_OPTIONS) -
+	$(PATCH) $(UCLIBC_DIR) ./patches
+	touch $(UCLIBC_DIR)/.unpacked
+
+$(UCLIBC_DIR)/.configured: $(UCLIBC_DIR)/.unpacked
+	$(SED) 's,^CROSS=.*,CROSS=$(TARGET_CROSS),g' $(UCLIBC_DIR)/Rules.mak
+	cp ./files/config.$(UCLIBC_TARGET_ARCH) $(UCLIBC_DIR)/.config
 	$(SED) 's,^KERNEL_SOURCE=.*,KERNEL_SOURCE=\"$(LINUX_HEADERS_DIR)\",g' \
-		$(PKG_BUILD_DIR)/.config
-ifeq ($(CONFIG_LARGEFILE),y)
-	$(SED) 's,^.*UCLIBC_HAS_LFS.*,UCLIBC_HAS_LFS=y,g' $(PKG_BUILD_DIR)/.config
+		$(UCLIBC_DIR)/.config
+ifeq ($(BR2_LARGEFILE),y)
+	$(SED) 's,^.*UCLIBC_HAS_LFS.*,UCLIBC_HAS_LFS=y,g' $(UCLIBC_DIR)/.config
 else
-	$(SED) 's,^.*UCLIBC_HAS_LFS.*,UCLIBC_HAS_LFS=n,g' $(PKG_BUILD_DIR)/.config
+	$(SED) 's,^.*UCLIBC_HAS_LFS.*,UCLIBC_HAS_LFS=n,g' $(UCLIBC_DIR)/.config
 endif
-	$(SED) 's,.*UCLIBC_HAS_WCHAR.*,UCLIBC_HAS_WCHAR=y,g' $(PKG_BUILD_DIR)/.config
-ifeq ($(CONFIG_SOFT_FLOAT),y)
-	$(SED) 's,.*HAS_FPU.*,HAS_FPU=n\nUCLIBC_HAS_FLOATS=y\nUCLIBC_HAS_SOFT_FLOAT=y,g' $(PKG_BUILD_DIR)/.config
+	$(SED) 's,.*UCLIBC_HAS_WCHAR.*,UCLIBC_HAS_WCHAR=y,g' $(UCLIBC_DIR)/.config
+ifeq ($(BR2_SOFT_FLOAT),y)
+	$(SED) 's,.*HAS_FPU.*,HAS_FPU=n\nUCLIBC_HAS_FLOATS=y\nUCLIBC_HAS_SOFT_FLOAT=y,g' $(UCLIBC_DIR)/.config
 endif
-ifeq ($(CONFIG_C99_MATH),y)
-	$(SED) 's,.*DO_C99_MATH.*,DO_C99_MATH=y,g' $(PKG_BUILD_DIR)/.config
-endif
-	mkdir -p $(TOOLCHAIN_BUILD_DIR)/uClibc_dev/usr/include
-	mkdir -p $(TOOLCHAIN_BUILD_DIR)/uClibc_dev/usr/lib
-	mkdir -p $(TOOLCHAIN_BUILD_DIR)/uClibc_dev/lib
-	PATH=$(TARGET_PATH) $(MAKE) -C $(PKG_BUILD_DIR) \
-		PREFIX=$(TOOLCHAIN_BUILD_DIR)/uClibc_dev/ \
+	mkdir -p $(TOOL_BUILD_DIR)/uClibc_dev/usr/include
+	mkdir -p $(TOOL_BUILD_DIR)/uClibc_dev/usr/lib
+	mkdir -p $(TOOL_BUILD_DIR)/uClibc_dev/lib
+	$(MAKE1) -C $(UCLIBC_DIR) \
+		PREFIX=$(TOOL_BUILD_DIR)/uClibc_dev/ \
 		DEVEL_PREFIX=/usr/ \
-		RUNTIME_PREFIX=$(TOOLCHAIN_BUILD_DIR)/uClibc_dev/ \
+		RUNTIME_PREFIX=$(TOOL_BUILD_DIR)/uClibc_dev/ \
 		HOSTCC="$(HOSTCC)" \
 		CPU_CFLAGS="$(TARGET_CFLAGS)" \
 		pregen install_dev;
-endef
+	touch $(UCLIBC_DIR)/.configured
 
-define Build/Configure
-endef
-
-define Build/Compile
-	PATH=$(TARGET_PATH) $(MAKE) -j $(CONFIG_JLEVEL) -C $(PKG_BUILD_DIR) \
+$(UCLIBC_DIR)/lib/libc.a: $(UCLIBC_DIR)/.configured $(LIBFLOAT_TARGET)
+	$(MAKE1) -C $(UCLIBC_DIR) \
 		PREFIX= \
 		DEVEL_PREFIX=/ \
 		RUNTIME_PREFIX=/ \
 		HOSTCC="$(HOSTCC)" \
 		CPU_CFLAGS="$(TARGET_CFLAGS)" \
 		all
-endef
+	touch -c $(UCLIBC_DIR)/lib/libc.a
 
-define Build/Install
-	$(MAKE) -C $(PKG_BUILD_DIR) \
+$(STAGING_DIR)/lib/libc.a: $(UCLIBC_DIR)/lib/libc.a
+	$(MAKE1) -C $(UCLIBC_DIR) \
 		PREFIX=$(STAGING_DIR)/ \
 		DEVEL_PREFIX=/ \
 		RUNTIME_PREFIX=/ \
 		install_runtime
-	$(MAKE) -C $(PKG_BUILD_DIR) \
+	$(MAKE1) -C $(UCLIBC_DIR) \
 		PREFIX=$(STAGING_DIR)/ \
 		DEVEL_PREFIX=/ \
 		RUNTIME_PREFIX=/ \
 		install_dev
-	echo $(PKG_VERSION) > $(STAGING_DIR)/uclibc_version
-endef
+	echo $(UCLIBC_VER) > $(STAGING_DIR)/uclibc_version
+	touch -c $(STAGING_DIR)/lib/libc.a
 
-define Build/Clean
-	rm -rf $(PKG_BUILD_DIR) $(TOOLCHAIN_BUILD_DIR)/uClibc_dev
-endef
-
-$(eval $(call HostBuild))
+source: $(DL_DIR)/$(UCLIBC_SOURCE)
+prepare: $(UCLIBC_DIR)/.configured
+compile: $(UCLIBC_DIR)/lib/libc.a
+install: $(STAGING_DIR)/lib/libc.a $(UCLIBC_TARGETS)
+clean: 
+	rm -rf $(UCLIBC_DIR) $(TOOL_BUILD_DIR)/uClibc_dev

@@ -12,12 +12,6 @@ add_insmod() {
 	esac
 }
 
-find_ifname() {(
-	include /lib/network
-	scan_interfaces
-	config_get "$1" ifname
-)}
-
 parse_matching_rule() {
 	local var="$1"
 	local section="$2"
@@ -166,7 +160,7 @@ config_cb() {
 				config_set "$classgroup" enabled 1
 			}
 			config_get device "$CONFIG_SECTION" device
-			[ -z "$device" ] && device="$(find_ifname ${CONFIG_SECTION})"
+			[ -z "$device" ] && device="$(nvram get ${CONFIG_SECTION}_ifname)"
 			config_set "$CONFIG_SECTION" device "${device:-eth0}"
 		;;
 		classgroup) append CG "$CONFIG_SECTION";;

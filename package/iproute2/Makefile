@@ -1,43 +1,23 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=iproute2
-PKG_VERSION:=2.6.15-060110
+PKG_VERSION:=2.6.11-050330
 PKG_RELEASE:=1
+PKG_MD5SUM:=e705f26b5ae93e0332e46a3ff15d934
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://developer.osdl.org/dev/iproute2/download/
-PKG_MD5SUM:=04f57a6d366d36426d276178b600f5c5
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_BUILD_DIR:=$(BUILD_DIR)/iproute2-$(PKG_VERSION)
 PKG_CAT:=zcat
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/iproute2-$(PKG_VERSION)
+include $(TOPDIR)/package/rules.mk
 
-include $(INCLUDE_DIR)/package.mk
+$(eval $(call PKG_template,IPROUTE2_IP,ip,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
+$(eval $(call PKG_template,IPROUTE2_TC,tc,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Package/iproute2/Default
-  SECTION:=net
-  CATEGORY:=Network
-  URL:=http://linux-net.osdl.org/index.php/Iproute2
-endef
-
-define Package/ip
-  $(call Package/iproute2/Default)
-  TITLE:=Routing control utility
-endef
-
-define Package/tc
-  $(call Package/iproute2/Default)
-  TITLE:=Traffic control utility
-endef
-
-define Build/Configure
+$(PKG_BUILD_DIR)/.configured:
 	$(SED) "s:-O2:${TARGET_CFLAGS}:g" $(PKG_BUILD_DIR)/Makefile
 	$(SED) "s,-I/usr/include/db3,," $(PKG_BUILD_DIR)/Makefile
 	$(SED) "s,^KERNEL_INCLUDE.*,KERNEL_INCLUDE=$(LINUX_DIR)/include," \
@@ -47,22 +27,22 @@ define Build/Configure
 	# For now disable compiling of the misc directory because it seems to fail
 	rm -rf $(PKG_BUILD_DIR)/misc 
 	$(SED) "s, misc,," $(PKG_BUILD_DIR)/Makefile
-endef
+	touch $@
 
-define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR)/netem HOSTCC="$(HOSTCC)" CFLAGS="-D_GNU_SOURCE -O2 -Wstrict-prototypes -Wall -I ../include -DRESOLVE_HOSTNAMES"
-	$(MAKE) -C $(PKG_BUILD_DIR) $(TARGET_CONFIGURE_OPTS) KERNEL_INCLUDE=$(LINUX_DIR)/include all tc/tc ip/ip
-endef
+$(PKG_BUILD_DIR)/.built:
+	$(MAKE) -j1 -C $(PKG_BUILD_DIR)/netem HOSTCC=$(HOSTCC) CFLAGS="-D_GNU_SOURCE -Wstrict-prototypes -Wall -I ../include -DRESOLVE_HOSTNAMES"
+	$(MAKE) -j1 -C $(PKG_BUILD_DIR) $(TARGET_CONFIGURE_OPTS) KERNEL_INCLUDE=$(LINUX_DIR)/include all tc/tc ip/ip
+	touch $@
 
-define Package/ip/install
-	install -d -m0755 $(1)/usr/sbin
-	install -m0755 $(PKG_BUILD_DIR)/ip/ip $(1)/usr/sbin/
-endef
+$(IPKG_IPROUTE2_IP):
+	mkdir -p $(IDIR_IPROUTE2_IP)/usr/sbin
+	cp $(PKG_BUILD_DIR)/ip/ip $(IDIR_IPROUTE2_IP)/usr/sbin/
+	$(STRIP) $(IDIR_IPROUTE2_IP)/usr/sbin/*
+	$(IPKG_BUILD) $(IDIR_IPROUTE2_IP) $(PACKAGE_DIR)
 
-define Package/tc/install
-	install -d -m0755 $(1)/usr/sbin
-	install -m0755 $(PKG_BUILD_DIR)/tc/tc $(1)/usr/sbin/
-endef
+$(IPKG_IPROUTE2_TC):
+	mkdir -p $(IDIR_IPROUTE2_TC)/usr/sbin
+	cp $(PKG_BUILD_DIR)/tc/tc $(IDIR_IPROUTE2_TC)/usr/sbin/
+	$(STRIP) $(IDIR_IPROUTE2_TC)/usr/sbin/*
+	$(IPKG_BUILD) $(IDIR_IPROUTE2_TC) $(PACKAGE_DIR)
 
-$(eval $(call BuildPackage,ip))
-$(eval $(call BuildPackage,tc))

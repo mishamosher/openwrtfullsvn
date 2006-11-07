@@ -1,23 +1,20 @@
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
-diff -ruN busybox-1.2.0-old/include/applets.h busybox-1.2.0-new/include/applets.h
---- busybox-1.2.0-old/include/applets.h	2006-07-31 11:21:00.000000000 +0200
-+++ busybox-1.2.0-new/include/applets.h	2006-08-01 10:21:15.000000000 +0200
-@@ -169,6 +169,7 @@
- USE_LN(APPLET(ln, _BB_DIR_BIN, _BB_SUID_NEVER))
- USE_LOADFONT(APPLET(loadfont, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
- USE_LOADKMAP(APPLET(loadkmap, _BB_DIR_SBIN, _BB_SUID_NEVER))
-+USE_LOCK(APPLET_NOUSAGE(lock, lock, _BB_DIR_BIN, _BB_SUID_NEVER))
- USE_LOGGER(APPLET(logger, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
- USE_LOGIN(APPLET(login, _BB_DIR_BIN, _BB_SUID_ALWAYS))
- USE_LOGNAME(APPLET(logname, _BB_DIR_USR_BIN, _BB_SUID_NEVER))
-diff -ruN busybox-1.2.0-old/miscutils/Config.in busybox-1.2.0-new/miscutils/Config.in
---- busybox-1.2.0-old/miscutils/Config.in	2006-07-01 00:42:09.000000000 +0200
-+++ busybox-1.2.0-new/miscutils/Config.in	2006-08-01 10:21:15.000000000 +0200
-@@ -231,6 +231,12 @@
+diff -urN busybox.old/include/applets.h busybox.dev/include/applets.h
+--- busybox.old/include/applets.h	2006-03-14 09:46:09.000000000 +0100
++++ busybox.dev/include/applets.h	2006-03-14 09:49:17.000000000 +0100
+@@ -340,6 +340,9 @@
+ #ifdef CONFIG_LOADKMAP
+ 	APPLET(loadkmap, loadkmap_main, _BB_DIR_SBIN, _BB_SUID_NEVER)
+ #endif
++#ifdef CONFIG_LOCK
++	APPLET_NOUSAGE("lock", lock_main, _BB_DIR_BIN, _BB_SUID_NEVER)
++#endif
+ #ifdef CONFIG_LOGGER
+ 	APPLET(logger, logger_main, _BB_DIR_USR_BIN, _BB_SUID_NEVER)
+ #endif
+diff -urN busybox.old/miscutils/Config.in busybox.dev/miscutils/Config.in
+--- busybox.old/miscutils/Config.in	2004-08-27 01:12:59.000000000 +0200
++++ busybox.dev/miscutils/Config.in	2006-03-14 09:52:13.000000000 +0100
+@@ -148,6 +148,12 @@
  	  Enables the 'hdparm -d' option to get/set using_dma flag.
  	  This is dangerous stuff, so you should probably say N.
  
@@ -30,15 +27,21 @@ diff -ruN busybox-1.2.0-old/miscutils/Config.in busybox-1.2.0-new/miscutils/Conf
  config CONFIG_MAKEDEVS
  	bool "makedevs"
  	default n
-diff -ruN busybox-1.2.0-old/miscutils/lock.c busybox-1.2.0-new/miscutils/lock.c
---- busybox-1.2.0-old/miscutils/lock.c	1970-01-01 01:00:00.000000000 +0100
-+++ busybox-1.2.0-new/miscutils/lock.c	2006-08-01 10:21:15.000000000 +0200
-@@ -0,0 +1,135 @@
-+/*
-+ * Copyright (C) 2006 Felix Fietkau <nbd@openwrt.org>
-+ *
-+ * This is free software, licensed under the GNU General Public License v2.
-+ */
+diff -urN busybox.old/miscutils/Makefile.in busybox.dev/miscutils/Makefile.in
+--- busybox.old/miscutils/Makefile.in	2004-10-08 09:45:39.000000000 +0200
++++ busybox.dev/miscutils/Makefile.in	2006-03-14 09:52:41.000000000 +0100
+@@ -31,6 +31,7 @@
+ MISCUTILS-$(CONFIG_DEVFSD)		+= devfsd.o
+ MISCUTILS-$(CONFIG_HDPARM)		+= hdparm.o
+ MISCUTILS-$(CONFIG_LAST)		+= last.o
++MISCUTILS-$(CONFIG_LOCK)		+= lock.o
+ MISCUTILS-$(CONFIG_MAKEDEVS)		+= makedevs.o
+ MISCUTILS-$(CONFIG_MT)			+= mt.o
+ MISCUTILS-$(CONFIG_RX)			+= rx.o
+diff -urN busybox.old/miscutils/lock.c busybox.dev/miscutils/lock.c
+--- busybox.old/miscutils/lock.c	1970-01-01 01:00:00.000000000 +0100
++++ busybox.dev/miscutils/lock.c	2006-03-14 09:50:40.000000000 +0100
+@@ -0,0 +1,130 @@
 +#include <sys/types.h>
 +#include <sys/file.h>
 +#include <sys/stat.h>
@@ -169,14 +172,3 @@ diff -ruN busybox-1.2.0-old/miscutils/lock.c busybox-1.2.0-new/miscutils/lock.c
 +	else
 +		return do_lock();
 +}
-diff -ruN busybox-1.2.0-old/miscutils/Makefile.in busybox-1.2.0-new/miscutils/Makefile.in
---- busybox-1.2.0-old/miscutils/Makefile.in	2006-07-01 00:42:09.000000000 +0200
-+++ busybox-1.2.0-new/miscutils/Makefile.in	2006-08-01 10:21:15.000000000 +0200
-@@ -20,6 +20,7 @@
- MISCUTILS-$(CONFIG_EJECT)       += eject.o
- MISCUTILS-$(CONFIG_HDPARM)      += hdparm.o
- MISCUTILS-$(CONFIG_LAST)        += last.o
-+MISCUTILS-$(CONFIG_LOCK)        += lock.o
- MISCUTILS-${CONFIG_LESS}        += less.o
- MISCUTILS-$(CONFIG_MAKEDEVS)    += makedevs.o
- MISCUTILS-$(CONFIG_MOUNTPOINT)  += mountpoint.o

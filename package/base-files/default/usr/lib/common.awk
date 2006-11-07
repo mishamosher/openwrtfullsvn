@@ -1,5 +1,3 @@
-# Copyright (C) 2006 OpenWrt.org
-
 function portstr(type, str) {
 	gsub(/-/, ":", str)
 	if (insmod_mport != 1) {

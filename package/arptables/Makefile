@@ -1,8 +1,3 @@
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
@@ -10,33 +5,25 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=arptables
 PKG_VERSION:=0.0.3
 PKG_RELEASE:=1
-
-PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=@SF/ebtables
 PKG_MD5SUM:=1672244603c8979577aa4738be35a759
+PKG_SOURCE_URL:=@SF/ebtables
+PKG_SOURCE:=$(PKG_NAME)-v$(PKG_VERSION).tar.gz
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-v$(PKG_VERSION)
 PKG_CAT:=zcat
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-v$(PKG_VERSION)
+include $(TOPDIR)/package/rules.mk
 
-include $(INCLUDE_DIR)/package.mk
+$(eval $(call PKG_template,ARPTABLES,arptables,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Package/arptables
-  SECTION:=net
-  CATEGORY:=Network
-  TITLE:=ARP firewalling software
-  URL:=http://ebtables.sourceforge.net
-endef
-
-define Build/Compile
+$(PKG_BUILD_DIR)/.built: 
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		$(TARGET_CONFIGURE_OPTS) \
+		CC=$(TARGET_CC) LD=$(TARGET_CROSS)ld \
 		COPT_FLAGS="$(TARGET_CFLAGS)" \
 		KERNEL_DIR="./include/linux"
-endef
+	touch $@
 
-define Package/arptables/install
-	install -m0755 -d $(1)/usr/sbin
-	$(CP) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/usr/sbin/
-endef
-
-$(eval $(call BuildPackage,arptables))
+$(IPKG_ARPTABLES):
+	mkdir -p $(IDIR_ARPTABLES)/usr/sbin
+	install -m0755 $(PKG_BUILD_DIR)/arptables $(IDIR_ARPTABLES)/usr/sbin/
+	$(RSTRIP) $(IDIR_ARPTABLES)
+	$(IPKG_BUILD) $(IDIR_ARPTABLES) $(PACKAGE_DIR)

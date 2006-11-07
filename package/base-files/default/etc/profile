@@ -4,8 +4,8 @@
 export PATH=/bin:/sbin:/usr/bin:/usr/sbin
 export PS1='\u@\h:\w\$ '
 
-alias more=less
-[ -x /usr/bin/vim ] || alias vim=vi
+alias less=more
+alias vim=vi
 
 arp() { cat /proc/net/arp; }
 ldd() { LD_TRACE_LOADED_OBJECTS=1 $*; }

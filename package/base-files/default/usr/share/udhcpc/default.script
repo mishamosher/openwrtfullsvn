@@ -1,21 +1,18 @@
 #!/bin/sh
 [ -z "$1" ] && echo "Error: should be run by udhcpc" && exit 1
-. /etc/functions.sh
-include /lib/network
 
-RESOLV_CONF="/tmp/resolv.conf"
+RESOLV_CONF="/tmp/resolv.conf.auto"
 
 hotplug_event() {
-	scan_interfaces
-	for ifc in $interfaces; do
-		config_get ifname $ifc ifname
-		[ "$ifname" = "$interface" ] || continue
-
-		config_get proto $ifc proto
-		[ "$proto" = "dhcp" ] || continue
-
-		env -i ACTION="$1" INTERFACE="$ifname" PROTO=dhcp /sbin/hotplug iface
-	done
+	nvram show 2>&- | grep _proto=dhcp | {
+		while :; do
+			read FOO
+			[ -z "$FOO" ] && break
+			FOO="${FOO%%_*}"
+			[ "$(nvram get ${FOO}_ifname)" = "${interface}" ] || continue
+			env -i ACTION="$1" INTERFACE="${FOO}" PROTO=dhcp /sbin/hotplug iface
+		done
+	}
 }
 
 case "$1" in
@@ -37,7 +34,7 @@ case "$1" in
 				route add default gw $i dev $interface
 			done
 		fi
-		
+
 		[ -n "$dns" ] && {
 			echo -n > $RESOLV_CONF
 			${domain:+echo search $domain} >> $RESOLV_CONF

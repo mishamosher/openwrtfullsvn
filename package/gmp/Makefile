@@ -1,9 +1,3 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
@@ -11,55 +5,78 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=gmp
 PKG_VERSION:=4.1.4
 PKG_RELEASE:=1
-
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=@GNU/gmp
 PKG_MD5SUM:=0aa7d3b3f5b5ec5951e7dddd6f65e891
+
+PKG_SOURCE_URL:=ftp://ftp.gnu.org/gnu/gmp/ \
+	ftp://ftp.belnet.be/mirror/ftp.gnu.org/gnu/gmp/ \
+	ftp://ftp.mirror.nl/pub/mirror/gnu/gmp/ \
+	http://mirror.switch.ch/ftp/mirror/gnu/gmp/
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_CAT:=bzcat
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/libgmp
-  SECTION:=libs
-  CATEGORY:=Libraries
-  TITLE:=GNU multiprecision arithmetic library
-  URL:=http://www.swox.com/gmp/
-endef
+$(eval $(call PKG_template,LIBGMP,libgmp,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Build/Configure
-	$(call Build/Configure/Default, \
-		--enable-shared \
-		--enable-static, \
-		CC="$(TARGET_CROSS)gcc" \
-	)
-endef
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
+	(cd $(PKG_BUILD_DIR); rm -rf config.{cache,status}; \
+		$(TARGET_CONFIGURE_OPTS) \
+		CFLAGS="$(TARGET_CFLAGS)" \
+		./configure \
+		  --target=$(GNU_TARGET_NAME) \
+		  --host=$(GNU_TARGET_NAME) \
+		  --build=$(GNU_HOST_NAME) \
+		  --program-prefix="" \
+		  --program-suffix="" \
+		  --prefix=/usr \
+		  --exec-prefix=/usr \
+		  --bindir=/usr/bin \
+		  --datadir=/usr/share \
+		  --includedir=/usr/include \
+		  --infodir=/usr/share/info \
+		  --libdir=/usr/lib \
+		  --libexecdir=/usr/lib \
+		  --localstatedir=/var \
+		  --mandir=/usr/share/man \
+		  --sbindir=/usr/sbin \
+		  --sysconfdir=/etc \
+		  $(DISABLE_NLS) \
+		  $(DISABLE_LARGEFILE) \
+		  --enable-shared \
+		  --enable-static \
+	);
+	touch $@
 
-define Build/Compile
-	$(call Build/Compile/Default, \
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
+	rm -rf $(PKG_INSTALL_DIR)
+	mkdir -p $(PKG_INSTALL_DIR)
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		CC="$(TARGET_CC)" \
-		all install \
-	)
-endef
+		all install
+	touch $@
 
-define Build/InstallDev
+$(IPKG_LIBGMP):
+	install -m0755 -d $(IDIR_LIBGMP)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgmp.so.* $(IDIR_LIBGMP)/usr/lib/
+	$(RSTRIP) $(IDIR_LIBGMP)
+	$(IPKG_BUILD) $(IDIR_LIBGMP) $(PACKAGE_DIR)
+
+$(STAGING_DIR)/usr/lib/libgmp.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/gmp* $(STAGING_DIR)/usr/include/
 	mkdir -p $(STAGING_DIR)/usr/lib
 	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgmp.{a,so*} $(STAGING_DIR)/usr/lib/
-endef
+	touch $@
 
-define Build/UninstallDev
-	rm -rf	$(STAGING_DIR)/usr/include/gmp* \
-		$(STAGING_DIR)/usr/lib/libgmp.{a,so*}
-endef
+install-dev: $(STAGING_DIR)/usr/lib/libgmp.so
 
-define Package/libgmp/install
-	install -m0755 -d $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libgmp.so.* $(1)/usr/lib/
-endef
+uninstall-dev:
+	rm -rf \
+		$(STAGING_DIR)/usr/include/gmp* \
+		$(STAGING_DIR)/usr/lib/libgmp.{a,so*} \
 
-$(eval $(call BuildPackage,libgmp))
+compile: install-dev
+clean: uninstall-dev

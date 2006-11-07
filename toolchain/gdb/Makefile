@@ -1,27 +1,35 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
+# $Id$
+
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=gdb
-PKG_VERSION:=6.3
+GDB_NAME:=gdb
+GDB_SITE:=http://ftp.gnu.org/gnu/gdb
+GDB_VERSION:=6.3
+GDB_SOURCE:=$(GDB_NAME)-$(GDB_VERSION).tar.bz2
+GDB_CAT:=bzcat
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_MD5SUM:=05b928f41fa5b482e49ca2c24762a0ae
-PKG_SOURCE_URL:=http://ftp.gnu.org/gnu/gdb
-PKG_CAT:=bzcat
+GDB_DIR:=$(TOOL_BUILD_DIR)/$(GDB_NAME)-$(GDB_VERSION)
 
-PKG_BUILD_DIR:=$(TOOLCHAIN_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+$(DL_DIR)/$(GDB_SOURCE):
+	$(WGET) -P $(DL_DIR) $(GDB_SITE)/$(GDB_SOURCE)
 
-include $(INCLUDE_DIR)/host-build.mk
+$(GDB_DIR)/.patched: $(DL_DIR)/$(GDB_SOURCE)
+	$(GDB_CAT) $(DL_DIR)/$(GDB_SOURCE) | tar -C $(TOOL_BUILD_DIR) $(TAR_OPTIONS) -
+	$(PATCH) $(GDB_DIR) ./patches
+	# Copy a config.sub from gcc.  This is only necessary until
+	# gdb's config.sub supports <arch>-linux-uclibc tuples.
+	# Should probably integrate this into the patch.
+	touch  $(GDB_DIR)/.patched
 
-define Build/Configure
-	(cd $(PKG_BUILD_DIR); \
+# gdb client
+
+GDB_CLIENT_DIR:=$(TOOL_BUILD_DIR)/gdbclient-$(GDB_VERSION)
+
+$(GDB_CLIENT_DIR)/.configured: $(GDB_DIR)/.patched
+	mkdir -p $(GDB_CLIENT_DIR)
+	(cd $(GDB_CLIENT_DIR); \
 		gdb_cv_func_sigsetjmp=yes \
-		$(PKG_BUILD_DIR)/configure \
+		$(GDB_DIR)/configure \
 		--prefix=$(STAGING_DIR) \
 		--build=$(GNU_HOST_NAME) \
 		--host=$(GNU_HOST_NAME) \
@@ -32,24 +40,20 @@ define Build/Configure
 		--without-included-gettext \
 		--enable-threads \
 	);
-endef
+	touch  $(GDB_CLIENT_DIR)/.configured
 
-define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR)
-	strip $(PKG_BUILD_DIR)/gdb/gdb
-endef
+$(GDB_CLIENT_DIR)/gdb/gdb: $(GDB_CLIENT_DIR)/.configured
+	$(MAKE) -C $(GDB_CLIENT_DIR)
+	strip $(GDB_CLIENT_DIR)/gdb/gdb
 
-define Build/Install
-	(cd $(STAGING_DIR)/bin; \
-		install -c $(PKG_BUILD_DIR)/gdb/gdb $(TARGET_CROSS)gdb; \
-		ln -fs $(TARGET_CROSS)gdb $(GNU_TARGET_NAME)-gdb; \
-	);
-endef
+$(TARGET_CROSS)gdb: $(GDB_CLIENT_DIR)/gdb/gdb
+	install -c $(GDB_CLIENT_DIR)/gdb/gdb $(TARGET_CROSS)gdb
+	cd $(STAGING_DIR)/bin && \
+	ln -fs $(TARGET_CROSS)gdb $(GNU_TARGET_NAME)-gdb
 
-define Build/Clean
-	rm -rf $(PKG_BUILD_DIR)
-	rm -f $(STAGING_DIR)/bin/$(TARGET_CROSS)gdb
-	rm -f $(STAGING_DIR)/bin/$(GNU_TARGET_NAME)-gdb
-endef
-
-$(eval $(call HostBuild))
+source: $(DL_DIR)/$(GDB_SOURCE)
+prepare: $(GDB_DIR)/.patched
+compile: 
+install: $(TARGET_CROSS)gdb
+clean:
+	rm -rf $(GDB_CLIENT_DIR)

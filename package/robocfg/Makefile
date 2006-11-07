@@ -1,9 +1,3 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
@@ -14,25 +8,20 @@ PKG_RELEASE:=1
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/robocfg
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/robocfg
-  SECTION:=utils
-  CATEGORY:=Utilities
-  TITLE:=BCM5325E/536x switch configuration utility
-  DESCRIPTION:=\
-	This package contains an utility for configuring the Broadcom BCM5325E/536x \\\
-	based switches.
-endef
+$(eval $(call PKG_template,ROBOCFG,$(PKG_NAME),$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Build/Prepare
-	mkdir -p $(PKG_BUILD_DIR)
-	$(CP) ./src/* $(PKG_BUILD_DIR)/
-endef
+$(PKG_BUILD_DIR)/.prepared:
+	mkdir -p $@
+	touch $@
 
-define Package/robocfg/install
-	install -d -m0755 $(1)/sbin
-	install -m0755 $(PKG_BUILD_DIR)/robocfg $(1)/sbin/
-endef
+$(PKG_BUILD_DIR)/.built:
+	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/robocfg robocfg.c
+	touch $@
 
-$(eval $(call BuildPackage,robocfg))
+$(IPKG_ROBOCFG):
+	install -d -m0755 $(IDIR_ROBOCFG)/sbin
+	install -m0755 $(PKG_BUILD_DIR)/robocfg $(IDIR_ROBOCFG)/sbin/
+	$(RSTRIP) $(IDIR_ROBOCFG)
+	$(IPKG_BUILD) $(IDIR_ROBOCFG) $(PACKAGE_DIR)

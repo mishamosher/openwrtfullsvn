@@ -1,44 +1,27 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
-# $Id: Makefile 4823 2006-09-23 13:45:49Z nico $
+# $Id: Makefile 3198 2006-02-09 03:21:01Z nbd $
 
 include $(TOPDIR)/rules.mk
 
-PKG_NAME:=qos-scripts
-PKG_VERSION:=0.9.2
-PKG_RELEASE:=1
+PKG_NAME := qos-scripts
+PKG_RELEASE := 1
+PKG_VERSION := 0.9.2
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/qos-scripts
-  SECTION:=utils
-  CATEGORY:=Base system
-  DEPENDS:=+tc +kmod-sched +iptables-mod-filter +iptables-mod-ipopt +iptables-mod-extra +iptables-mod-conntrack +iptables-mod-imq
-  TITLE:=QoS scripts
-  DESCRIPTION:=QoS scripts \\\
-	 A set of scripts that abstract QoS configuration \\\
-	 into a simple configuration file supporting stanzas that specify \\\
-	 any number of QoS entries.
-endef
+$(eval $(call PKG_template,QOS_SCRIPTS,$(PKG_NAME),$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Build/Prepare
-endef
+$(PKG_BUILD_DIR)/.prepared:
+	mkdir -p $(PKG_BUILD_DIR)
+	touch $@
 
-define Build/Configure
-endef
+$(PKG_BUILD_DIR)/.built:
+	touch $@
 
-define Build/Compile
-endef
+$(IPKG_QOS_SCRIPTS): 
+	mkdir -p $(IDIR_QOS_SCRIPTS)
+	$(CP) ./files/* $(IDIR_QOS_SCRIPTS)/
+	find $(IDIR_QOS_SCRIPTS) -name .svn | xargs rm -rf
+	$(IPKG_BUILD) $(IDIR_QOS_SCRIPTS) $(PACKAGE_DIR)
 
-define Package/qos-scripts/install
-	mkdir -p $(1)
-	$(CP) ./files/* $(1)/
-endef
-
-$(eval $(call BuildPackage,qos-scripts))

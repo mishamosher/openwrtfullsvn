@@ -1,71 +1,60 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=wireless-tools
-PKG_VERSION:=28
+PKG_VERSION:=28.pre7
 PKG_RELEASE:=1
+PKG_MD5SUM:=bf598d6ded79e9e6b9bc2dbeb8258f48
 
-PKG_SOURCE:=wireless_tools.$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.hpl.hp.com/personal/Jean_Tourrilhes/Linux
-PKG_MD5SUM:=599c94497f9c9073c7b052d3dcb7cd16
+PKG_SOURCE:=wireless_tools.$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
-TAR_OPTIONS += || true
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/wireless_tools.28
 PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/wireless-tools
-  SECTION:=net
-  CATEGORY:=Base system
-  DEFAULT:=y
-  TITLE:=Tools for manipulating Linux Wireless Extensions
-  DESCRIPTION:=\
-	This package contains a collection of tools for configuring wireless \\\
-	adapters implementing the "Linux Wireless Extensions".
-  URL:=http://hplabs.hp.com/personal/Jean_Tourrilhes/Linux/Tools.html
-endef
+$(eval $(call PKG_template,IWLIB,iwlib,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
+$(eval $(call PKG_template,WIRELESS_TOOLS,wireless-tools,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Build/Compile
-	rm -rf $(PKG_INSTALL_DIR)
-	mkdir -p $(PKG_INSTALL_DIR)
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
+	touch $@
+
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		$(TARGET_CONFIGURE_OPTS) \
-		CFLAGS="$(TARGET_CFLAGS) -I." \
-		libiw.so.28 iwmulticall
+		CC="$(TARGET_CC)" CFLAGS="$(TARGET_CFLAGS) -I." \
+		all iwmulticall
+	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		PREFIX="$(PKG_INSTALL_DIR)" \
 		INSTALL_DIR="$(PKG_INSTALL_DIR)/usr/sbin" \
 		INSTALL_LIB="$(PKG_INSTALL_DIR)/usr/lib" \
-		install-iwmulticall
-endef
+		install install-iwmulticall
+	touch $@
 
-define Build/InstallDev
-	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP) $(PKG_BUILD_DIR)/{iwlib,wireless}.h $(STAGING_DIR)/usr/include/
-	mkdir -p $(STAGING_DIR)/usr/lib
+$(IPKG_IWLIB):
+	mkdir -p $(IDIR_IWLIB)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libiw.so.28 $(IDIR_IWLIB)/usr/lib/
+	$(RSTRIP) $(IDIR_IWLIB)
+	$(IPKG_BUILD) $(IDIR_IWLIB) $(PACKAGE_DIR)
+	
+$(IPKG_WIRELESS_TOOLS):
+	mkdir -p $(IDIR_WIRELESS_TOOLS)/usr/sbin
+	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/iw{config,getid,list,priv,spy} $(IDIR_WIRELESS_TOOLS)/usr/sbin/
+	$(RSTRIP) $(IDIR_WIRELESS_TOOLS)
+	$(IPKG_BUILD) $(IDIR_WIRELESS_TOOLS) $(PACKAGE_DIR)
+
+install-dev:
+	mkdir -p $(STAGING_DIR)/usr/{lib,include}
 	$(CP) $(PKG_BUILD_DIR)/libiw.so* $(STAGING_DIR)/usr/lib/
 	ln -sf libiw.so.28 $(STAGING_DIR)/usr/lib/libiw.so
-endef
+	$(CP) $(PKG_BUILD_DIR)/{iwlib,wireless}.h $(STAGING_DIR)/usr/include/
 	
-define Build/UninstallDev
-	rm -f	$(STAGING_DIR)/usr/include/{iwlib,wireless}.h \
-		$(STAGING_DIR)/usr/lib/libiw.so*
-endef
+uninstall-dev:
+	rm -f $(STAGING_DIR)/usr/lib/libiw.*
+	rm -f $(STAGING_DIR)/usr/include/{iwlib,wireless}.h
 
-define Package/wireless-tools/install
-	install -d -m0755  $(1)/usr/lib
-	install -m0755 $(PKG_BUILD_DIR)/libiw.so.28 $(1)/usr/lib/
-	install -d -m0755 $(1)/usr/sbin
-	install -m0755 $(PKG_INSTALL_DIR)/usr/sbin/iw{config,getid,list,priv,spy} $(1)/usr/sbin/
-endef
-
-$(eval $(call BuildPackage,wireless-tools))
+compile: install-dev
+clean: uninstall-dev

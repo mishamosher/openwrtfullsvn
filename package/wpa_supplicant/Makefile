@@ -1,73 +1,40 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=wpa_supplicant
-PKG_VERSION:=0.5.5
+PKG_VERSION:=0.4.7
 PKG_RELEASE:=1
-PKG_MD5SUM:=482dd85949c82aa15309e5ab3d2cf5c3
+PKG_MD5SUM:=1345730f15d5f93f2f083096ddc903eb
 
-PKG_SOURCE_URL:=http://hostap.epitest.fi/releases
+PKG_SOURCE_URL:=http://hostap.epitest.fi/releases/
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
-PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/wpa-supplicant
-  SECTION:=net
-  CATEGORY:=Network
-  DEPENDS:=+libopenssl
-  TITLE:=WPA Supplicant
-  DESCRIPTION:=WPA Supplicant
-  URL:=http://hostap.epitest.fi/wpa_supplicant/
-endef
+$(eval $(call PKG_template,WPA_SUPPLICANT,wpa-supplicant,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
+$(PKG_BUILD_DIR)/.configured:
+	$(CP) ./files/config $(PKG_BUILD_DIR)/.config
+	touch $@
 
-define Package/wpa-cli
-  SECTION:=net
-  CATEGORY:=Network
-  DEPENDS:=wpa-supplicant
-  TITLE:=WPA Supplicant command line interface
-  DESCRIPTION:=
-endef
-
-
-define Build/Configure
-	cp ./files/config.$(ARCH) $(PKG_BUILD_DIR)/.config
-endef
-
-define Build/Compile
-	rm -rf $(PKG_INSTALL_DIR)
-	mkdir -p $(PKG_INSTALL_DIR)
+$(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		CC="$(TARGET_CC)" \
-		KERNEL=$(LINUX_DIR) \
+		$(TARGET_CONFIGURE_OPTS) \
 		CPPFLAGS="-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include" \
-		LDFLAGS=" -L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
+		LDFLAGS="-L$(STAGING_DIR)/usr/lib" \
+		OPT_FLAGS="$(TARGET_CFLAGS)" \
+		KERNEL=$(LINUX_DIR) \
 		all
-	$(STRIP) $(PKG_BUILD_DIR)/wpa_supplicant
-	$(STRIP) $(PKG_BUILD_DIR)/wpa_cli
-		
-endef
+	touch $@
 
-define Package/wpa-supplicant/install
-	install -m0755 -d $(1)/usr/sbin
-	$(CP) $(PKG_BUILD_DIR)/wpa_supplicant $(1)/usr/sbin/
-endef
-
-define Package/wpa-cli/install
-	install -m0755 -d $(1)/usr/sbin
-	$(CP) $(PKG_BUILD_DIR)/wpa_cli $(1)/usr/sbin/
-endef
-
-$(eval $(call BuildPackage,wpa-supplicant))
-$(eval $(call BuildPackage,wpa-cli))
+$(IPKG_WPA_SUPPLICANT):
+	install -m0755 -d $(IDIR_WPA_SUPPLICANT)/usr/sbin
+	install -m0755 $(PKG_BUILD_DIR)/wpa_cli $(IDIR_WPA_SUPPLICANT)/usr/sbin/
+	install -m0755 $(PKG_BUILD_DIR)/wpa_passphrase $(IDIR_WPA_SUPPLICANT)/usr/sbin/
+	install -m0755 $(PKG_BUILD_DIR)/wpa_supplicant $(IDIR_WPA_SUPPLICANT)/usr/sbin/
+	$(RSTRIP) $(IDIR_WPA_SUPPLICANT)
+	$(IPKG_BUILD) $(IDIR_WPA_SUPPLICANT) $(PACKAGE_DIR)

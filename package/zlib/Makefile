@@ -1,47 +1,35 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=zlib
-PKG_VERSION:=1.2.3
-PKG_RELEASE:=3
+PKG_VERSION:=1.2.2
+PKG_RELEASE:=2
+PKG_MD5SUM:=1b8aab042d40979e456194c468fd72c5
 
+PKG_SOURCE_URL:=@SF/zlib
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_SOURCE_URL:=http://www.zlib.net @SF/zlib
-PKG_MD5SUM:=dee233bf288ee795ac96a98cc2e369b6
 PKG_CAT:=bzcat
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/zlib
-  SECTION:=libs
-  CATEGORY:=Libraries
-  TITLE:=Library implementing the deflate compression method
-  URL:=http://www.zlib.net/
-endef
+$(eval $(call PKG_template,ZLIB,zlib,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Build/Configure
+$(PKG_BUILD_DIR)/.configured: $(PKG_BUILD_DIR)/.prepared
 	(cd $(PKG_BUILD_DIR); \
 		$(TARGET_CONFIGURE_OPTS) \
 		LDSHARED="$(TARGET_CC) -shared -Wl,-soname,libz.so.1" \
 		CFLAGS="$(TARGET_CFLAGS) $(CFLAGS_LARGEFILE)" \
-		UNAME_S="Linux" \
 		./configure \
-			--prefix=/usr \
-			--shared \
+		--prefix=/usr \
+		--shared \
 	);
-endef
+	touch $@
 
-define Build/Compile
+$(PKG_BUILD_DIR)/.built: $(PKG_BUILD_DIR)/.configured
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS) $(CFLAGS_LARGEFILE)" \
@@ -50,25 +38,27 @@ define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		install
-endef
+	touch $@
 
-define Build/InstallDev
+$(IPKG_ZLIB):
+	install -m0755 -d $(IDIR_ZLIB)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libz.so.* $(IDIR_ZLIB)/usr/lib/
+	$(RSTRIP) $(IDIR_ZLIB)
+	$(IPKG_BUILD) $(IDIR_ZLIB) $(PACKAGE_DIR)
+
+$(STAGING_DIR)/usr/lib/libz.so: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/include
-	$(CP)	$(PKG_INSTALL_DIR)/usr/include/z{conf,lib}.h \
-		$(STAGING_DIR)/usr/include/
+	$(CP) $(PKG_INSTALL_DIR)/usr/include/*.h $(STAGING_DIR)/usr/include
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP)	$(PKG_INSTALL_DIR)/usr/lib/libz.{a,so*} \
-		$(STAGING_DIR)/usr/lib/
-endef
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/* $(STAGING_DIR)/usr/lib
+	touch $(STAGING_DIR)/usr/lib/libz.so
 	
-define Build/UninstallDev
-	rm -rf	$(STAGING_DIR)/usr/include/z{conf,lib}.h \
-		$(STAGING_DIR)/usr/lib/libz.{a,so*}
-endef
+install-dev: $(STAGING_DIR)/usr/lib/libz.so
 
-define Package/zlib/install
-	install -d -m0755 $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libz.so.* $(1)/usr/lib/
-endef
+uninstall-dev:
+	rm -rf $(STAGING_DIR)/usr/include/zconf.h
+	rm -rf $(STAGING_DIR)/usr/include/zlib.h
+	rm -rf $(STAGING_DIR)/usr/lib/libz.*
 
-$(eval $(call BuildPackage,zlib))
+compile: install-dev
+clean: uninstall-dev

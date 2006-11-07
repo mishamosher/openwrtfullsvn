@@ -1,9 +1,3 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
@@ -13,38 +7,40 @@ PKG_RELEASE:=1
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/nvram
-  SECTION:=utils
-  CATEGORY:=Utilities
-  DEFAULT:=y
-  DEPENDS:=@LINUX_2_4_BRCM
-  TITLE:=Broadcom config utility
-  DESCRIPTION:=\
-	This package contains an utility to control broadcom's 'nvram' config \\\
-	area.
-endef
+# does not depend on menuconfig
+ifneq ($(BOARD),brcm)
+BR2_PACKAGE_NVRAM:=m
+else
+BR2_PACKAGE_NVRAM:=y
+endif
 
-define Build/Prepare
+$(eval $(call PKG_template,NVRAM,nvram,$(PKG_RELEASE),$(ARCH)))
+
+$(PKG_BUILD_DIR)/.prepared:
 	mkdir -p $(PKG_BUILD_DIR)
 	$(CP) ./src/* $(PKG_BUILD_DIR)
-endef
+	touch $@
 
-define Build/InstallDev
+$(PKG_BUILD_DIR)/.built:
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		$(TARGET_CONFIGURE_OPTS) \
+		CFLAGS="$(TARGET_CFLAGS) -I $(STAGING_DIR)/usr/include"
+	touch $@
+
+$(IPKG_NVRAM):
+	mkdir -p $(IDIR_NVRAM)/usr/lib
+	cp $(PKG_BUILD_DIR)/*.so $(IDIR_NVRAM)/usr/lib
+	mkdir -p $(IDIR_NVRAM)/usr/sbin
+	cp $(PKG_BUILD_DIR)/nvram $(IDIR_NVRAM)/usr/sbin
+	$(RSTRIP) $(IDIR_NVRAM)
+	$(IPKG_BUILD) $(IDIR_NVRAM) $(PACKAGE_DIR)
+
+
+compile: install-dev
+install-dev: $(PKG_BUILD_DIR)/.built
 	mkdir -p $(STAGING_DIR)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/lib{nvram,shared}*.so $(STAGING_DIR)/usr/lib/
-endef
+	cp $(PKG_BUILD_DIR)/*.so $(STAGING_DIR)/usr/lib
+	
 
-define Build/UninstallDev
-	rm -f $(STAGING_DIR)/usr/lib/lib{nvram,shared}*.so
-endef
-
-define Package/nvram/install
-	install -d -m0755 $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/lib{nvram,shared}*.so $(1)/usr/lib/
-	install -d -m0755 $(1)/usr/sbin
-	install -m0755 $(PKG_BUILD_DIR)/nvram $(1)/usr/sbin/
-endef
-
-$(eval $(call BuildPackage,nvram))

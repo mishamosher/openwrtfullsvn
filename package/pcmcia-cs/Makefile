@@ -1,9 +1,3 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
@@ -11,26 +5,20 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=pcmcia-cs
 PKG_VERSION:=3.2.8
 PKG_RELEASE:=1
-
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=@SF/$(PKG_NAME)
 PKG_MD5SUM:=0d6d65be8896eff081aee996049afaa5
+
+PKG_SOURCE_URL:=@SF/$(PKG_NAME)
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_CAT:=zcat
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
-include $(INCLUDE_DIR)/package.mk
+include $(TOPDIR)/package/rules.mk
 
-define Package/pcmcia-cs
-  SECTION:=utils
-  CATEGORY:=Utilities
-  DEPENDS:=@PCMCIA_SUPPORT
-  TITLE:=PCMCIA/Cardbus management utilities
-  URL:=http://pcmcia-cs.sourceforge.net/
-endef
+$(eval $(call PKG_template,PCMCIA_UTILS,pcmcia-utils,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Build/Configure
+$(PKG_BUILD_DIR)/.configured:
 	( cd $(PKG_BUILD_DIR); \
 		./Configure \
 			--noprompt \
@@ -45,24 +33,26 @@ define Build/Configure
 			--nopnp \
 			--notrust \
 			--nox11 \
-			--rcdir="/etc" \
-			--sysv \
+			--sysv --rcdir="/etc" \
 	)
-endef
+	touch $@
 
-define Build/Compile
-	$(call Build/Compile/Default, \
+$(PKG_BUILD_DIR)/.built: 
+	rm -rf $(PKG_INSTALL_DIR)
+	mkdir -p $(PKG_INSTALL_DIR)
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CFLAGS="$(TARGET_CFLAGS)" \
-		all install \
-	)
-endef
+		all install
+	touch $@
 
-define Package/pcmcia-cs/install
-	install -d -m0755 $(1)/etc
-	$(CP) $(PKG_INSTALL_DIR)/etc/pcmcia $(1)/etc/
-	install -d -m0755 $(1)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/sbin/cardctl $(1)/usr/sbin/
-	$(CP) $(PKG_INSTALL_DIR)/sbin/cardmgr $(1)/usr/sbin/
-endef
+$(IPKG_PCMCIA_UTILS):
+	install -m0755 -d $(IDIR_PCMCIA_UTILS)/etc
+	$(CP) $(PKG_INSTALL_DIR)/etc/pcmcia $(IDIR_PCMCIA_UTILS)/etc/
+	install -m0755 -d $(IDIR_PCMCIA_UTILS)/usr/sbin
+	$(CP) $(PKG_INSTALL_DIR)/sbin/cardctl $(IDIR_PCMCIA_UTILS)/usr/sbin/
+	$(CP) $(PKG_INSTALL_DIR)/sbin/cardmgr $(IDIR_PCMCIA_UTILS)/usr/sbin/
+	install -d -m0755 $(IDIR_PCMCIA_UTILS)/etc/init.d/
+	install -m0755 ./files/pcmcia.init $(IDIR_PCMCIA_UTILS)/etc/init.d/S20pcmcia
+	$(RSTRIP) $(IDIR_PCMCIA_UTILS)
+	$(IPKG_BUILD) $(IDIR_PCMCIA_UTILS) $(PACKAGE_DIR)
 
-$(eval $(call BuildPackage,pcmcia-cs))

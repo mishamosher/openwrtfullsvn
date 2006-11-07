@@ -1,43 +1,51 @@
-diff -ruN busybox-1.2.0-old/include/usage.h busybox-1.2.0-new/include/usage.h
---- busybox-1.2.0-old/include/usage.h	2006-07-31 10:47:56.000000000 +0200
-+++ busybox-1.2.0-new/include/usage.h	2006-07-31 11:08:49.000000000 +0200
-@@ -3190,6 +3190,7 @@
- 	"\t-n,\t--now\tExit with failure if lease cannot be immediately negotiated\n" \
+diff -Nurb busybox-1.00/include/usage.h busybox-1.00-patched/include/usage.h
+--- busybox-1.00/include/usage.h	2005-05-30 05:34:45.397776704 -0400
++++ busybox-1.00-patched/include/usage.h	2005-05-30 05:04:29.271869808 -0400
+@@ -2629,6 +2629,7 @@
+ 	"\t-n,\t--now\tExit with failure if lease cannot be immediately negotiated.\n" \
  	"\t-p,\t--pidfile=file\tStore process ID of daemon in file\n" \
  	"\t-q,\t--quit\tQuit after obtaining lease\n" \
 +	"\t-R,\t--release\tRelease IP on quit\n" \
  	"\t-r,\t--request=IP\tIP address to request (default: none)\n" \
  	"\t-s,\t--script=file\tRun file at dhcp events (default: /usr/share/udhcpc/default.script)\n" \
- 	"\t-t,\t--retries=NUM\tSend up to NUM request packets\n"\
-diff -ruN busybox-1.2.0-old/networking/udhcp/dhcpc.c busybox-1.2.0-new/networking/udhcp/dhcpc.c
---- busybox-1.2.0-old/networking/udhcp/dhcpc.c	2006-07-01 00:42:02.000000000 +0200
-+++ busybox-1.2.0-new/networking/udhcp/dhcpc.c	2006-07-31 11:08:49.000000000 +0200
-@@ -47,6 +47,7 @@
- 	.abort_if_no_lease = 0,
- 	.foreground = 0,
- 	.quit_after_lease = 0,
-+	.release_on_quit = 0,
- 	.background_if_no_lease = 0,
- 	.interface = "eth0",
- 	.pidfile = NULL,
-@@ -163,6 +164,7 @@
- 		{"now",		no_argument,		0, 'n'},
+ 	"\t-v,\t--version\tDisplay version"
+diff -Nurb busybox-1.00/networking/udhcp/dhcpc.c busybox-1.00-patched/networking/udhcp/dhcpc.c
+--- busybox-1.00/networking/udhcp/dhcpc.c	2004-05-19 04:29:05.000000000 -0400
++++ busybox-1.00-patched/networking/udhcp/dhcpc.c	2005-05-30 05:00:47.377602864 -0400
+@@ -61,6 +61,7 @@
+ 	abort_if_no_lease: 0,
+ 	foreground: 0,
+ 	quit_after_lease: 0,
++	release_on_quit: 0,
+ 	background_if_no_lease: 0,
+ 	interface: "eth0",
+ 	pidfile: NULL,
+@@ -87,6 +88,7 @@
+ "                                  immediately negotiated.\n"
+ "  -p, --pidfile=file              Store process ID of daemon in file\n"
+ "  -q, --quit                      Quit after obtaining lease\n"
++"  -R, --release                   Release IP on quit\n"
+ "  -r, --request=IP                IP address to request (default: none)\n"
+ "  -s, --script=file               Run file at dhcp events (default:\n"
+ "                                  " DEFAULT_SCRIPT ")\n"
+@@ -202,6 +204,7 @@
+ 		{"now", 	no_argument,		0, 'n'},
  		{"pidfile",	required_argument,	0, 'p'},
  		{"quit",	no_argument,		0, 'q'},
 +		{"release",	no_argument,		0, 'R'},
  		{"request",	required_argument,	0, 'r'},
  		{"script",	required_argument,	0, 's'},
- 		{"timeout",	required_argument,	0, 'T'},
-@@ -174,7 +176,7 @@
+ 		{"version",	no_argument,		0, 'v'},
+@@ -214,7 +214,7 @@
  	/* get options */
  	while (1) {
  		int option_index = 0;
--		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qr:s:T:t:v", arg_options, &option_index);
-+		c = getopt_long(argc, argv, "c:CV:fbH:h:F:i:np:qRr:s:T:t:v", arg_options, &option_index);
+-		c = getopt_long(argc, argv, "c:fbH:h:i:np:qr:s:v", arg_options, &option_index);
++		c = getopt_long(argc, argv, "c:fbH:h:i:np:qRr:s:v", arg_options, &option_index);
  		if (c == -1) break;
  
  		switch (c) {
-@@ -244,6 +246,9 @@
+@@ -251,6 +254,9 @@
  		case 'q':
  			client_config.quit_after_lease = 1;
  			break;
@@ -47,20 +55,20 @@ diff -ruN busybox-1.2.0-old/networking/udhcp/dhcpc.c busybox-1.2.0-new/networkin
  		case 'r':
  			requested_ip = inet_addr(optarg);
  			break;
-@@ -488,8 +493,11 @@
+@@ -472,8 +478,11 @@
  
  					state = BOUND;
  					change_mode(LISTEN_NONE);
 -					if (client_config.quit_after_lease)
 +					if (client_config.quit_after_lease) {
-+						if (client_config.release_on_quit)
++						if (client_config.release_on_quit) 
 +							perform_release();
  						return 0;
 +					}
  					if (!client_config.foreground)
  						client_background();
  
-@@ -514,12 +522,13 @@
+@@ -498,12 +507,14 @@
  			case SIGUSR1:
  				perform_renew();
  				break;
@@ -69,7 +77,8 @@ diff -ruN busybox-1.2.0-old/networking/udhcp/dhcpc.c busybox-1.2.0-new/networkin
 -				break;
  			case SIGTERM:
  				LOG(LOG_INFO, "Received SIGTERM");
-+				if (!client_config.release_on_quit)
++				if (client_config.release_on_quit)
++					perform_release();
  				return 0;
 +			case SIGUSR2:
 +				perform_release();
@@ -77,10 +86,10 @@ diff -ruN busybox-1.2.0-old/networking/udhcp/dhcpc.c busybox-1.2.0-new/networkin
  			}
  		} else if (retval == -1 && errno == EINTR) {
  			/* a signal was caught */
-diff -ruN busybox-1.2.0-old/networking/udhcp/dhcpc.h busybox-1.2.0-new/networking/udhcp/dhcpc.h
---- busybox-1.2.0-old/networking/udhcp/dhcpc.h	2006-07-01 00:42:02.000000000 +0200
-+++ busybox-1.2.0-new/networking/udhcp/dhcpc.h	2006-07-31 11:08:49.000000000 +0200
-@@ -18,6 +18,7 @@
+diff -Nurb busybox-1.00/networking/udhcp/dhcpc.h busybox-1.00-patched/networking/udhcp/dhcpc.h
+--- busybox-1.00/networking/udhcp/dhcpc.h	2004-01-30 18:45:12.000000000 -0500
++++ busybox-1.00-patched/networking/udhcp/dhcpc.h	2005-05-30 04:53:58.681734080 -0400
+@@ -20,6 +20,7 @@
  struct client_config_t {
  	char foreground;		/* Do not fork */
  	char quit_after_lease;		/* Quit after obtaining lease */

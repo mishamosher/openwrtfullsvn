@@ -1,7 +1,7 @@
-# Copyright (C) 2006 OpenWrt.org
-
 BEGIN {
-	print "ifname=\"$WAN\""
+	print "proto=\"$(nvram get wan_proto)\""
+	print "[ -z \"$proto\" -o \"$proto\" = \"none\" ] && exit"
+	print "ifname=\"$(nvram get wan_ifname)\""
 	print "[ -z \"$ifname\" ] && exit"
 	print ""
 	print "iptables -X input_$ifname 2>&- >&-"
