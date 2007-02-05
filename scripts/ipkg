@@ -32,8 +32,6 @@ ipkg_is_upgrade () {
   return 1
 }         
 
-which md5sum 2>&1 >/dev/null || alias md5sum=md5
-
 ipkg_srcs() {
 	local srcre="$1"
 	sed -ne "s/^src[[:space:]]\+$srcre[[:space:]]\+//p" < $IPKG_CONF
@@ -234,6 +232,7 @@ ipkg_download() {
 		proxyoption="--proxy=on"
 	fi
 
+	echo "Downloading $src ..."
 	rm -f $IPKG_TMP/$src_file
 	case "$src" in
 	http://* | ftp://*)
@@ -251,6 +250,7 @@ ipkg_download() {
 		;;
 	esac
 
+	echo "Done."
 	return 0
 }
 
@@ -663,7 +663,7 @@ Status: install ok not-installed" | ipkg_status_update_sd $sd $pkg
 			curcheck="`expr $curcheck + 1`"
 			local is_installed="`ipkg_get_installed $pkg`"
 			if [ "$is_installed" = "installed" ]; then
-				echo "$pkg is installed"
+				echo "$pkg is installed" > /dev/console
 				continue
 			fi
 
@@ -691,6 +691,7 @@ Status: install ok not-installed" | ipkg_status_update_sd $sd $pkg
 				return 1;
 			fi
 
+			echo ""
 			local tmp_pkg_file="$IPKG_TMP/"`ipkg_file_part $filename`
 			if ! ipkg_download `ipkg_src_byname $src`/$filename $tmp_pkg_file; then
 				echo "ipkg_get_install: Perhaps you need to run \`ipkg update'?"
@@ -904,6 +905,7 @@ ipkg_install_file() {
 }
 
 ipkg_install() {
+
 	while [ $# -gt 0 ]; do
 		local pkg="$1"
 		shift

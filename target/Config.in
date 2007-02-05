@@ -1,100 +1,21 @@
-source "tmp/.config-target.in"
+menu "Target Root Filesystem"
 
-# Kernel/Hardware features
+	config BR2_TARGET_ROOTFS_JFFS2
+		bool "jffs2"
+		default n
+		help
+		  Build a jffs2 root filesystem
 
-config LINUX_2_4
-	bool
+	config BR2_TARGET_ROOTFS_SQUASHFS_LZMA
+		bool "squashfs-lzma"
+		default y
+		help
+		  Build a squashfs-lzma root filesystem
 
-config LINUX_2_6
-	bool
+endmenu
 
-config PCI_SUPPORT
-	bool
+menu "Kernel Configuration / Device Support"
 
-config PCMCIA_SUPPORT
-	bool
+source "target/linux/Config.in"
 
-config USB_SUPPORT
-	bool
-
-config ATM_SUPPORT
-	bool
-
-config VIDEO_SUPPORT
-	bool
-
-config BIG_ENDIAN
-	bool
-
-config USES_SQUASHFS
-	bool
-
-config USES_JFFS2
-	bool
-
-config USES_EXT2
-	bool
-
-# Architecture selection
-
-config i386
-	bool
-	
-config mips
-	select BIG_ENDIAN
-	bool
-
-config mipsel
-	bool
-
-config arm
-	bool
-
-config armeb
-	select BIG_ENDIAN
-	bool
-
-config cris
-	bool
-
-config m68k
-	bool
-
-config powerpc
-	select BIG_ENDIAN
-	bool
-
-config sh3
-	bool
-
-config sh3eb
-	select BIG_ENDIAN
-	bool
-
-config sh4
-	bool
-
-config sh4eb
-	select BIG_ENDIAN
-	bool
-
-config sparc
-	select BIG_ENDIAN
-	bool
-
-config ARCH
-	string
-	default "arm"     if arm
-	default "armeb"   if armeb
-	default "cris"    if cris
-	default "i386"    if i386
-	default "m68k"    if m68k
-	default "mips"    if mips
-	default "mipsel"  if mipsel
-	default "powerpc" if powerpc
-	default "sh3"     if sh3
-	default "sh3eb"   if sh3eb
-	default "sh4"     if sh4
-	default "sh4eb"   if sh4eb
-	default "sparc"   if sparc
-
+endmenu

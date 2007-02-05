@@ -1,56 +1,49 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 include $(TOPDIR)/rules.mk
-include $(INCLUDE_DIR)/kernel.mk
 
-PKG_NAME=kernel-headers
-PKG_VERSION=$(LINUX_VERSION)
+# linux kernel headers for toolchain
 
-PKG_SOURCE=$(LINUX_SOURCE)
-PKG_SOURCE_URL=$(LINUX_SITE)
+LINUX_HEADERS_VERSION=2.4.30
+LINUX_KERNEL_MD5SUM:=75d8ce40a3668603017cd186909efe8d
+LINUX_HEADERS_SITE=http://www.fi.kernel.org/pub/linux/kernel/v2.4 \
+		   http://www.fr.kernel.org/pub/linux/kernel/v2.4 \
+		   http://www.kernel.org/pub/linux/kernel/v2.4 \
+		   http://www.de.kernel.org/pub/linux/kernel/v2.4 
 
-PKG_BUILD_DIR:=$(TOOLCHAIN_BUILD_DIR)/linux-$(PKG_VERSION)
+LINUX_HEADERS_SOURCE=linux-$(LINUX_HEADERS_VERSION).tar.bz2
+LINUX_HEADERS_ARCH:=$(shell echo $(ARCH) | sed -e 's/i[3-9]86/i386/' \
+	-e 's/mipsel/mips/' \
+	-e 's/powerpc/ppc/' \
+	-e 's/sh[234]/sh/' \
+	)
 
-include $(INCLUDE_DIR)/host-build.mk
+$(DL_DIR)/$(LINUX_HEADERS_SOURCE):
+	-mkdir -p $(DL_DIR)
+	$(SCRIPT_DIR)/download.pl $(DL_DIR) $(LINUX_HEADERS_SOURCE) $(LINUX_KERNEL_MD5SUM) $(LINUX_HEADERS_SITE)
 
-define Build/Prepare
-	mkdir -p $(TOOLCHAIN_BUILD_DIR)
-	bzcat $(DL_DIR)/$(PKG_SOURCE) | $(HOST_TAR) -C $(TOOLCHAIN_BUILD_DIR) $(TAR_OPTIONS)
-	$(PATCH) $(PKG_BUILD_DIR) $(TOPDIR)/target/linux/generic-$(KERNEL)/patches
-	$(SED) 's/@expr length/@-expr length/' $(PKG_BUILD_DIR)/Makefile
-	ln -sf $(PKG_BUILD_DIR) $(LINUX_HEADERS_DIR)
-endef
+$(LINUX_HEADERS_DIR)/.unpacked: $(DL_DIR)/$(LINUX_HEADERS_SOURCE)
+	mkdir -p $(TOOL_BUILD_DIR)
+	bzcat $(DL_DIR)/$(LINUX_HEADERS_SOURCE) | tar --wildcards -C $(TOOL_BUILD_DIR) $(TAR_OPTIONS) \
+		linux-$(LINUX_HEADERS_VERSION)/include \
+		linux-$(LINUX_HEADERS_VERSION)/Makefile \
+		linux-$(LINUX_HEADERS_VERSION)/Rules.make \
+		linux-$(LINUX_HEADERS_VERSION)/arch/$(LINUX_HEADERS_ARCH)/Makefile \
+		linux-$(LINUX_HEADERS_VERSION)/scripts \
+		linux-$(LINUX_HEADERS_VERSION)/arch/$(LINUX_HEADERS_ARCH)/config*.in \
+		linux-$(LINUX_HEADERS_VERSION)/*/*/Config.in \
+		linux-$(LINUX_HEADERS_VERSION)/*/Config.in
+	ln -sf $(LINUX_HEADERS_DIR)-$(LINUX_HEADERS_VERSION) $(LINUX_HEADERS_DIR)
+	$(SED) 's/@expr length/@-expr length/' $(LINUX_HEADERS_DIR)/Makefile 
+	touch $(LINUX_HEADERS_DIR)/.unpacked
 
-define Build/Configure/powerpc
-	$(CP) $(PKG_BUILD_DIR)/include/asm-ppc/* $(PKG_BUILD_DIR)/include/asm-powerpc/
-	rm -rf $(PKG_BUILD_DIR)/include/asm-ppc
-	mv $(PKG_BUILD_DIR)/include/asm-powerpc $(PKG_BUILD_DIR)/include/asm-ppc
-endef
+$(LINUX_HEADERS_DIR)/.configured: $(LINUX_HEADERS_DIR)/.unpacked
+	-cp -af ./config.$(LINUX_HEADERS_ARCH) $(LINUX_HEADERS_DIR)/.config
+	$(MAKE) -C $(LINUX_HEADERS_DIR) ARCH=$(LINUX_HEADERS_ARCH) oldconfig include/linux/version.h
+	touch $(LINUX_HEADERS_DIR)/.configured
 
-ifneq (,$(findstring uml,$(BOARD)))
-  KMAKE := $(MAKE) -C $(PKG_BUILD_DIR) \
-		ARCH=i386 \
-		CONFIG_SHELL=$(BASH)
-else
-  KMAKE := $(MAKE) -C $(PKG_BUILD_DIR) \
-		ARCH=$(LINUX_KARCH) \
-		CONFIG_SHELL=$(BASH)
-endif
+source: $(DL_DIR)/$(LINUX_HEADERS_SOURCE)
+prepare: $(LINUX_HEADERS_DIR)/.configured
+compile:
+install:
+clean:
+	rm -rf $(LINUX_HEADERS_DIR)
 
-define Build/Configure
-	yes '' | $(KMAKE) oldconfig
-	$(KMAKE) include/linux/version.h include/asm
-	$(call Build/Configure/$(ARCH))
-endef
-
-define Build/Compile
-endef
-
-define Build/Install
-endef
-
-$(eval $(call HostBuild))

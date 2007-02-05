@@ -3,8 +3,8 @@ This is the buildsystem for the OpenWrt Linux distribution
 Please use "make menuconfig" to configure your appreciated
 configuration for the toolchain and firmware.
 
-You need to have installed gcc, binutils, patch, bzip2, flex, bison,
-make, gettext, pkg-config, unzip, libz-dev and libc headers.
+You need to have installed gcc, g++, binutils, patch, bzip2, flex, bison,
+make, gettext, unzip, libz-dev and libc headers.
 
 Simply running 'make' will build your firmware.
 It will download all sources, build the cross-compile toolchain, 
@@ -13,11 +13,9 @@ the kernel and all choosen applications.
 You can use scripts/flash.sh for remotely updating your embedded system
 via tftp.
 
-The OpenWrt system is documented in docs/. You will need a LaTeX distribution
-to build the documentation. Type make -C docs/ to build the documentation.
+The buildroot system is documented in docs/buildroot-documentation.html.
 
-Building your own firmware you need to have access to a Linux, BSD or MacOSX system.
-Cygwin will not be supported because of the lack of case sensitiveness.
+Building your own firmware you need to have access to a Linux system.
 
 Sunshine!
 	Your OpenWrt Project

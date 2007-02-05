@@ -1,5 +1,3 @@
-# Copyright (C) 2006 OpenWrt.org
-
 BEGIN {
 	FS=":"
 }

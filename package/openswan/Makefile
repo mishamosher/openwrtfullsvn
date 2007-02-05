@@ -1,86 +1,53 @@
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
 # $Id$
 
 include $(TOPDIR)/rules.mk
-include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=openswan
-PKG_VERSION:=2.4.7
+PKG_VERSION:=2.4.6
 PKG_RELEASE:=1
+PKG_MD5SUM:=b34d71ca49dedad017879b0e912d40dd
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.openswan.org/download
-PKG_MD5SUM:=70f22e8adc39e07a165f75eccb7cd079
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PKG_CAT:=zcat
 
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
-PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
+include $(TOPDIR)/package/rules.mk
 
-include $(INCLUDE_DIR)/package.mk
+$(eval $(call PKG_template,OPENSWAN,openswan,$(PKG_VERSION)-$(PKG_RELEASE),$(ARCH)))
 
-define Package/openswan/Default
-  TITLE:=Openswan
-  DESCRIPTION:=\
-	Openswan is an IPsec implementation for Linux.
-  URL:=http://www.openswan.org/
-endef
+FLAGS := $(TARGET_CFLAGS) -I$(PKG_BUILD_DIR)/linux/include -L$(STAGING_DIR)/usr/lib -I$(STAGING_DIR)/usr/include
 
-define Package/openswan
-  $(call Package/openswan/Default)
-  SECTION:=net
-  CATEGORY:=Network
-  DEPENDS:=+kmod-openswan +libgmp
-  TITLE+= (daemon)
-  DESCRIPTION+=\\\
-	\\\
-	This package contains the Openswan user-land daemon.
-  URL:=http://www.openswan.org/
-endef
-
-define KernelPackage/openswan
-  SUBMENU:=Network Support
-  $(call Package/openswan/Default)
-  TITLE+= (kernel module)
-  DESCRIPTION+=\\\
-	\\\
-	This package contains the Openswan kernel module.
-  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
-  FILES:=$(PKG_BUILD_DIR)/modobj*/ipsec.$(LINUX_KMOD_SUFFIX)
-endef
-
-PKG_MAKE_OPTS:= \
-		LINUX_RELEASE="$(LINUX_RELEASE)" \
-		KERNELSRC="$(LINUX_DIR)" \
-		ARCH="$(LINUX_KARCH)" \
-		CROSS_COMPILE="$(TARGET_CROSS)" \
-		USERCOMPILE="$(TARGET_CFLAGS) -I./linux/include -I$(STAGING_DIR)/usr/include -L$(STAGING_DIR)/usr/lib" \
-		IPSECDIR="/usr/lib/ipsec" \
-		INC_USRLOCAL="/usr" \
-
-define Build/Compile
+$(PKG_BUILD_DIR)/.built:
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
-		$(PKG_MAKE_OPTS) \
-		LDFLAGS="-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib" \
-		DESTDIR="$(PKG_INSTALL_DIR)" \
-		programs module install
-endef
+		KERNELSRC="$(LINUX_DIR)" \
+		ARCH="mips" \
+		USERCOMPILE="$(FLAGS)" \
+		EXTRA_INCLUDE="-I$(STAGING_DIR)/usr/include" \
+		EXTRA_LIBS="-L$(STAGING_DIR)/usr/lib" \
+		IPSECDIR="/usr/lib/ipsec" \
+		INC_USRLOCAL="/usr" \
+		programs
 
-define Package/openswan/install
-	$(CP) $(PKG_INSTALL_DIR)/* $(1)
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(CP) ./files/ipsec.init $(1)/etc/init.d/ipsec
-	rm -rf $(1)/usr/share
-	rm -rf $(1)/usr/man
-	rm -rf $(1)/var
-	rm -rf $(1)/etc/rc.d
-	find $(1) -name \*.old | xargs rm -rf
-endef
-
-$(eval $(call BuildPackage,openswan))
-$(eval $(call KernelPackage,openswan))
+$(IPKG_OPENSWAN):
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		$(TARGET_CONFIGURE_OPTS) \
+		DESTDIR="$(IDIR_OPENSWAN)" \
+		KERNELSRC="$(LINUX_DIR)" \
+		ARCH="mips" \
+		USERCOMPILE="$(FLAGS)" \
+		IPSECDIR="/usr/lib/ipsec" \
+		INC_USRLOCAL="/usr" \
+		install
+	-$(STRIP) $(IDIR_OPENSWAN)/usr/lib/ipsec/*
+	-$(STRIP) $(IDIR_OPENSWAN)/usr/libexec/ipsec/*
+	rm -rf $(IDIR_OPENSWAN)/usr/share
+	rm -rf $(IDIR_OPENSWAN)/usr/man
+	rm -rf $(IDIR_OPENSWAN)/var
+	rm -rf $(IDIR_OPENSWAN)/etc/rc.d/rc*.d
+	mkdir -p $(IDIR_OPENSWAN)/etc/init.d
+	ln -sf ../rc.d/init.d/ipsec $(IDIR_OPENSWAN)/etc/init.d/S60ipsec
+	find $(PKG_BUILD_DIR) -name \*.old | xargs rm -rf
+	mkdir -p $(PACKAGE_DIR)
+	$(IPKG_BUILD) $(IDIR_OPENSWAN) $(PACKAGE_DIR)

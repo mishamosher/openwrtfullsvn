@@ -1,193 +1,185 @@
-# Makefile for OpenWrt
+# Makefile for OpenWRT
 #
-# Copyright (C) 2006 OpenWrt.org
-# Copyright (C) 2006 by Felix Fietkau <openwrt@nbd.name>
+# Copyright (C) 2005 by Felix Fietkau <openwrt@nbd.name>
+# Copyright (C) 1999-2004 by Erik Andersen <andersen@codepoet.org>
 #
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation; either version 2 of the License, or
+# (at your option) any later version.
 #
-
-RELEASE:=Kamikaze
-#VERSION:=2.0 # uncomment for final release
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
+#
 
 #--------------------------------------------------------------
 # Just run 'make menuconfig', configure stuff, then run 'make'.
 # You shouldn't need to mess with anything beyond this point...
 #--------------------------------------------------------------
+TOPDIR=${shell pwd}
+export TOPDIR
+ifneq ($(DEVELOPER),)
+CONFIG_CONFIG_IN = Config.in.devel
+else
+CONFIG_CONFIG_IN = Config.in
+endif
+CONFIG_DEFCONFIG = .defconfig
+CONFIG = package/config
+
+noconfig_targets := menuconfig config oldconfig randconfig \
+	defconfig allyesconfig allnoconfig release tags
+
+# Pull in the user's configuration file
+ifeq ($(filter $(noconfig_targets),$(MAKECMDGOALS)),)
+-include $(TOPDIR)/.config
+endif
+
+ifeq ($(strip $(BR2_HAVE_DOT_CONFIG)),y)
+include $(TOPDIR)/rules.mk
 
 all: world
 
-SHELL:=/usr/bin/env bash
-export LC_ALL=C
-export LANG=C
-export TOPDIR=${CURDIR}
-ifeq ($(KBUILD_VERBOSE),99)
-  MAKE:=3>/dev/null $(MAKE)
-endif
-export IS_TTY=$(shell tty -s && echo 1 || echo 0)
+.NOTPARALLEL:
 
-include $(TOPDIR)/include/verbose.mk
+#############################################################
+#
+# You should probably leave this stuff alone unless you know
+# what you are doing.
+#
+#############################################################
 
-OPENWRTVERSION:=$(RELEASE)
-ifneq ($(VERSION),)
-  OPENWRTVERSION:=$(VERSION) ($(OPENWRTVERSION))
-else
-  REV:=$(shell LANG=C svn info | awk '/^Revision:/ { print$$2 }' )
-  ifneq ($(REV),)
-    OPENWRTVERSION:=$(OPENWRTVERSION)/r$(REV)
-  endif
-endif
-export OPENWRTVERSION
+# In this section, we need .config
+include .config.cmd
 
-ifneq ($(shell ./scripts/timestamp.pl -p tmp/.pkginfo package scripts include),tmp/.pkginfo)
-  tmp/.pkginfo: FORCE
-endif
+world: $(DL_DIR) $(BUILD_DIR) configtest toolchain/install target/compile package/compile target/install package_index
 
-ifneq ($(shell ./scripts/timestamp.pl -p tmp/.targetinfo target/linux scripts include),tmp/.targetinfo)
-  tmp/.targetinfo: FORCE
-endif
+.PHONY: all world clean dirclean distclean image_clean target_clean source configtest
 
-ifeq ($(FORCE),)
-  .config scripts/config/conf scripts/config/mconf: tmp/.prereq-build
-  world: tmp/.prereq-packages tmp/.prereq-target
-endif
+configtest:
+	-cp .config .config.test
+	-scripts/configtest.pl
 
-ifeq ($(IS_TTY),1)
-  define progress
-	printf "\033[M\r$(1)" >&2;
-  endef
-endif
+package_index:
+	(cd $(PACKAGE_DIR); \
+		$(STAGING_DIR)/usr/bin/ipkg-make-index . > Packages \
+	)
 
-define dumpinfo
-	@mkdir -p tmp
-	@echo -n Collecting $(2) info... 
-	@-for dir in $(1)/*/; do \
-		[ -f "$${dir}/Makefile" ] || continue; \
-		$(call progress,Collecting $(2) info: $${dir%%/}) \
-		echo Source-Makefile: $${dir}Makefile; \
-		$(NO_TRACE_MAKE) --no-print-dir DUMP=1 -C $$dir 3>/dev/null || echo "ERROR: please fix $${dir}Makefile" >&2; \
-		echo; \
-	done > $@
-	@($(call progress,Collecting $(2) info: done))
-	@echo
-endef
+$(DL_DIR):
+	@mkdir -p $(DL_DIR)
 
-tmp/.pkginfo:
-	$(call dumpinfo,package,package)
+$(BUILD_DIR):
+	@mkdir -p $(BUILD_DIR)
 
-tmp/.targetinfo:
-	$(call dumpinfo,target/linux,target)
+source: $(TARGETS_SOURCE)
 
-tmpinfo-clean: FORCE
-	@-rm -rf tmp/.pkginfo tmp/.targetinfo
 
-tmp/.config.in: tmp/.pkginfo
-	@./scripts/metadata.pl package_config < $< > $@ || rm -f $@
-
-tmp/.config-target.in: tmp/.targetinfo
-	@./scripts/metadata.pl target_config < $< > $@ || rm -f $@
-
-.config: ./scripts/config/conf tmp/.config.in tmp/.config-target.in
-	@[ -f .config ] || $(NO_TRACE_MAKE) menuconfig
-	@$< -D .config Config.in &> /dev/null
-
-scripts/config/mconf:
-	@$(MAKE) -C scripts/config all
-
-scripts/config/conf:
-	@$(MAKE) -C scripts/config conf
-
-config: scripts/config/conf tmp/.config.in tmp/.config-target.in FORCE
-	$< Config.in
-
-config-clean: FORCE
-	$(NO_TRACE_MAKE) -C scripts/config clean
-
-defconfig: scripts/config/conf tmp/.config.in tmp/.config-target.in FORCE
-	touch .config
-	$< -D .config Config.in
-
-oldconfig: scripts/config/conf tmp/.config.in tmp/.config-target.in FORCE
-	$< -o Config.in
-
-menuconfig: scripts/config/mconf tmp/.config.in tmp/.config-target.in FORCE
-	$< Config.in
-
-package/%: tmp/.pkginfo tmp/.targetinfo FORCE
+package/%:
 	$(MAKE) -C package $(patsubst package/%,%,$@)
 
-target/%: tmp/.pkginfo tmp/.targetinfo FORCE
+target/%:
 	$(MAKE) -C target $(patsubst target/%,%,$@)
 
-tools/%: FORCE
-	$(MAKE) -C tools $(patsubst tools/%,%,$@)
-
-toolchain/%: tmp/.targetinfo FORCE
+toolchain/%:
 	$(MAKE) -C toolchain $(patsubst toolchain/%,%,$@)
 
-tmp/.prereq-build: include/prereq-build.mk
-	@mkdir -p tmp
-	@rm -f tmp/.host.mk
-	@$(NO_TRACE_MAKE) -s -f $(TOPDIR)/include/prereq-build.mk prereq 2>/dev/null || { \
-		echo "Prerequisite check failed. Use FORCE=1 to override."; \
-		false; \
-	}
-	@touch $@
+#############################################################
+#
+# Cleanup and misc junk
+#
+#############################################################
+image_clean:
+	rm -f $(STAMP_DIR)/.*-compile
+	rm -f $(STAMP_DIR)/.*-install
+	rm -rf $(BIN_DIR)
+	
+target_clean: image_clean
+	rm -rf $(BUILD_DIR)/linux-*/root
 
-tmp/.prereq-packages: include/prereq.mk tmp/.pkginfo .config
-	@mkdir -p tmp
-	@rm -f tmp/.host.mk
-	@$(NO_TRACE_MAKE) -s -C package prereq 2>/dev/null || { \
-		echo "Prerequisite check failed. Use FORCE=1 to override."; \
-		false; \
-	}
-	@touch $@
+clean: dirclean
+	@$(MAKE) -C $(CONFIG) clean
 
-tmp/.prereq-target: include/prereq.mk tmp/.targetinfo .config
-	@mkdir -p tmp
-	@rm -f tmp/.host.mk
-	@$(NO_TRACE_MAKE) -s -C target prereq 2>/dev/null || { \
-		echo "Prerequisite check failed. Use FORCE=1 to override."; \
-		false; \
-	}
-	@touch $@
+dirclean: target_clean
+	rm -rf $(BUILD_DIR)
 
-prereq: tmp/.prereq-build tmp/.prereq-packages tmp/.prereq-target FORCE
+distclean: clean
+	rm -rf $(STAMP_DIR) $(DL_DIR) $(BUILD_DIR) $(TOOL_BUILD_DIR) $(STAGING_DIR)
+	rm -f .config* .tmpconfig.h
 
-download: .config FORCE
-	$(MAKE) tools/download
-	$(MAKE) toolchain/download
-	$(MAKE) package/download
-	$(MAKE) target/download
+sourceball: distclean
+	set -e; \
+	cd ..; \
+	rm -f buildroot.tar.bz2; \
+	tar -cvf buildroot.tar buildroot; \
+	bzip2 -9 buildroot.tar; \
 
-world: .config FORCE
-	$(MAKE) tools/install
-	$(MAKE) toolchain/install
-	$(MAKE) target/compile
-	$(MAKE) package/compile
-	$(MAKE) package/install
-	$(MAKE) target/install
-	$(MAKE) package/index
+else # ifeq ($(strip $(BR2_HAVE_DOT_CONFIG)),y)
 
-clean: FORCE
-	rm -rf build_* bin tmp
+all: menuconfig
 
-dirclean: clean
-	rm -rf staging_dir_* toolchain_build_* tool_build
+# configuration
+# ---------------------------------------------------------------------------
 
-distclean: dirclean config-clean
-	rm -rf dl
+$(CONFIG)/conf:
+	$(MAKE) -C $(CONFIG) conf
+	-@if [ ! -f .config ] ; then \
+		cp $(CONFIG_DEFCONFIG) .config; \
+	fi
+$(CONFIG)/mconf:
+	$(MAKE) -C $(CONFIG) 
+	-@if [ ! -f .config ] ; then \
+		cp $(CONFIG_DEFCONFIG) .config; \
+	fi
 
-help:
-	cat README
+menuconfig: $(CONFIG)/mconf
+	-touch .config
+	-cp .config .config.test
+	@$(CONFIG)/mconf $(CONFIG_CONFIG_IN)
+	-./scripts/configtest.pl
 
-doc:
-	$(MAKE) -C docs/ openwrt.pdf
+config: $(CONFIG)/conf
+	-touch .config
+	-cp .config .config.test
+	@$(CONFIG)/conf $(CONFIG_CONFIG_IN)
+	-./scripts/configtest.pl
 
-docclean:
-	$(MAKE) -C docs/ clean
+oldconfig: $(CONFIG)/conf
+	-touch .config
+	-cp .config .config.test
+	@$(CONFIG)/conf -o $(CONFIG_CONFIG_IN)
+	-./scripts/configtest.pl
 
-.SILENT: clean dirclean distclean config-clean download world
-FORCE: ;
-.PHONY: FORCE help
-%: ;
+randconfig: $(CONFIG)/conf
+	-touch .config
+	-cp .config .config.test
+	@$(CONFIG)/conf -r $(CONFIG_CONFIG_IN)
+	-./scripts/configtest.pl
+
+allyesconfig: $(CONFIG)/conf
+	-touch .config
+	-cp .config .config.test
+	@$(CONFIG)/conf -o $(CONFIG_CONFIG_IN)
+	-./scripts/configtest.pl
+
+allnoconfig: $(CONFIG)/conf
+	-touch .config
+	-cp .config .config.test
+	@$(CONFIG)/conf -n $(CONFIG_CONFIG_IN)
+	-./scripts/configtest.pl
+
+defconfig: $(CONFIG)/conf
+	-touch .config
+	-cp .config .config.test
+	@$(CONFIG)/conf -d $(CONFIG_CONFIG_IN)
+	-./scripts/configtest.pl
+
+endif # ifeq ($(strip $(BR2_HAVE_DOT_CONFIG)),y)
+
+.PHONY: dummy subdirs release distclean clean config oldconfig \
+	menuconfig tags check test depend
+

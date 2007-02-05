@@ -3,7 +3,9 @@
 # see scripts/kbuild/config-language.txt.
 #
 
-config BUSYBOX_CONFIG_APP_UDHCPD
+menu "udhcp Server/Client"
+
+config BUSYBOX_CONFIG_UDHCPD
 	bool "udhcp Server (udhcpd)"
 	default n
 	help
@@ -12,27 +14,7 @@ config BUSYBOX_CONFIG_APP_UDHCPD
 
 	  See http://udhcp.busybox.net for further details.
 
-config BUSYBOX_CONFIG_APP_DHCPRELAY
-	bool "dhcprelay"
-	default n
-	depends on BUSYBOX_CONFIG_APP_UDHCPD
-	help
-	  dhcprelay listens for dhcp requests on one or more interfaces
-	  and forwards these requests to a different interface or dhcp
-	  server.
-
-config BUSYBOX_CONFIG_APP_DUMPLEASES
-	bool "Lease display utility (dumpleases)"
-	default n
-	depends on BUSYBOX_CONFIG_APP_UDHCPD
-	help
-	  dumpleases displays the leases written out by the udhcpd server.
-	  Lease times are stored in the file by time remaining in lease, or
-	  by the absolute time that it expires in seconds from epoch.
-
-	  See http://udhcp.busybox.net for further details.
-
-config BUSYBOX_CONFIG_APP_UDHCPC
+config BUSYBOX_CONFIG_UDHCPC
 	bool "udhcp Client (udhcpc)"
 	default y
 	help
@@ -44,24 +26,37 @@ config BUSYBOX_CONFIG_APP_UDHCPC
 
 	  See http://udhcp.busybox.net for further details.
 
-config BUSYBOX_CONFIG_FEATURE_UDHCP_SYSLOG
-	bool "Log udhcp messages to syslog"
+config BUSYBOX_CONFIG_DUMPLEASES
+	bool "Lease display utility (dumpleases)"
 	default n
-	depends on BUSYBOX_CONFIG_APP_UDHCPD || BUSYBOX_CONFIG_APP_UDHCPC
-	select BUSYBOX_CONFIG_FEATURE_SYSLOG
+	depends on BUSYBOX_CONFIG_UDHCPD
 	help
-	  If not daemonized, udhcpd prints its messages to stdout/stderr.
-	  If this option is selected, it will also log them to syslog.
+	  dumpleases displays the leases written out by the udhcpd server.
+	  Lease times are stored in the file by time remaining in lease, or
+	  by the absolute time that it expires in seconds from epoch.
+
+	  See http://udhcp.busybox.net for further details.
+
+config BUSYBOX_CONFIG_FEATURE_UDHCP_SYSLOG
+	bool "  Log udhcp messages to syslog (instead of stdout)"
+	default n
+	depends on BUSYBOX_CONFIG_UDHCPD || BUSYBOX_CONFIG_UDHCPC
+	help
+	  If selected, udhcpd will log all its messages to syslog, otherwise,
+	  it will attempt to log them to stdout.
 
 	  See http://udhcp.busybox.net for further details.
 
 config BUSYBOX_CONFIG_FEATURE_UDHCP_DEBUG
-	bool "Compile udhcp with noisy debugging messages"
+	bool "  Compile udhcp with noisy debugging messages"
 	default n
-	depends on BUSYBOX_CONFIG_APP_UDHCPD || BUSYBOX_CONFIG_APP_UDHCPC
+	depends on BUSYBOX_CONFIG_UDHCPD || BUSYBOX_CONFIG_UDHCPC
 	help
 	  If selected, udhcpd will output extra debugging output.  If using
 	  this option, compile uDHCP with "-g", and do not fork the daemon to
 	  the background.
 
 	  See http://udhcp.busybox.net for further details.
+
+endmenu
+

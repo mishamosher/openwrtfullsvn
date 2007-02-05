@@ -1,5 +1,5 @@
-#!/bin/sh
-BASE=http://svn.openwrt.org/openwrt/trunk/openwrt
+#!/bin/bash
+BASE=http://svn.openwrt.org/openwrt/branches/whiterussian/openwrt
 TARGET=$1
 CONTROL=$2
 VERSION=$3

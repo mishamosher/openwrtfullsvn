@@ -1,11 +1,4 @@
 #!/usr/bin/perl
-# 
-# Copyright (C) 2006 OpenWrt.org
-#
-# This is free software, licensed under the GNU General Public License v2.
-# See /LICENSE for more information.
-#
-
 use strict;
 my $PATH = $ARGV[0];
 ($PATH and -d $PATH) or die 'invalid path';
@@ -16,9 +9,9 @@ my %config;
 
 open CONFIG, $DEFCONFIG or die 'cannot open config file';
 while (<CONFIG>) {
-	/^CONFIG_([\w_]+)=([ym])/ and $config{$1} = $2;
-	/^CONFIG_([\w_]+)=(\d+)/ and $config{$1} = $2;
-	/^CONFIG_([\w_]+)=(".+")/ and $config{$1} = $2;
+	/^([\w_]+)=([ym])/ and $config{$1} = $2;
+	/^([\w_]+)=(\d+)/ and $config{$1} = $2;
+	/^([\w_]+)=(".+")/ and $config{$1} = $2;
 }
 close CONFIG;
 
@@ -39,8 +32,8 @@ while (<FIND>) {
 		next if $line =~ /^\s*mainmenu/;
 
 		# FIXME: make this dynamic
-		$line =~ s/default FEATURE_BUFFERS_USE_MALLOC/default FEATURE_BUFFERS_GO_ON_STACK/;
-		$line =~ s/default FEATURE_SH_IS_NONE/default FEATURE_SH_IS_ASH/;
+		$line =~ s/default CONFIG_FEATURE_BUFFERS_USE_MALLOC/default CONFIG_FEATURE_BUFFERS_GO_ON_STACK/;
+		$line =~ s/default BUSYBOX_CONFIG_FEATURE_SH_IS_NONE/default BUSYBOX_CONFIG_FEATURE_SH_IS_ASH/;
 
 		if ($line =~ /^\s*config\s*([\w_]+)/) {
 			$cur = $1;
@@ -52,12 +45,10 @@ while (<FIND>) {
 		}
 		$line =~ s/^(\s*source\s+)/$1package\/busybox\/config\//;
 		
-		$line =~ s/^(\s*(prompt "[^"]+" if|config|depends|depends on|select|default|default \w if)\s+\!?)([A-Z_])/$1BUSYBOX_CONFIG_$3/g;
-		$line =~ s/(( \|\| | \&\& | \( )!?)([A-Z_])/$1BUSYBOX_CONFIG_$3/g;
-		$line =~ s/(\( ?!?)([A-Z_]+ (\|\||&&))/$1BUSYBOX_CONFIG_$2/g;
+		$line =~ s/(\s+)((CONFIG|FDISK|USING|CROSS|EXTRA|PREFIX|FEATURE|HAVE|BUSYBOX)[\w_]*)/$1BUSYBOX_$2/g;
 		
 		if ($cur) {
-			($cur eq 'LFS') and do {
+			($cur !~ /^CONFIG/ or $cur eq 'CONFIG_LFS') and do {
 				$line =~ s/^(\s*(bool|tristate|string))\s*".+"$/$1/;
 			};
 			if ($line =~ /^\s*default/) {

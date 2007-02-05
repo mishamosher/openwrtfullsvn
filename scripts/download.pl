@@ -8,29 +8,15 @@
 
 use strict;
 use warnings;
-use File::Basename;
 
 my $target = shift @ARGV;
 my $filename = shift @ARGV;
 my $md5sum = shift @ARGV;
-my $scriptdir = dirname($0);
 my @mirrors;
 
 my $ok;
 
 @ARGV > 0 or die "Syntax: $0 <target dir> <filename> <md5sum> <mirror> [<mirror> ...]\n";
-
-sub localmirrors {
-
-    my @mlist;
-    open LM, "$scriptdir/localmirrors" or return ();
-    while (<LM>) {
-        chomp $_;
-        push @mlist, $_;
-    }
-
-    return @mlist;
-}
 
 sub which($) {
 	my $prog = shift;
@@ -51,8 +37,7 @@ sub download
 	my $mirror = shift;
 	my $options = $ENV{WGET_OPTIONS};
 	$options or $options = "";
-	
-	$mirror =~ s/\/$//;
+
 	open WGET, "wget -t1 --timeout=20 $options -O- \"$mirror/$filename\" |" or die "Cannot launch wget.\n";
 	open MD5SUM, "| $md5cmd > \"$target/$filename.md5sum\"" or die "Cannot launch md5sum.\n";
 	open OUTPUT, "> $target/$filename.dl" or die "Cannot create file $target/$filename.dl: $!\n";
@@ -92,8 +77,6 @@ sub cleanup
 	unlink "$target/$filename.md5sum";
 }
 
-@mirrors = localmirrors();
-
 foreach my $mirror (@ARGV) {
 	if ($mirror =~ /^\@SF\/(.+)$/) {
 		# give sourceforge a few more tries, because it redirects to different mirrors
@@ -115,9 +98,9 @@ foreach my $mirror (@ARGV) {
 	}
 }
 
-#push @mirrors, 'http://mirror1.openwrt.org';
+#push @mirrors, 'http://mirror1.openwrt.org/';
 push @mirrors, 'http://mirror2.openwrt.org/sources';
-push @mirrors, 'http://downloads.openwrt.org/sources';
+push @mirrors, 'http://downloads.openwrt.org/sources/';
 
 while (!$ok) {
 	my $mirror = shift @mirrors;
