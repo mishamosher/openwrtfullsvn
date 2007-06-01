@@ -76,11 +76,8 @@ uci_set() {
 
 	( # spawn a subshell so you don't mess up the current environment
 		uci_load "$PACKAGE"
-		config_get OLDVAL "$CONFIG" "$OPTION"
-		if [ "$OLDVAL" != "$VALUE" ]; then
-			config_get type "$CONFIG" TYPE
-			[ -z "$type" ]
-		fi
+		config_get type "$CONFIG" TYPE
+		[ -z "$type" ]
 	) || uci_add_update "$PACKAGE" "config_set '$CONFIG' '$OPTION' '$VALUE'"
 }
 

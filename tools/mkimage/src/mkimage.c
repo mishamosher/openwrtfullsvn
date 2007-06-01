@@ -93,8 +93,6 @@ table_entry_t arch_name[] = {
     {	IH_CPU_SH,		"sh",		"SuperH",	},
     {	IH_CPU_SPARC,		"sparc",	"SPARC",	},
     {	IH_CPU_SPARC64,		"sparc64",	"SPARC 64 Bit",	},
-    {	IH_CPU_BLACKFIN,	"blackfin",	"Blackfin",	},
-    {	IH_CPU_AVR32,		"avr32",	"AVR32",	},
     {	-1,			"",		"",		},
 };
 
@@ -131,7 +129,6 @@ table_entry_t type_name[] = {
     {	IH_TYPE_RAMDISK,    "ramdisk",	  "RAMDisk Image",	},
     {	IH_TYPE_SCRIPT,     "script",	  "Script",		},
     {	IH_TYPE_STANDALONE, "standalone", "Standalone Program", },
-    {	IH_TYPE_FLATDT,     "flat_dt",    "Flat Device Tree",	},
     {	-1,		    "",		  "",			},
 };
 
@@ -279,8 +276,7 @@ NXTARG:		;
 	 */
 	if (xflag) {
 		if (ep != addr + sizeof(image_header_t)) {
-			fprintf (stderr,
-				"%s: For XIP, the entry point must be the load addr + %lu\n",
+			fprintf (stderr, "%s: For XIP, the entry point must be the load addr + %lu\n",
 				cmdname,
 				(unsigned long)sizeof(image_header_t));
 			exit (EXIT_FAILURE);
@@ -350,9 +346,8 @@ NXTARG:		;
 
 		if (crc32 (0, data, len) != checksum) {
 			fprintf (stderr,
-				"%s: ERROR: \"%s\" has bad header checksum!\n",
-				cmdname, imagefile);
-			exit (EXIT_FAILURE);
+				"*** Warning: \"%s\" has bad header checksum!\n",
+				imagefile);
 		}
 
 		data = (char *)(ptr + sizeof(image_header_t));
@@ -360,9 +355,8 @@ NXTARG:		;
 
 		if (crc32 (0, data, len) != ntohl(hdr->ih_dcrc)) {
 			fprintf (stderr,
-				"%s: ERROR: \"%s\" has corrupted data!\n",
-				cmdname, imagefile);
-			exit (EXIT_FAILURE);
+				"*** Warning: \"%s\" has corrupted data!\n",
+				imagefile);
 		}
 
 		/* for multi-file images we need the data part, too */
@@ -389,7 +383,7 @@ NXTARG:		;
 
 	if (opt_type == IH_TYPE_MULTI || opt_type == IH_TYPE_SCRIPT) {
 		char *file = datafile;
-		uint32_t size;
+		unsigned long size;
 
 		for (;;) {
 			char *sep = NULL;
@@ -446,7 +440,7 @@ NXTARG:		;
 	}
 
 	/* We're a bit of paranoid */
-#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__)
+#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__) && !defined(__APPLE__)
 	(void) fdatasync (ifd);
 #else
 	(void) fsync (ifd);
@@ -496,7 +490,7 @@ NXTARG:		;
 	(void) munmap((void *)ptr, sbuf.st_size);
 
 	/* We're a bit of paranoid */
-#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__)
+#if defined(_POSIX_SYNCHRONIZED_IO) && !defined(__sun__) && !defined(__FreeBSD__) && !defined(__APPLE__)
 	(void) fdatasync (ifd);
 #else
 	(void) fsync (ifd);
@@ -634,7 +628,7 @@ print_header (image_header_t *hdr)
 	if (hdr->ih_type == IH_TYPE_MULTI || hdr->ih_type == IH_TYPE_SCRIPT) {
 		int i, ptrs;
 		uint32_t pos;
-		uint32_t *len_ptr = (uint32_t *) (
+		unsigned long *len_ptr = (unsigned long *) (
 					(unsigned long)hdr + sizeof(image_header_t)
 				);
 

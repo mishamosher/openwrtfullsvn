@@ -75,8 +75,6 @@
 #define IH_CPU_NIOS		13	/* Nios-32	*/
 #define IH_CPU_MICROBLAZE	14	/* MicroBlaze   */
 #define IH_CPU_NIOS2		15	/* Nios-II	*/
-#define IH_CPU_BLACKFIN		16	/* Blackfin	*/
-#define IH_CPU_AVR32		17	/* AVR32	*/
 
 /*
  * Image Types
@@ -125,7 +123,6 @@
 #define IH_TYPE_FIRMWARE	5	/* Firmware Image		*/
 #define IH_TYPE_SCRIPT		6	/* Script file			*/
 #define IH_TYPE_FILESYSTEM	7	/* Filesystem Image (any type)	*/
-#define IH_TYPE_FLATDT		8	/* Binary Flat Device Tree Blob	*/
 
 /*
  * Compression Types

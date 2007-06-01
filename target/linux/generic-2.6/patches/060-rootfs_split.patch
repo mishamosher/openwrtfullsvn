@@ -1,6 +1,6 @@
-diff -urN linux-2.6.21.1.old/drivers/mtd/Kconfig linux-2.6.21.1.dev/drivers/mtd/Kconfig
---- linux-2.6.21.1.old/drivers/mtd/Kconfig	2007-04-27 23:49:26.000000000 +0200
-+++ linux-2.6.21.1.dev/drivers/mtd/Kconfig	2007-05-26 19:58:42.320520952 +0200
+diff -ur linux.old/drivers/mtd/Kconfig linux.dev/drivers/mtd/Kconfig
+--- linux.old/drivers/mtd/Kconfig	2007-01-10 20:10:37.000000000 +0100
++++ linux.dev/drivers/mtd/Kconfig	2007-02-19 23:00:53.739457000 +0100
 @@ -49,6 +49,11 @@
  	  devices. Partitioning on NFTL 'devices' is a different - that's the
  	  'normal' form of partitioning used on a block device.
@@ -13,9 +13,9 @@ diff -urN linux-2.6.21.1.old/drivers/mtd/Kconfig linux-2.6.21.1.dev/drivers/mtd/
  config MTD_REDBOOT_PARTS
  	tristate "RedBoot partition table parsing"
  	depends on MTD_PARTITIONS
-diff -urN linux-2.6.21.1.old/drivers/mtd/mtdpart.c linux-2.6.21.1.dev/drivers/mtd/mtdpart.c
---- linux-2.6.21.1.old/drivers/mtd/mtdpart.c	2007-04-27 23:49:26.000000000 +0200
-+++ linux-2.6.21.1.dev/drivers/mtd/mtdpart.c	2007-05-26 19:58:42.331519280 +0200
+diff -ur linux.old/drivers/mtd/mtdpart.c linux.dev/drivers/mtd/mtdpart.c
+--- linux.old/drivers/mtd/mtdpart.c	2007-01-10 20:10:37.000000000 +0100
++++ linux.dev/drivers/mtd/mtdpart.c	2007-02-20 00:01:38.587355896 +0100
 @@ -20,6 +20,8 @@
  #include <linux/mtd/mtd.h>
  #include <linux/mtd/partitions.h>
@@ -25,7 +25,7 @@ diff -urN linux-2.6.21.1.old/drivers/mtd/mtdpart.c linux-2.6.21.1.dev/drivers/mt
  
  /* Our partition linked list */
  static LIST_HEAD(mtd_partitions);
-@@ -308,6 +310,172 @@
+@@ -303,6 +305,173 @@
  	return 0;
  }
  
@@ -35,13 +35,14 @@ diff -urN linux-2.6.21.1.old/drivers/mtd/mtdpart.c linux-2.6.21.1.dev/drivers/mt
 +	struct mtd_part *slave;
 +	
 +	/* allocate the partition structure */
-+	slave = kzalloc (sizeof(*slave), GFP_KERNEL);
++	slave = kmalloc (sizeof(*slave), GFP_KERNEL);
 +	if (!slave) {
 +		printk ("memory allocation error while creating partitions for \"%s\"\n",
 +			master->name);
 +		del_mtd_partitions(master);
 +		return -ENOMEM;
 +	}
++	memset(slave, 0, sizeof(*slave));
 +	list_add(&slave->list, &mtd_partitions);
 +
 +	/* set up the MTD object for this partition */
@@ -50,8 +51,8 @@ diff -urN linux-2.6.21.1.old/drivers/mtd/mtdpart.c linux-2.6.21.1.dev/drivers/mt
 +	slave->mtd.size = part->size;
 +	slave->mtd.writesize = master->writesize;
 +	slave->mtd.oobsize = master->oobsize;
-+	slave->mtd.oobavail = master->oobavail;
-+	slave->mtd.subpage_sft = master->subpage_sft;
++	slave->mtd.ecctype = master->ecctype;
++	slave->mtd.eccsize = master->eccsize;
 +
 +	slave->mtd.name = part->name;
 +	slave->mtd.bank_size = master->bank_size;
@@ -198,7 +199,7 @@ diff -urN linux-2.6.21.1.old/drivers/mtd/mtdpart.c linux-2.6.21.1.dev/drivers/mt
  /*
   * This function, given a master MTD object and a partition table, creates
   * and registers slave MTD objects which are bound to the master according to
-@@ -319,170 +487,53 @@
+@@ -314,171 +483,53 @@
  		       const struct mtd_partition *parts,
  		       int nbparts)
  {
@@ -249,13 +250,14 @@ diff -urN linux-2.6.21.1.old/drivers/mtd/mtdpart.c linux-2.6.21.1.dev/drivers/mt
 +					return ret;
  
 -		/* allocate the partition structure */
--		slave = kzalloc (sizeof(*slave), GFP_KERNEL);
+-		slave = kmalloc (sizeof(*slave), GFP_KERNEL);
 -		if (!slave) {
 -			printk ("memory allocation error while creating partitions for \"%s\"\n",
 -				master->name);
 -			del_mtd_partitions(master);
 -			return -ENOMEM;
 -		}
+-		memset(slave, 0, sizeof(*slave));
 -		list_add(&slave->list, &mtd_partitions);
 -
 -		/* set up the MTD object for this partition */
@@ -264,8 +266,8 @@ diff -urN linux-2.6.21.1.old/drivers/mtd/mtdpart.c linux-2.6.21.1.dev/drivers/mt
 -		slave->mtd.size = parts[i].size;
 -		slave->mtd.writesize = master->writesize;
 -		slave->mtd.oobsize = master->oobsize;
--		slave->mtd.oobavail = master->oobavail;
--		slave->mtd.subpage_sft = master->subpage_sft;
+-		slave->mtd.ecctype = master->ecctype;
+-		slave->mtd.eccsize = master->eccsize;
 -
 -		slave->mtd.name = parts[i].name;
 -		slave->mtd.bank_size = master->bank_size;

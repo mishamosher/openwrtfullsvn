@@ -1,10 +1,10 @@
-diff -urN madwifi-ng-r2377-20070526.old/ath/if_ath.c madwifi-ng-r2377-20070526.dev/ath/if_ath.c
---- madwifi-ng-r2377-20070526.old/ath/if_ath.c	2007-05-26 18:51:08.298825928 +0200
-+++ madwifi-ng-r2377-20070526.dev/ath/if_ath.c	2007-05-26 18:51:08.306824712 +0200
-@@ -410,7 +410,7 @@
+diff -urN madwifi-0.9.2.old/ath/if_ath.c madwifi-0.9.2.dev/ath/if_ath.c
+--- madwifi-0.9.2.old/ath/if_ath.c	2006-08-29 17:49:50.000000000 +0200
++++ madwifi-0.9.2.dev/ath/if_ath.c	2006-08-29 17:49:50.000000000 +0200
+@@ -387,7 +387,7 @@
+ 	struct ath_hal *ah;
  	HAL_STATUS status;
- 	int error = 0;
- 	unsigned int i;
+ 	int error = 0, i;
 -	int autocreatemode = IEEE80211_M_STA;
 +	int autocreatemode = -1;
  	u_int8_t csz;

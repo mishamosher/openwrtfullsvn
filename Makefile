@@ -44,10 +44,11 @@ endif
 package/%/Makefile: ;
 target/%/Makefile: ;
 
-tmp/.packageinfo tmp/.targetinfo: FORCE
+tmp/.packageinfo: $(wildcard package/*/Makefile include/package*.mk include/kernel.mk) FORCE
+tmp/.targetinfo: $(wildcard target/*/Makefile include/kernel*.mk)  FORCE
+tmp/.%info:
 	mkdir -p tmp/info
-	$(NO_TRACE_MAKE) -s -f include/scan.mk SCAN_TARGET="targetinfo" SCAN_DIR="target/linux" SCAN_NAME="target" SCAN_DEPS="" SCAN_TARGET_DEPS="$(wildcard target/*/Makefile include/kernel*.mk)" SCAN_EXTRA=""
-	$(NO_TRACE_MAKE) -s -f include/scan.mk SCAN_TARGET="packageinfo" SCAN_DIR="package" SCAN_NAME="package" SCAN_DEPS="$(wildcard package/*/Makefile include/package*.mk include/kernel.mk)" SCAN_EXTRA=""
+	$(NO_TRACE_MAKE) -s -f include/scan.mk SCAN_TARGET="$*info" SCAN_DIR="$(patsubst target,target/linux,$*)" SCAN_NAME="$*" SCAN_DEPS="$(filter-out FORCE, $^)" SCAN_EXTRA=""
 
 tmpinfo-clean: FORCE
 	-rm -rf tmp/.*info
@@ -155,7 +156,6 @@ docclean:
 
 symlinkclean:
 	-find package -type l | xargs rm -f
-	rm -rf tmp
 
 .SILENT: clean dirclean distclean symlinkclean config-clean download world help tmp/.packageinfo tmp/.targetinfo tmpinfo-clean tmp/.config-package.in tmp/.config-target.in .config scripts/config/mconf scripts/config/conf menuconfig tmp/.prereq-build tmp/.prereq-package tmp/.prereq-target
 FORCE: ;

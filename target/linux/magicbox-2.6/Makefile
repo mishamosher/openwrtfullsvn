@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 ARCH:=powerpc
 BOARD:=magicbox
 BOARDNAME:=Magicbox
-FEATURES:=squashfs jffs2
+FEATURES:=jffs2
 
 include $(INCLUDE_DIR)/kernel-build.mk
 

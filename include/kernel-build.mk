@@ -25,7 +25,7 @@ endif
 ifneq ($(CONFIG_USB),)
   FEATURES += usb
 endif
-ifneq ($(CONFIG_PCMCIA)$(CONFIG_PCCARD),)
+ifneq ($(CONFIG_PCMCIA),)
   FEATURES += pcmcia
 endif
 ifneq ($(CONFIG_VIDEO_DEV),)

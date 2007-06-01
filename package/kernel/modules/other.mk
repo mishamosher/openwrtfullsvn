@@ -330,7 +330,7 @@ define KernelPackage/scx200-wdt
   SUBMENU:=$(EMENU)
   KCONFIG:=$(CONFIG_SC1200_WDT)
   FILES:=$(LINUX_DIR)/drivers/char/watchdog/scx200_wdt.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,scx200_wdt)
+  AUTOLOAD:=$(call AutoLoad,50,scx200_wt)
 endef
 $(eval $(call KernelPackage,scx200-wdt))
 
@@ -358,24 +358,3 @@ define KernelPackage/hwmon-pc87360
   AUTOLOAD:=$(call AutoLoad,50,pc87360)
 endef
 $(eval $(call KernelPackage,hwmon-pc87360))
-
-define KernelPackage/input-core
-  TITLE:=Input device core
-  DESCRIPTION:=Kernel modules for support of input device
-  SUBMENU:=$(EMENU)
-  KCONFIG:=$(CONFIG_INPUT)
-  FILES:=$(LINUX_DIR)/drivers/input/input-core.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,input-core)
-endef
-$(eval $(call KernelPackage,input-core))
-
-define KernelPackage/input-evdev
-  TITLE:=Input even device
-  DESCRIPTION:=Kernel modules for support of input device events
-  SUBMENU:=$(EMENU)
-  KCONFIG:=$(CONFIG_INPUT_EVDEV)
-  FILES:=$(LINUX_DIR)/drivers/input/evdev.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,60,evdev)
-endef
-$(eval $(call KernelPackage,input-evdev))
-
