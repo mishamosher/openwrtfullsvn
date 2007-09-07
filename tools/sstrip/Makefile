@@ -7,19 +7,27 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=sstrip
+PKG_BUILD_DIR:=$(TOOL_BUILD_DIR)/sstrip
 
 include $(INCLUDE_DIR)/host-build.mk
 
+OS:=$(shell uname)
+ifeq ($(HOST_OS),Darwin)
+  CFLAGS += -I./include
+endif
+CFLAGS += -I $(TOPDIR)/tools/include -include endian.h
+
 define Build/Compile
-	$(CC) $(HOST_CFLAGS) -include endian.h -o $(PKG_BUILD_DIR)/sstrip src/sstrip.c
+	$(CC) $(CFLAGS) -o $(PKG_BUILD_DIR)/sstrip src/sstrip.c
 endef
 
 define Build/Install
-	$(CP) $(PKG_BUILD_DIR)/sstrip $(STAGING_DIR_HOST)/bin/
+	mkdir -p $(STAGING_DIR)/bin
+	$(CP) $(PKG_BUILD_DIR)/sstrip $(STAGING_DIR)/bin/
 endef
 
 define Build/Clean
-	rm -f $(STAGING_DIR_HOST)/bin/sstrip
+	rm -f $(STAGING_DIR)/bin/sstrip
 endef
 
 $(eval $(call HostBuild))

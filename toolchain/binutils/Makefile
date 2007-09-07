@@ -7,8 +7,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=binutils
-PKG_VERSION:=$(strip $(subst ",, $(CONFIG_BINUTILS_VERSION)))
-#"))
+PKG_VERSION:=$(strip $(subst ",, $(CONFIG_BINUTILS_VERSION)))#"))
 
 PKG_SOURCE_URL:=http://ftp.gnu.org/gnu/binutils/ \
 	ftp://gatekeeper.dec.com/pub/GNU/ \
@@ -18,16 +17,17 @@ PKG_SOURCE_URL:=http://ftp.gnu.org/gnu/binutils/ \
         ftp://ftp.leo.org/pub/comp/os/unix/gnu/ 
 
 PKG_SOURCE:=binutils-$(PKG_VERSION).tar.bz2
+PKG_MD5SUM:=unknown
+PKG_BUILD_DIR:=$(TOOLCHAIN_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+PKG_CAT:=bzcat
 PATCH_DIR:=./patches/$(PKG_VERSION)
-STAGING_DIR_HOST:=$(TOOLCHAIN_DIR)
-BUILD_DIR_HOST:=$(BUILD_DIR_TOOLCHAIN)
 
 include $(INCLUDE_DIR)/host-build.mk
 
 define Build/Configure
 	(cd $(PKG_BUILD_DIR); \
 		./configure \
-		--prefix=$(STAGING_DIR_HOST) \
+		--prefix=$(STAGING_DIR) \
 		--build=$(GNU_HOST_NAME) \
 		--host=$(GNU_HOST_NAME) \
 		--target=$(REAL_GNU_TARGET_NAME) \
@@ -37,11 +37,11 @@ define Build/Configure
 endef
 
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR) all
+	$(MAKE) -C $(PKG_BUILD_DIR) -j $(CONFIG_JLEVEL) all
 endef
 
 define Build/Install
-	$(MAKE) -C $(PKG_BUILD_DIR) install
+	$(MAKE) -C $(PKG_BUILD_DIR) -j $(CONFIG_JLEVEL) install
 endef
 
 $(eval $(call HostBuild))

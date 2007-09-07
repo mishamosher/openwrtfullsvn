@@ -31,7 +31,6 @@ define Package/Default
   SUBMENUDEP:=
   TITLE:=
   DESCRIPTION:=
-  KCONFIG:=
 endef
 
 Build/Patch:=$(Build/Patch/Default)
@@ -41,6 +40,9 @@ ifneq ($(strip $(PKG_UNPACK)),)
 	$(Build/Patch)
   endef
 endif
+
+TARGET_CPPFLAGS:=-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include
+TARGET_LDFLAGS:=-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib
 
 CONFIGURE_ARGS = \
 		--target=$(GNU_TARGET_NAME) \
@@ -65,7 +67,7 @@ CONFIGURE_VARS = \
 		CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
 		CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
 		CPPFLAGS="$(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
-		LDFLAGS="$(TARGET_LDFLAGS) $(EXTRA_LDFLAGS)" \
+		LDFLAGS="$(TARGET_LDFLAGS)" \
 		PKG_CONFIG_PATH="$(STAGING_DIR)/usr/lib/pkgconfig" \
 		PKG_CONFIG_LIBDIR="$(STAGING_DIR)/usr/lib/pkgconfig"
 
@@ -86,9 +88,9 @@ define Build/Configure/Default
 endef
 
 MAKE_VARS = \
-	CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS) $(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
-	CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS) $(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
-	LDFLAGS="$(TARGET_LDFLAGS) $(EXTRA_LDFLAGS)"
+	CFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
+	CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
+	LDFLAGS="$(EXTRA_LDFLAGS) "
 
 MAKE_FLAGS = \
 	$(TARGET_CONFIGURE_OPTS) \
@@ -103,3 +105,5 @@ define Build/Compile/Default
 		$(MAKE_FLAGS) \
 		$(1);
 endef
+
+

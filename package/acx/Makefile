@@ -16,9 +16,9 @@ PKG_RELEASE:=1
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=@openwrt/
 PKG_MD5SUM:=ec6322b9c82781897a9433ef0cefda6f
-
-PKG_UNPACK:= \
-	bzcat $(DL_DIR)/$(PKG_SOURCE) | \
+PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+#PKG_CAT:=bzcat
+PKG_UNPACK:=bzcat $(DL_DIR)/$(PKG_SOURCE) | \
 	$(TAR) -C $(KERNEL_BUILD_DIR) $(TAR_OPTIONS); \
 	chmod -R u+w $(PKG_BUILD_DIR)
 
@@ -26,15 +26,15 @@ include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/acx
   TITLE:=Driver for TI ACX1xx chipset
-  DEPENDS:=@LINUX_2_6 @!TARGET_AVR32 +wireless-tools
+  DEPENDS:=@LINUX_2_6&&!LINUX_2_6_AVR32 +wireless-tools
+  DESCRIPTION:=\
+	This package contains a driver for TI ACX1xx 802.11a/b/g chipsets.
   URL:=http://acx100.sourceforge.net/
+  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
   SUBMENU:=Wireless Drivers
-  FILES:= $(PKG_BUILD_DIR)/acx.$(LINUX_KMOD_SUFFIX)
+  FILES:= \
+		$(PKG_BUILD_DIR)/acx.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,acx)
-endef
-
-define KernelPackage/acx/description
- This package contains a driver for TI ACX1xx 802.11a/b/g chipsets.
 endef
 
 define Build/Compile

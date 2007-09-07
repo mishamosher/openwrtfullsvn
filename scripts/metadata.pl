@@ -4,7 +4,6 @@ my %preconfig;
 my %package;
 my %srcpackage;
 my %category;
-my %subdir;
 
 sub get_multiline {
 	my $prefix = shift;
@@ -22,17 +21,18 @@ sub parse_target_metadata() {
 	my ($target, @target, $profile);	
 	while (<>) {
 		chomp;
-		/^Target:\s*(.+)\s*$/ and do {
-			my $conf = uc $1;
+		/^Target:\s*((.+)-(\d+\.\d+))\s*$/ and do {
+			my $conf = uc $3.'_'.$2;
 			$conf =~ tr/\.-/__/;
 			$target = {
+				id => $1,
 				conf => $conf,
-				board => $1,
+				board => $2,
+				kernel => $3,
 				profiles => []
 			};
 			push @target, $target;
 		};
-		/^Target-Kernel:\s*(\d+\.\d+)\s*$/ and $target->{kernel} = $1;
 		/^Target-Name:\s*(.+)\s*$/ and $target->{name} = $1;
 		/^Target-Path:\s*(.+)\s*$/ and $target->{path} = $1;
 		/^Target-Arch:\s*(.+)\s*$/ and $target->{arch} = $1;
@@ -72,16 +72,12 @@ sub parse_package_metadata() {
 	my $pkg;
 	my $makefile;
 	my $preconfig;
-	my $subdir;
 	my $src;
 	while (<>) {
 		chomp;
-		/^Source-Makefile: \s*((.+\/)([^\/]+)\/Makefile)\s*$/ and do {
+		/^Source-Makefile: \s*(.+\/([^\/]+)\/Makefile)\s*$/ and do {
 			$makefile = $1;
-			$subdir = $2;
-			$src = $3;
-			$subdir =~ s/^package\///;
-			$subdir{$src} = $subdir;
+			$src = $2;
 			$srcpackage{$src} = [];
 			undef $pkg;
 		};
@@ -93,7 +89,6 @@ sub parse_package_metadata() {
 			$pkg->{default} = "m if ALL";
 			$pkg->{depends} = [];
 			$pkg->{builddepends} = [];
-			$pkg->{subdir} = $subdir;
 			$package{$1} = $pkg;
 			push @{$srcpackage{$src}}, $pkg;
 		};
@@ -136,53 +131,6 @@ sub parse_package_metadata() {
 	return %category;
 }
 
-sub gen_kconfig_overrides() {
-	my %config;
-	my %kconfig;
-	my $package;
-	my $pkginfo = shift @ARGV;
-	my $cfgfile = shift @ARGV;
-
-	# parameter 2: build system config
-	open FILE, "<$cfgfile" or return;
-	while (<FILE>) {
-		/^(CONFIG_.+?)=(.+)$/ and $config{$1} = 1;
-	}
-	close FILE;
-
-	# parameter 1: package metadata
-	open FILE, "<$pkginfo" or return;
-	while (<FILE>) {
-		/^Package:\s*(.+?)\s*$/ and $package = $1;
-		/^Kernel-Config:\s*(.+?)\s*$/ and do {
-			my @config = split /\s+/, $1;
-			foreach my $config (@config) {
-				my $val = 'm';
-				my $override;
-				if ($config =~ /^(.+?)=(.+)$/) {
-					$config = $1;
-					$override = 1;
-					$val = $2;
-				}
-				if ($config{"CONFIG_PACKAGE_$package"} and ($config ne 'n')) {
-					$kconfig{$config} = $val;
-				} elsif (!$override) {
-					$kconfig{$config} or $kconfig{$config} = 'n';
-				}
-			}
-		};
-	};
-	close FILE;
-
-	foreach my $kconfig (sort keys %kconfig) {
-		if ($kconfig{$kconfig} eq 'n') {
-			print "# $kconfig is not set\n";
-		} else {
-			print "$kconfig=$kconfig{$kconfig}\n";
-		}
-	}
-}
-
 sub merge_package_lists($$) {
 	my $list1 = shift;
 	my $list2 = shift;
@@ -202,25 +150,27 @@ sub gen_target_mk() {
 	my @target = parse_target_metadata();
 	
 	@target = sort {
-		$a->{board} cmp $b->{board}
+		$a->{id} cmp $b->{id}
 	} @target;
 	
 	foreach my $target (@target) {
 		my ($profiles_def, $profiles_eval);
-
+		my $conf = uc $target->{kernel}.'_'.$target->{board};
+		$conf =~ tr/\.-/__/;
+		
 		foreach my $profile (@{$target->{profiles}}) {
 			$profiles_def .= "
-  define Profile/$target->{conf}\_$profile->{id}
+  define Profile/$conf\_$profile->{id}
     ID:=$profile->{id}
     NAME:=$profile->{name}
     PACKAGES:=".join(" ", merge_package_lists($target->{packages}, $profile->{packages}))."\n";
 			$profile->{kconfig} and $profiles_def .= "    KCONFIG:=1\n";
 			$profiles_def .= "  endef";
 			$profiles_eval .= "
-\$(eval \$(call AddProfile,$target->{conf}\_$profile->{id}))"
+\$(eval \$(call AddProfile,$conf\_$profile->{id}))"
 		}
 		print "
-ifeq (\$(CONFIG_TARGET_$target->{conf}),y)
+ifeq (\$(CONFIG_LINUX_$conf),y)
   define Target
     KERNEL:=$target->{kernel}
     BOARD:=$target->{board}
@@ -244,7 +194,9 @@ sub target_config_features(@) {
 		/broken/ and $ret .= "\tdepends BROKEN\n";
 		/pci/ and $ret .= "\tselect PCI_SUPPORT\n";
 		/usb/ and $ret .= "\tselect USB_SUPPORT\n";
+		/atm/ and $ret .= "\tselect ATM_SUPPORT\n";
 		/pcmcia/ and $ret .= "\tselect PCMCIA_SUPPORT\n";
+		/video/ and $ret .= "\tselect VIDEO_SUPPORT\n";
 		/squashfs/ and $ret .= "\tselect USES_SQUASHFS\n";
 		/jffs2/ and $ret .= "\tselect USES_JFFS2\n";
 		/ext2/ and $ret .= "\tselect USES_EXT2\n";
@@ -265,7 +217,7 @@ sub gen_target_config() {
 	print <<EOF;
 choice
 	prompt "Target System"
-	default TARGET_BRCM_2_4
+	default LINUX_2_4_BRCM
 	reset if !DEVEL
 	
 EOF
@@ -286,7 +238,7 @@ EOF
 		}
 	
 		print <<EOF
-config TARGET_$target->{conf}
+config LINUX_$target->{conf}
 	bool "$target->{name}"
 	select $target->{arch}
 	select LINUX_$kernel
@@ -296,6 +248,58 @@ EOF
 	}
 
 	print <<EOF;
+if DEVEL
+
+config LINUX_2_6_ARM
+	bool "UNSUPPORTED little-endian arm platform"
+	depends BROKEN
+	select LINUX_2_6
+	select arm
+
+config LINUX_2_6_CRIS
+	bool "UNSUPPORTED cris platform"
+	depends BROKEN
+	select LINUX_2_6
+	select cris
+
+config LINUX_2_6_M68K
+	bool "UNSUPPORTED m68k platform"
+	depends BROKEN
+	select LINUX_2_6
+	select m68k
+
+config LINUX_2_6_SH3
+	bool "UNSUPPORTED little-endian sh3 platform"
+	depends BROKEN
+	select LINUX_2_6
+	select sh3
+
+config LINUX_2_6_SH3EB
+	bool "UNSUPPORTED big-endian sh3 platform"
+	depends BROKEN
+	select LINUX_2_6
+	select sh3eb
+
+config LINUX_2_6_SH4
+	bool "UNSUPPORTED little-endian sh4 platform"
+	depends BROKEN
+	select LINUX_2_6
+	select sh4
+
+config LINUX_2_6_SH4EB
+	bool "UNSUPPORTED big-endian sh4 platform"
+	depends BROKEN
+	select LINUX_2_6
+	select sh4eb
+
+config LINUX_2_6_SPARC
+	bool "UNSUPPORTED sparc platform"
+	depends BROKEN
+	select LINUX_2_6
+	select sparc
+
+endif
+
 endchoice
 
 choice
@@ -308,9 +312,9 @@ EOF
 		
 		foreach my $profile (@$profiles) {
 			print <<EOF;
-config TARGET_$target->{conf}_$profile->{id}
+config LINUX_$target->{conf}_$profile->{id}
 	bool "$profile->{name}"
-	depends TARGET_$target->{conf}
+	depends LINUX_$target->{conf}
 $profile->{config}
 EOF
 			$profile->{kconfig} and print "\tselect PROFILE_KCONFIG\n";
@@ -500,8 +504,8 @@ sub gen_package_mk() {
 			$config = "\$(CONFIG_PACKAGE_$name)"
 		}
 		if ($config) {
-			print "package-$config += $pkg->{subdir}$pkg->{src}\n";
-			$pkg->{prereq} and print "prereq-$config += $pkg->{subdir}$pkg->{src}\n";
+			print "package-$config += $pkg->{src}\n";
+			$pkg->{prereq} and print "prereq-$config += $pkg->{src}\n";
 		}
 	
 		my $hasdeps = 0;
@@ -511,22 +515,24 @@ sub gen_package_mk() {
 			$dep =~ s/\+//;
 			my $idx;
 			my $pkg_dep = $package{$dep};
+			$pkg_dep or $pkg_dep = $srcpackage{$dep}->[0];
+			next unless defined $pkg_dep;
 			next if defined $pkg_dep->{vdepends};
 
 			if (defined $pkg_dep->{src}) {
-				($pkg->{src} ne $pkg_dep->{src}) and $idx = $pkg_dep->{subdir}.$pkg_dep->{src};
-			} elsif (defined($srcpackage{$dep})) {
-				$idx = $subdir{$dep}.$dep;
+				($pkg->{src} ne $pkg_dep->{src}) and $idx = $pkg_dep->{src};
+			} elsif (defined($pkg_dep) && !defined($ENV{SDK})) {
+				$idx = $dep;
 			}
 			undef $idx if $idx =~ /^(kernel)|(base-files)$/;
 			if ($idx) {
 				next if $dep{$pkg->{src}."->".$idx};
-				$depline .= " \$(curdir)/$idx/compile";
+				$depline .= " $idx\-compile";
 				$dep{$pkg->{src}."->".$idx} = 1;
 			}
 		}
 		if ($depline) {
-			$line .= "\$(curdir)/".$pkg->{subdir}."$pkg->{src}/compile += $depline\n";
+			$line .= "$pkg->{src}-compile: $depline\n";
 		}
 	}
 	
@@ -549,7 +555,7 @@ $cmds \\
 	) > \$@
 	
 ifneq (\$(UCI_PRECONFIG)\$(CONFIG_UCI_PRECONFIG),)
-  package/preconfig: \$(TARGET_DIR)/etc/uci-defaults/$preconfig
+  preconfig: \$(TARGET_DIR)/etc/uci-defaults/$preconfig
 endif
 EOF
 	}
@@ -563,16 +569,13 @@ sub parse_command() {
 		/^target_config$/ and return gen_target_config();
 		/^package_mk$/ and return gen_package_mk();
 		/^package_config$/ and return gen_package_config();
-		/^kconfig/ and return gen_kconfig_overrides();
 	}
 	print <<EOF
 Available Commands:
 	$0 target_mk [file] 		Target metadata in makefile format
 	$0 target_config [file] 	Target metadata in Kconfig format
-	$0 package_mk [file]    	Package metadata in makefile format
+	$0 package_mk [file] 		Package metadata in makefile format
 	$0 package_config [file] 	Package metadata in Kconfig format
-	$0 kconfig [file] [config]	Kernel config overrides
-
 EOF
 }
 

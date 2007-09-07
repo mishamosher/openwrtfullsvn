@@ -1,37 +1,60 @@
 # 
-# Copyright (C) 2007 OpenWrt.org
+# Copyright (C) 2006 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 # Main makefile for the host tools
 #
-curdir:=tools
+include $(TOPDIR)/rules.mk
+TARGETS-y:=sed sstrip ipkg-utils ext2fs squashfs mtd-utils lzma mkimage firmware-utils patch-cmdline
+TARGETS-$(CONFIG_CCACHE) += ccache
 
-# subdirectories to descend into
-$(curdir)/builddirs := sed sstrip ipkg-utils ext2fs squashfs mtd-utils lzma mkimage firmware-utils patch-cmdline $(if $(CONFIG_CCACHE),ccache)
+TARGETS_DOWNLOAD:=$(patsubst %,%-download,$(TARGETS-y))
+TARGETS_PREPARE:=$(patsubst %,%-prepare,$(TARGETS-y))
+TARGETS_COMPILE:=$(patsubst %,%-compile,$(TARGETS-y))
+TARGETS_INSTALL:=$(patsubst %,%-install,$(TARGETS-y))
+TARGETS_CLEAN:=$(patsubst %,%-clean,$(TARGETS-y))
+STAMP:=$(STAGING_DIR)/stampfiles/.tools_installed
 
-# builddir dependencies
-$(curdir)/squashfs/compile := $(curdir)/lzma/install
+all: install
+download: $(TARGETS_DOWNLOAD)
+compile: $(TARGETS_COMPILE)
+install: $(STAMP)
+clean: $(TARGETS_CLEAN)
 
-# preparatory work
-$(STAGING_DIR)/.prepared: $(TMP_DIR)/.build
-	@for dir in $(STAGING_DIR) $(STAGING_DIR_HOST); do ( \
-		set -x; \
-		mkdir -p "$$dir"; \
-		cd "$$dir"; \
-		mkdir -p bin lib include stamp; \
-	); done
-	mkdir -p $(BUILD_DIR_HOST)/stamp $(BUILD_DIR)/stamp
-	$(INSTALL_DATA) $(TOPDIR)/tools/include/*.h $(STAGING_DIR_HOST)/include/
+squashfs-compile: lzma-install
+
+ifneq ($(shell $(SCRIPT_DIR)/timestamp.pl -p . $(STAMP)),$(STAMP))
+  $(STAMP): $(TARGETS_INSTALL)
+endif
+
+$(STAMP): $(TOPDIR)/.config
+	mkdir -p $(shell dirname $@)
 	touch $@
 
-$(curdir)//prepare = $(STAGING_DIR)/.prepared
-$(curdir)//compile = $(STAGING_DIR)/.prepared
+TOOL_HOST_INCLUDES:=$(patsubst ./include/%.h,$(STAGING_DIR)/include-host/%.h,$(wildcard ./include/*.h))
+$(TOOL_HOST_INCLUDES): $(STAGING_DIR)/include-host/%.h: ./include/%.h
+	@mkdir -p $(STAGING_DIR)/include-host
+	$(CP) $< $@
 
-# prerequisites for the individual targets
-$(curdir)/ := .config prereq
-$(curdir)//install = $(1)/compile
+$(TOOL_BUILD_DIR):
+	@mkdir -p $@
 
-$(eval $(call stampfile,$(curdir),tools,install))
-$(eval $(call subdir,$(curdir)))
+%-prereq %-download %-clean %-refresh %-update: FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)
+
+%-prepare: $(TOOL_HOST_INCLUDES) $(TOOL_BUILD_DIR) FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)
+
+%-compile: %-prepare FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)
+	
+%-install: %-compile FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)
+
+ifeq ($(MAKECMDGOALS),install-targets)
+MAKEFLAGS:=$(MAKEFLAGS) -j$(CONFIG_JLEVEL)
+else
+.NOTPARALLEL:
+endif

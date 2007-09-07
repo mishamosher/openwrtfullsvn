@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=busybox
 PKG_VERSION:=1.4.2
-PKG_RELEASE:=3
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.busybox.net/downloads \
@@ -37,8 +37,8 @@ define Package/busybox
 endef
 
 define Package/busybox/description
- The Swiss Army Knife of embedded Linux.
- It slices, it dices, it makes Julian Fries.
+The Swiss Army Knife of embedded Linux.
+	It slices, it dices, it makes Julian Fries.
 endef
 
 define Package/busybox/config

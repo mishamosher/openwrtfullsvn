@@ -19,7 +19,13 @@
 # Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307 USA
 
 uci_load() {
-	config_load "$1"
+	local PACKAGE="$1"
+	config_load "$PACKAGE"
+	local PACKAGE_BASE="$(basename "$PACKAGE")"
+	[ -f "/tmp/.uci/${PACKAGE_BASE}" ] && {
+		. "/tmp/.uci/${PACKAGE_BASE}" 2>/dev/null >/dev/null
+		config_cb
+	}
 }
 
 uci_apply_defaults() {(

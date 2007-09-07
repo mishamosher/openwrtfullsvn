@@ -1,44 +1,63 @@
 # 
-# Copyright (C) 2007 OpenWrt.org
+# Copyright (C) 2006 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 # Main makefile for the toolchain
 #
-curdir:=toolchain
+include $(TOPDIR)/rules.mk
 
-# subdirectories to descend into
-$(curdir)/builddirs := kernel-headers $(if $(CONFIG_GDB),gdb) $(if $(CONFIG_NATIVE_TOOLCHAIN),,binutils gcc uClibc)
-$(curdir)/builddirs-compile:=. $(filter-out kernel-headers,$($(curdir)/builddirs))
-$(curdir)/builddirs-install:=$($(curdir)/builddirs-compile)
-
-# builddir dependencies
-$(curdir)/uClibc/prepare:=$(curdir)/kernel-headers/prepare
+TARGETS-y:=kernel-headers
+TARGETS-$(CONFIG_GDB) += gdb
 ifeq ($(CONFIG_NATIVE_TOOLCHAIN),)
-  $(curdir)/binutils/prepare:=$(curdir)/uClibc/prepare
-  $(curdir)/gcc/prepare:=$(curdir)/binutils/install
-  $(curdir)/uClibc/compile:=$(curdir)/gcc/compile
-  $(curdir)/gcc/install:=$(curdir)/uClibc/compile
-  $(curdir)/uClibc/install:=$(curdir)/gcc/install
+  TARGETS-y+=binutils gcc uClibc
 endif
 
-$(TOOLCHAIN_DIR)/info.mk: .config
-	@for dir in $(TOOLCHAIN_DIR); do ( \
-		set -x; \
-		mkdir -p "$$dir"; \
-		cd "$$dir"; \
-		mkdir -p bin lib include stamp; \
-	); done
-	@grep GCC_VERSION $@ >/dev/null 2>&1 || $(INSTALL_DATA) $(TOPDIR)/toolchain/info.mk $@
-	@touch $@
+TARGETS_DOWNLOAD:=$(patsubst %,%-download,$(TARGETS-y))
+TARGETS_PREPARE:=$(patsubst %,%-prepare,$(TARGETS-y))
+TARGETS_COMPILE:=$(patsubst %,%-compile,$(TARGETS-y))
+TARGETS_INSTALL:=$(patsubst %,%-install,$(TARGETS-y))
+TARGETS_CLEAN:=$(patsubst %,%-clean,$(TARGETS-y))
+STAMP:=$(STAGING_DIR)/stampfiles/.toolchain_installed
 
-# prerequisites for the individual targets
-$(curdir)/ := .config prereq
-$(curdir)//prepare = $(STAGING_DIR)/.prepared $(TOOLCHAIN_DIR)/info.mk
-$(curdir)//compile = $(1)/prepare
-$(curdir)//install = $(1)/compile
+all: install
+download: $(TARGETS_DOWNLOAD)
+compile: $(TARGETS_COMPILE)
+install: $(STAMP) 
+clean: $(TARGETS_CLEAN)
 
-$(eval $(call stampfile,$(curdir),toolchain,install))
-$(eval $(call subdir,$(curdir)))
+ifneq ($(shell $(SCRIPT_DIR)/timestamp.pl -p . $(STAMP)),$(STAMP))
+  $(STAMP): $(TARGETS_INSTALL)
+endif
 
+uClibc-prepare: kernel-headers-prepare
+ifeq ($(CONFIG_NATIVE_TOOLCHAIN),)
+  binutils-prepare: uClibc-prepare
+  gcc-prepare: binutils-install
+  uClibc-compile: gcc-compile
+endif
+gcc-install: uClibc-install
+
+$(STAMP):
+	mkdir -p $(shell dirname $@)
+	touch $@
+
+$(STAGING_DIR)/$(REAL_GNU_TARGET_NAME):
+	@mkdir -p $@
+	@ln -sf ../lib $@/lib
+
+$(TOOLCHAIN_BUILD_DIR):
+	@mkdir -p $@
+
+%-prereq %-download %-clean %-refresh %-update: FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)
+
+%-prepare: $(STAGING_DIR)/$(REAL_GNU_TARGET_NAME) $(TOOLCHAIN_BUILD_DIR)	
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)
+
+%-compile: %-prepare FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)
+	
+%-install: %-compile FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)

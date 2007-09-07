@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2006-2007 OpenWrt.org
+# Copyright (C) 2006,2007 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -7,16 +7,15 @@
 
 all: $(if $(DUMP),dumpinfo,compile)
 
-PKG_BUILD_DIR ?= $(BUILD_DIR)/$(PKG_NAME)$(if $(PKG_VERSION),-$(PKG_VERSION))
+PKG_BUILD_DIR ?= $(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 PKG_INSTALL_DIR ?= $(PKG_BUILD_DIR)/ipkg-install
-PKG_MD5SUM ?= unknown
 
 include $(INCLUDE_DIR)/prereq.mk
 include $(INCLUDE_DIR)/host.mk
 include $(INCLUDE_DIR)/unpack.mk
 include $(INCLUDE_DIR)/depends.mk
 
-STAMP_PREPARED:=$(PKG_BUILD_DIR)/.prepared$(if $(DUMP),,_$(shell $(call find_md5,${CURDIR} $(PKG_FILE_DEPEND),)))
+STAMP_PREPARED:=$(PKG_BUILD_DIR)/.prepared$(if $(DUMP),,_$(shell find ${CURDIR} $(PKG_FILE_DEPEND) $(DEP_FINDPARAMS) | md5s))
 STAMP_CONFIGURED:=$(PKG_BUILD_DIR)/.configured
 STAMP_BUILT:=$(PKG_BUILD_DIR)/.built
 
@@ -25,19 +24,17 @@ include $(INCLUDE_DIR)/package-defaults.mk
 include $(INCLUDE_DIR)/package-dumpinfo.mk
 include $(INCLUDE_DIR)/package-ipkg.mk
 
-override MAKEFLAGS=
 export CONFIG_SITE:=$(INCLUDE_DIR)/site/$(REAL_GNU_TARGET_NAME)
 
-ifeq ($(DUMP)$(filter prereq clean refresh update,$(MAKECMDGOALS)),)
-  ifneq ($(if $(QUILT),,$(CONFIG_AUTOREBUILD)),)
+ifeq ($(DUMP),)
+  ifneq ($(CONFIG_AUTOREBUILD),)
     define Build/Autoclean
       $(PKG_BUILD_DIR)/.dep_files: $(STAMP_PREPARED)
-      $(call rdep,${CURDIR} $(PKG_FILE_DEPEND),$(STAMP_PREPARED),$(PKG_BUILD_DIR)/.dep_files,-x "*/.dep_*")
-      $(if $(filter prepare,$(MAKECMDGOALS)),,$(call rdep,$(PKG_BUILD_DIR),$(STAMP_BUILT),,-x "*/.dep_*" -x "*/ipkg*"))
+      $(call rdep,${CURDIR} $(PKG_FILE_DEPEND),$(STAMP_PREPARED))
+      $(call rdep,$(PKG_BUILD_DIR),$(STAMP_BUILT),$(PKG_BUILD_DIR)/.dep_files, -and -not -path "/.*" -and -not -path "*/ipkg*")
     endef
   endif
 endif
-
 
 define Build/DefaultTargets
   ifneq ($(strip $(PKG_SOURCE_URL)),)
@@ -64,11 +61,15 @@ define Build/DefaultTargets
 
   $(STAMP_BUILT): $(STAMP_CONFIGURED)
 	$(Build/Compile)
-	$(Build/InstallDev)
+	@$(NO_TRACE_MAKE) $(PKG_BUILD_DIR)/.dep_files
 	touch $$@
 
   ifdef Build/InstallDev
-    compile: $(STAMP_BUILT)
+    compile: $(STAGING_DIR)/stampfiles/.$(PKG_NAME)-installed
+    $(STAGING_DIR)/stampfiles/.$(PKG_NAME)-installed: $(STAMP_BUILT)
+	mkdir -p $(STAGING_DIR)/stampfiles
+	$(Build/InstallDev)
+	touch $$@
   endif
 
   define Build/DefaultTargets
@@ -137,5 +138,5 @@ install:
 clean: FORCE
 	$(Build/UninstallDev)
 	$(Build/Clean)
-	@rm -f $(STAGING_DIR)/stamp/.$(PKG_NAME)-installed
+	@rm -f $(STAGING_DIR)/stampfiles/.$(PKG_NAME)-installed
 	@rm -rf $(PKG_BUILD_DIR)

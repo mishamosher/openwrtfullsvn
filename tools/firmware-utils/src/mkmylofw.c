@@ -1,7 +1,7 @@
 /*
  *  $Id$
  *
- *  Copyright (C) 2006,2007 Gabor Juhos <juhosg at openwrt.org>
+ *  Copyright (C) 2006,2007 Gabor Juhos <juhosg@freemail.hu>
  *
  *  This program is free software; you can redistribute it and/or
  *  modify it under the terms of the GNU General Public License
@@ -325,7 +325,7 @@ find_board(char *model){
 
 	board = NULL;
 	for (tmp = boards; tmp->model != NULL; tmp++){
-		if (strcasecmp(model, tmp->model) == 0) {
+		if (strcmp(model, tmp->model) == 0) {
 			board = tmp;
 			break;
 		}

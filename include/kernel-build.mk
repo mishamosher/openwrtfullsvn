@@ -6,11 +6,10 @@
 #
 KERNEL_BUILD:=1
 
+include $(INCLUDE_DIR)/kernel-version.mk
 include $(INCLUDE_DIR)/host.mk
 include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/prereq.mk
-
-override MAKEFLAGS=
 
 GENERIC_LINUX_CONFIG:=$(GENERIC_PLATFORM_DIR)/config-$(shell [ -f "$(GENERIC_PLATFORM_DIR)/config-$(KERNEL_PATCHVER)" ] && echo "$(KERNEL_PATCHVER)" || echo template ) 
 LINUX_CONFIG_DIR ?= ./config$(shell [ -d "./config-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
@@ -24,6 +23,9 @@ ifneq ($(DUMP),)
   .SILENT: $(TMP_CONFIG)
 endif
 
+ifneq ($(CONFIG_ATM),)
+  FEATURES += atm
+endif
 ifneq ($(CONFIG_PCI),)
   FEATURES += pci
 endif
@@ -32,6 +34,9 @@ ifneq ($(CONFIG_USB),)
 endif
 ifneq ($(CONFIG_PCMCIA)$(CONFIG_PCCARD),)
   FEATURES += pcmcia
+endif
+ifneq ($(CONFIG_VIDEO_DEV),)
+  FEATURES += video
 endif
 
 # remove duplicates
@@ -93,15 +98,15 @@ define BuildKernel
 	$(call Kernel/Prepare)
 	touch $$@
 
-  $(STAMP_CONFIGURED): $(STAMP_PREPARED) $(LINUX_CONFIG) $(GENERIC_LINUX_CONFIG) $(TOPDIR)/.config
+  $(STAMP_CONFIGURED): $(LINUX_DIR)/.prepared $(LINUX_CONFIG)
 	$(call Kernel/Configure)
 	touch $$@
 
-  $(LINUX_DIR)/.modules: $(STAMP_CONFIGURED) $(LINUX_DIR)/.config FORCE
+  $(LINUX_DIR)/.modules: $(LINUX_DIR)/.configured $(LINUX_DIR)/.config FORCE
 	$(call Kernel/CompileModules)
 	touch $$@
 
-  $(LINUX_DIR)/.image: $(STAMP_CONFIGURED) FORCE
+  $(LINUX_DIR)/.image: $(LINUX_DIR)/.configured FORCE
 	$(call Kernel/CompileImage)
 	touch $$@
 	
@@ -110,8 +115,7 @@ define BuildKernel
 
   ifeq ($(DUMP),1)
     dumpinfo:
-		@echo 'Target: $(BOARD)'
-		@echo 'Target-Kernel: $(KERNEL)'
+		@echo 'Target: $(BOARD)-$(KERNEL)'
 		@echo 'Target-Name: $(BOARDNAME) [$(KERNEL)]'
 		@echo 'Target-Path: $(subst $(TOPDIR)/,,$(PWD))'
 		@echo 'Target-Arch: $(ARCH)'
@@ -165,18 +169,15 @@ endef
 $(eval $(call shexport,Target/Description))
 
 download: $(DL_DIR)/$(LINUX_SOURCE)
-prepare: $(STAMP_CONFIGURED)
+prepare: $(LINUX_DIR)/.configured
 compile: $(LINUX_DIR)/.modules
-	$(MAKE) -C image compile
-
-oldconfig menuconfig: $(STAMP_PREPARED) FORCE
+menuconfig: $(LINUX_DIR)/.prepared FORCE
 	$(call Kernel/Configure)
 	$(SCRIPT_DIR)/config.pl '+' $(GENERIC_LINUX_CONFIG) $(LINUX_CONFIG) > $(LINUX_DIR)/.config
-	$(MAKE) -C $(LINUX_DIR) $(KERNEL_MAKEOPTS) $@
+	$(MAKE) -C $(LINUX_DIR) $(KERNEL_MAKEOPTS) menuconfig
 	$(SCRIPT_DIR)/config.pl '>' $(GENERIC_LINUX_CONFIG) $(LINUX_DIR)/.config > $(LINUX_CONFIG)
 
 install: $(LINUX_DIR)/.image
-	$(MAKE) -C image compile install
 
 clean: FORCE
 	rm -f $(STAMP_DIR)/.linux-compile
@@ -189,7 +190,4 @@ rebuild: FORCE
 	fi
 	@$(MAKE) compile
 
-image-prereq:
-	$(SUBMAKE) -s -C image prereq
 
-prereq: image-prereq

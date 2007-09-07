@@ -11,17 +11,18 @@ include $(TOPDIR)/rules.mk
 PKG_NAME:=nvram
 PKG_RELEASE:=1
 
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)
+
 include $(INCLUDE_DIR)/package.mk
 
 define Package/nvram
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=@TARGET_BRCM_2_4
+  DEPENDS:=@LINUX_2_4_BRCM
   TITLE:=Broadcom config utility
-endef
-
-define Package/nvram/description
- This package contains an utility to control broadcom's 'nvram' config area.
+  DESCRIPTION:=\
+	This package contains an utility to control broadcom's 'nvram' config \\\
+	area.
 endef
 
 define Build/Prepare

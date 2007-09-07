@@ -1,12 +1,8 @@
 scan_ppp() {
 	config_get ifname "$1" ifname
 	pppdev="${pppdev:-0}"
-	config_get unit "$1" unit
-	[ -z "$unit" ] && {
-		config_set "$1" ifname "ppp$pppdev"
-		config_set "$1" unit "$pppdev"
-		pppdev="$(($pppdev + 1))"
-	}
+	config_set "$1" ifname "ppp$pppdev"
+	config_set "$1" unit "$pppdev"
 }
 
 start_pppd() {
@@ -28,9 +24,6 @@ start_pppd() {
 
 	config_get connect "$cfg" connect
 	config_get disconnect "$cfg" disconnect
-	config_get pppd_options "$cfg" pppd_options
-	config_get_bool defaultroute "$cfg" defaultroute 1
-	[ "$defaultroute" -eq 1 ] && defaultroute="defaultroute replacedefaultroute" || defaultroute=""
 
 	interval="${keepalive##*[, ]}"
 	[ "$interval" != "$keepalive" ] || interval=5
@@ -41,14 +34,13 @@ start_pppd() {
 		${keepalive:+lcp-echo-interval $interval lcp-echo-failure ${keepalive%%[, ]*}} \
 		${demand:+precompiled-active-filter /etc/ppp/filter demand idle }${demand:-persist} \
 		usepeerdns \
-		$defaultroute \
+		defaultroute \
+		replacedefaultroute \
 		${username:+user "$username" password "$password"} \
-		unit "$unit" \
 		linkname "$cfg" \
 		ipparam "$cfg" \
 		${connect:+connect "$connect"} \
-		${disconnect:+disconnect "$disconnect"} \
-		${pppd_options}
+		${disconnect:+disconnect "$disconnect"}
 
 	lock -u "/var/lock/ppp-${cfg}"
 }

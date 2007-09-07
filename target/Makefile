@@ -1,21 +1,55 @@
 # 
-# Copyright (C) 2007 OpenWrt.org
+# Copyright (C) 2006 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
-curdir:=target
+include $(TOPDIR)/rules.mk
+include $(INCLUDE_DIR)/target.mk
 
-$(curdir)/builddirs:=linux sdk imagebuilder
-$(curdir)/builddirs-default:=linux
-$(curdir)/builddirs-install:=linux $(if $(CONFIG_SDK),sdk) $(if $(CONFIG_IB),imagebuilder)
+all: install
 
-$(curdir)/imagebuilder/prepare:=$(curdir)/linux/install
+$(BIN_DIR):
+	mkdir -p $(BIN_DIR)
 
-$(eval $(call stampfile,$(curdir),target,prereq,.config))
-$(eval $(call stampfile,$(curdir),target,compile,$(TMP_DIR)/.build))
-$(eval $(call stampfile,$(curdir),target,install,$(TMP_DIR)/.build))
+linux-install: $(BIN_DIR)
+image_install: linux-install
 
-$($(curdir)/stamp-install): $($(curdir)/stamp-compile) 
+IMAGE_DIR:=linux/$(BOARD)-$(KERNEL)/image
 
-$(eval $(call subdir,$(curdir)))
+download: $(patsubst %,%-download,$(TARGETS-y))
+prepare: linux-prepare
+compile: linux-compile image_compile
+install: linux-install image_install 
+
+ifeq ($(CONFIG_SDK),y)
+install: sdk_install
+endif
+ifeq ($(CONFIG_IB),y)
+install: imagebuilder_install
+endif
+
+clean: linux-clean sdk-clean imagebuilder-clean image_clean
+
+prereq: FORCE
+	$(MAKE) -C linux/$(BOARD)-$(KERNEL) prereq
+	$(MAKE) -C $(IMAGE_DIR) prereq
+
+sdk_install: FORCE
+	$(MAKE) -C sdk install
+
+image_clean: FORCE
+	$(MAKE) -C $(IMAGE_DIR) clean
+	rm -f $(BIN_DIR)/openwrt-*
+	
+image_compile: FORCE
+	$(MAKE) -C $(IMAGE_DIR) compile
+
+image_install: image_compile
+	$(MAKE) -C $(IMAGE_DIR) install
+
+imagebuilder_install: image_install
+	$(MAKE) -C imagebuilder install
+
+%-prereq %-prepare %-download %-clean %-compile %-install %-refresh %-update: FORCE
+	$(MAKE) -C $* $(patsubst $*-%,%,$@)

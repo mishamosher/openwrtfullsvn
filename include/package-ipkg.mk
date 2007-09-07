@@ -5,18 +5,6 @@
 # See /LICENSE for more information.
 #
 
-# where to build (and put) .ipk packages
-IPKG:= \
-  IPKG_TMP=$(TMP_DIR)/ipkg \
-  IPKG_INSTROOT=$(TARGET_DIR) \
-  IPKG_CONF_DIR=$(STAGING_DIR)/etc \
-  IPKG_OFFLINE_ROOT=$(TARGET_DIR) \
-  $(SCRIPT_DIR)/ipkg -force-defaults -force-depends
-
-# invoke ipkg-build with some default options
-IPKG_BUILD:= \
-  ipkg-build -c -o 0 -g 0
-
 define BuildIPKGVariable
   $(call shexport,Package/$(1)/$(2))
   $(1)_COMMANDS += var2file "$(call shvar,Package/$(1)/$(2))" $(2);
@@ -72,10 +60,12 @@ ifeq ($(DUMP),)
 		$($(1)_COMMANDS) \
 	)
 
-    $$(IPKG_$(1)): $(STAGING_DIR)/etc/ipkg.conf $(PKG_BUILD_DIR)/.built $$(IDIR_$(1))/CONTROL/control
+    $$(IPKG_$(1)): $(PKG_BUILD_DIR)/.built $$(IDIR_$(1))/CONTROL/control
 	$(call Package/$(1)/install,$$(IDIR_$(1)))
 	mkdir -p $(PACKAGE_DIR)
-	-find $$(IDIR_$(1)) -name 'CVS' -o -name '.svn' -o -name '.#*' | $(XARGS) rm -rf
+	-find $$(IDIR_$(1)) -name CVS   | $(XARGS) rm -rf
+	-find $$(IDIR_$(1)) -name .svn  | $(XARGS) rm -rf
+	-find $$(IDIR_$(1)) -name '.#*' | $(XARGS) rm -f
 	$(RSTRIP) $$(IDIR_$(1))
 	$(IPKG_BUILD) $$(IDIR_$(1)) $(PACKAGE_DIR)
 	@[ -f $$(IPKG_$(1)) ] || false 
@@ -95,10 +85,4 @@ ifeq ($(DUMP),)
     $$(eval $$(call Build/DefaultTargets,$(1)))
 
   endef
-
-  $(STAGING_DIR)/etc/ipkg.conf:
-	mkdir -p $(STAGING_DIR)/etc
-	echo "dest root /" > $(STAGING_DIR)/etc/ipkg.conf
-	echo "option offline_root $(TARGET_DIR)" >> $(STAGING_DIR)/etc/ipkg.conf
-
 endif

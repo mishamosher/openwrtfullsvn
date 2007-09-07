@@ -1,59 +1,162 @@
 # Makefile for OpenWrt
 #
-# Copyright (C) 2007 OpenWrt.org
+# Copyright (C) 2006 OpenWrt.org
+# Copyright (C) 2006 by Felix Fietkau <openwrt@nbd.name>
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 
-TOPDIR:=${CURDIR}
-LC_ALL:=C
-LANG:=C
-IS_TTY:=${shell tty -s && echo 1 || echo 0}
-export TOPDIR LC_ALL LANG IS_TTY
+RELEASE:=Kamikaze
+VERSION:=7.07
 
-world:
+#--------------------------------------------------------------
+# Just run 'make menuconfig', configure stuff, then run 'make'.
+# You shouldn't need to mess with anything beyond this point...
+#--------------------------------------------------------------
 
-include $(TOPDIR)/include/host.mk
+all: world
 
-ifneq ($(OPENWRT_BUILD),1)
-  override OPENWRT_BUILD=1
-  export OPENWRT_BUILD
-  include $(TOPDIR)/include/debug.mk
-  include $(TOPDIR)/include/toplevel.mk
+SHELL:=/usr/bin/env bash
+export LC_ALL=C
+export LANG=C
+export TOPDIR=${CURDIR}
+export IS_TTY=$(shell tty -s && echo 1 || echo 0)
+
+include $(TOPDIR)/include/verbose.mk
+
+OPENWRTVERSION:=$(RELEASE)
+ifneq ($(VERSION),)
+  OPENWRTVERSION:=$(VERSION) ($(OPENWRTVERSION))
 else
-  include rules.mk
-  include $(INCLUDE_DIR)/depends.mk
-  include $(INCLUDE_DIR)/subdir.mk
-  include target/Makefile
-  include package/Makefile
-  include tools/Makefile
-  include toolchain/Makefile
+  REV:=$(shell LANG=C svn info | awk '/^Revision:/ { print$$2 }' )
+  ifneq ($(REV),)
+    OPENWRTVERSION:=$(OPENWRTVERSION)/r$(REV)
+  endif
+endif
+export OPENWRTVERSION
 
-$(toolchain/stamp-compile): $(tools/stamp-compile)
-$(target/stamp-compile): $(toolchain/stamp-install) $(tools/stamp-install) $(BUILD_DIR)/.prepared
-$(package/stamp-compile): $(target/stamp-compile)
-$(target/stamp-install): $(package/stamp-compile) $(package/stamp-install)
+ifeq ($(FORCE),)
+  .config scripts/config/conf scripts/config/mconf: tmp/.prereq-build
+  world: tmp/.prereq-package tmp/.prereq-target
+endif
 
-$(BUILD_DIR)/.prepared: Makefile
-	@mkdir -p $$(dirname $@)
-	@touch $@
+package/%/Makefile: ;
+target/%/Makefile: ;
 
-clean: FORCE
-	rm -rf $(BUILD_DIR) $(BIN_DIR)
-	$(MAKE) target/linux/clean
-	rm -rf $(TMP_DIR)
+tmp/.packageinfo tmp/.targetinfo: FORCE
+	mkdir -p tmp/info
+	$(NO_TRACE_MAKE) -s -f include/scan.mk SCAN_TARGET="targetinfo" SCAN_DIR="target/linux" SCAN_NAME="target" SCAN_DEPS="" SCAN_TARGET_DEPS="$(wildcard target/*/Makefile include/kernel*.mk)" SCAN_EXTRA=""
+	$(NO_TRACE_MAKE) -s -f include/scan.mk SCAN_TARGET="packageinfo" SCAN_DIR="package" SCAN_NAME="package" SCAN_DEPS="$(wildcard package/*/Makefile include/package*.mk include/kernel.mk)" SCAN_EXTRA=""
 
-dirclean: clean
-	rm -rf $(STAGING_DIR) $(STAGING_DIR_HOST) $(STAGING_DIR_TOOLCHAIN) $(BUILD_DIR_TOOLCHAIN) $(BUILD_DIR_HOST)
+tmpinfo-clean: FORCE
+	-rm -rf tmp/.*info
 
-# check prerequisites before starting to build
-prereq: $(package/stamp-prereq) $(target/stamp-prereq) ;
+tmp/.config-%.in: tmp/.%info scripts/metadata.pl
+	./scripts/metadata.pl $*_config < $< > $@ || rm -f $@
 
-world: .config $(tools/stamp-install) $(toolchain/stamp-install) $(target/stamp-compile) $(package/stamp-cleanup) $(package/stamp-compile) $(package/stamp-install) $(package/stamp-rootfs-prepare) $(target/stamp-install) FORCE
+.config: ./scripts/config/conf tmp/.config-target.in tmp/.config-package.in
+	if [ \! -f .config ]; then \
+		[ -e $(HOME)/.openwrt/defconfig ] && cp $(HOME)/.openwrt/defconfig .config; \
+		$(NO_TRACE_MAKE) menuconfig; \
+	fi
+	$< -D .config Config.in &> /dev/null
+
+scripts/config/mconf:
+	$(MAKE) -C scripts/config all
+
+scripts/config/conf:
+	$(MAKE) -C scripts/config conf
+
+
+
+config: scripts/config/conf tmp/.config-target.in tmp/.config-package.in FORCE
+	$< Config.in
+
+config-clean: FORCE
+	$(NO_TRACE_MAKE) -C scripts/config clean
+
+defconfig: scripts/config/conf tmp/.config-target.in tmp/.config-package.in FORCE
+	touch .config
+	$< -D .config Config.in
+
+oldconfig: scripts/config/conf tmp/.config-target.in tmp/.config-package.in FORCE
+	$< -o Config.in
+
+menuconfig: scripts/config/mconf tmp/.config-target.in tmp/.config-package.in FORCE
+	if [ \! -f .config -a -e $(HOME)/.openwrt/defconfig ]; then \
+		cp $(HOME)/.openwrt/defconfig .config; \
+	fi
+	$< Config.in
+
+kernel_menuconfig: .config FORCE
+	-$(MAKE) target/linux-prepare
+	$(NO_TRACE_MAKE) -C target/linux menuconfig
+
+
+package/% target/%: tmp/.packageinfo
+toolchain/% package/% target/%: tmp/.targetinfo
+package/% target/% tools/% toolchain/%: FORCE
+	$(MAKE) -C $(patsubst %/$*,%,$@) $*
+
+
+tmp/.prereq-build: include/prereq-build.mk
+	mkdir -p tmp
+	rm -f tmp/.host.mk
+	$(NO_TRACE_MAKE) -s -f $(TOPDIR)/include/prereq-build.mk prereq 2>/dev/null || { \
+		echo "Prerequisite check failed. Use FORCE=1 to override."; \
+		false; \
+	}
+	touch $@
+
+tmp/.prereq-%: include/prereq.mk tmp/.%info .config
+	mkdir -p tmp
+	rm -f tmp/.host.mk
+	$(NO_TRACE_MAKE) -s -C $* prereq 2>/dev/null || { \
+		echo "Prerequisite check failed. Use FORCE=1 to override."; \
+		false; \
+	}
+	touch $@
+
+prereq: tmp/.prereq-build tmp/.prereq-package tmp/.prereq-target FORCE
+
+download: .config FORCE
+	$(MAKE) tools/download
+	$(MAKE) toolchain/download
+	$(MAKE) package/download
+	$(MAKE) target/download
+
+world: .config FORCE
+	$(MAKE) tools/install
+	$(MAKE) toolchain/install
+	$(MAKE) target/compile
+	$(MAKE) package/compile
+	$(MAKE) package/install
+	$(MAKE) target/install
 	$(MAKE) package/index
 
-package/symlinks:
-	$(SCRIPT_DIR)/feeds.sh $(CONFIG_SOURCE_FEEDS) $(CONFIG_SOURCE_FEEDS_REV)	
+clean: FORCE
+	rm -rf build_* bin tmp
 
-endif
+dirclean: clean
+	rm -rf staging_dir_* toolchain_build_* tool_build
+
+distclean: dirclean config-clean symlinkclean docclean
+	rm -rf dl
+
+help:
+	cat README
+
+doc:
+	$(MAKE) -C docs/ openwrt.pdf
+
+docclean:
+	$(MAKE) -C docs/ clean
+
+symlinkclean:
+	-find package -type l | xargs rm -f
+	rm -rf tmp
+
+.SILENT: clean dirclean distclean symlinkclean config-clean download world help tmp/.packageinfo tmp/.targetinfo tmpinfo-clean tmp/.config-package.in tmp/.config-target.in .config scripts/config/mconf scripts/config/conf menuconfig tmp/.prereq-build tmp/.prereq-package tmp/.prereq-target
+FORCE: ;
+.PHONY: FORCE help

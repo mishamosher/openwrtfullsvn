@@ -8,10 +8,7 @@
 include $(INCLUDE_DIR)/prereq.mk
 include $(INCLUDE_DIR)/kernel.mk
 include $(INCLUDE_DIR)/host.mk
-
-override MAKEFLAGS=
-override MAKE:=$(SUBMAKE)
-KDIR=$(KERNEL_BUILD_DIR)
+KDIR:=$(BUILD_DIR)/linux-$(KERNEL)-$(BOARD)
 
 ifneq ($(CONFIG_BIG_ENDIAN),y)
 JFFS2OPTS     :=  --pad --little-endian --squash
@@ -20,8 +17,6 @@ else
 JFFS2OPTS     :=  --pad --big-endian --squash
 SQUASHFS_OPTS :=  -be
 endif
-
-JFFS2_BLOCKSIZE ?= 64k 128k
 
 define add_jffs2_mark
 	echo -ne '\xde\xad\xc0\xde' >> $(1)
@@ -38,29 +33,36 @@ endef
 
 ifneq ($(CONFIG_TARGET_ROOTFS_INITRAMFS),y)
   ifeq ($(CONFIG_TARGET_ROOTFS_JFFS2),y)
-    define Image/mkfs/jffs2/sub
-		# FIXME: removing this line will cause strange behaviour in the foreach loop below
-		$(STAGING_DIR_HOST)/bin/mkfs.jffs2 $(JFFS2OPTS) -e $(patsubst %k,%KiB,$(1)) -o $(KDIR)/root.jffs2-$(1) -d $(TARGET_DIR)
-		$(call add_jffs2_mark,$(KDIR)/root.jffs2-$(1))
-		$(call Image/Build,jffs2-$(1))
-    endef
     define Image/mkfs/jffs2
-		rm -rf $(TARGET_DIR)/jffs
-		$(foreach SZ,$(JFFS2_BLOCKSIZE),$(call Image/mkfs/jffs2/sub,$(SZ)))
+		rm -rf $(BUILD_DIR)/root/jffs
+		
+		$(STAGING_DIR)/bin/mkfs.jffs2 $(JFFS2OPTS) -e 0x10000 -o $(KDIR)/root.jffs2-64k -d $(BUILD_DIR)/root
+		$(STAGING_DIR)/bin/mkfs.jffs2 $(JFFS2OPTS) -e 0x20000 -o $(KDIR)/root.jffs2-128k -d $(BUILD_DIR)/root
+		$(STAGING_DIR)/bin/mkfs.jffs2 $(JFFS2OPTS) -e 0x40000 -o $(KDIR)/root.jffs2-256k -d $(BUILD_DIR)/root
+
+		
+		# add End-of-Filesystem markers
+		$(call add_jffs2_mark,$(KDIR)/root.jffs2-64k)
+		$(call add_jffs2_mark,$(KDIR)/root.jffs2-128k)
+		$(call add_jffs2_mark,$(KDIR)/root.jffs2-256k)
+	
+		$(call Image/Build,jffs2-64k)
+		$(call Image/Build,jffs2-128k)
+		$(call Image/Build,jffs2-256k)
     endef
   endif
     
   ifeq ($(CONFIG_TARGET_ROOTFS_SQUASHFS),y)
     define Image/mkfs/squashfs
-		@mkdir -p $(TARGET_DIR)/jffs
-		$(STAGING_DIR_HOST)/bin/mksquashfs-lzma $(TARGET_DIR) $(KDIR)/root.squashfs -nopad -noappend -root-owned $(SQUASHFS_OPTS)
+		@mkdir -p $(BUILD_DIR)/root/jffs
+		$(STAGING_DIR)/bin/mksquashfs-lzma $(BUILD_DIR)/root $(KDIR)/root.squashfs -nopad -noappend -root-owned $(SQUASHFS_OPTS)
 		$(call Image/Build,squashfs)
     endef
   endif
     
   ifeq ($(CONFIG_TARGET_ROOTFS_TGZ),y)
     define Image/mkfs/tgz
-		$(TAR) -zcf $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-rootfs.tgz --owner=root --group=root -C $(TARGET_DIR)/ .
+		$(TAR) -zcf $(BIN_DIR)/openwrt-$(BOARD)-$(KERNEL)-rootfs.tgz --owner=root --group=root -C $(BUILD_DIR)/root/ .
     endef
   endif
 else
@@ -75,18 +77,18 @@ ifeq ($(CONFIG_TARGET_ROOTFS_EXT2FS),y)
   E2SIZE=$(shell echo $$(($(CONFIG_TARGET_ROOTFS_FSPART)*1024)))
   
   define Image/mkfs/ext2
-		$(STAGING_DIR_HOST)/bin/genext2fs -U -b $(E2SIZE) -I $(CONFIG_TARGET_ROOTFS_MAXINODE) -d $(TARGET_DIR)/ $(KDIR)/root.ext2
+		$(STAGING_DIR)/bin/genext2fs -U -b $(E2SIZE) -I $(CONFIG_TARGET_ROOTFS_MAXINODE) -d $(BUILD_DIR)/root/ $(KDIR)/root.ext2
 		$(call Image/Build,ext2)
   endef
 endif
 
 
 define Image/mkfs/prepare/default
-	find $(TARGET_DIR) -type f -not -perm +0100 -not -name 'ssh_host*' | $(XARGS) chmod 0644
-	find $(TARGET_DIR) -type f -perm +0100 | $(XARGS) chmod 0755
-	find $(TARGET_DIR) -type d | $(XARGS) chmod 0755
-	$(INSTALL_DIR) $(TARGET_DIR)/tmp
-	chmod 0777 $(TARGET_DIR)/tmp
+	find $(BUILD_DIR)/root -type f -not -perm +0100 -not -name 'ssh_host*' | $(XARGS) chmod 0644
+	find $(BUILD_DIR)/root -type f -perm +0100 | $(XARGS) chmod 0755
+	find $(BUILD_DIR)/root -type d | $(XARGS) chmod 0755
+	mkdir -p $(BUILD_DIR)/root/tmp
+	chmod 0777 $(BUILD_DIR)/root/tmp
 endef
 
 define Image/mkfs/prepare
@@ -97,14 +99,14 @@ define BuildImage
 download:
 prepare:
 ifneq ($(IB),1)
-  compile: compile-targets FORCE
+  compile: compile-targets
 	$(call Build/Compile)
 else
   compile:
 endif
 
 ifneq ($(IB),1)
-  install: compile install-targets FORCE
+  install: compile install-targets
 	$(call Image/Prepare)
 	$(call Image/mkfs/prepare)
 	$(call Image/BuildKernel)

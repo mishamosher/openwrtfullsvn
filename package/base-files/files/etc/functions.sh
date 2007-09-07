@@ -85,32 +85,19 @@ config_clear() {
 }
 
 config_load() {
-	local cfg
-	local uci
-	local PACKAGE="$1"
-
-	case "$PACKAGE" in
-		/*)	cfg="$PACKAGE"
-			uci=""
-		;;
-		*)	cfg="$UCI_ROOT/etc/config/$PACKAGE"
-			uci="/tmp/.uci/${PACKAGE}"
-		;;
+	local file
+	case "$1" in
+		/*) file="$1";;
+		*) file="$UCI_ROOT/etc/config/$1";;
 	esac
-
-	[ -e "$cfg" ] || cfg=""
-	[ -e "$uci" ] || uci=""
-
-	# no config
-	[ -z "$cfg" -a -z "$uci" ] && return 1
-
 	_C=0
 	export ${NO_EXPORT:+-n} CONFIG_SECTIONS=
 	export ${NO_EXPORT:+-n} CONFIG_NUM_SECTIONS=0
 	export ${NO_EXPORT:+-n} CONFIG_SECTION=
-
-	${cfg:+. "$cfg"}
-	${uci:+. "$uci"}
+	
+	[ -e "$file" ] && {
+		. $file
+	} || return 1
 	
 	${CONFIG_SECTION:+config_cb}
 }

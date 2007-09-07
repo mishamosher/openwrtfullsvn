@@ -6,42 +6,24 @@
 #
 # define a dependency on a subtree
 # parameters:
-#	1: directories/files
+#	1: directory
 #	2: directory dependency
 #	3: tempfile for file listings
 #	4: find options
 
-DEP_FINDPARAMS := -x "*.svn*" -x ".*" -x "*.svn*" -x "*:*" -x "*\!*" -x "* *" -x "*\\\#*" -x "*/.*_check"
-
-find_md5=find $(1) -type f $(patsubst -x,-and -not -path,$(DEP_FINDPARAMS) $(2)) | md5s
-
+DEP_FINDPARAMS := -type f -not -name ".*" -and -not -path "*.svn*" -type f -not -name ".*" -and -not -path "*.svn*" -and -not -path "*:*" -and -not -path "*!*" -and -not -path "* *" -and -not -path "*\\\#*"
 define rdep
-  .PRECIOUS: $(2)
-  .SILENT: $(2)_check
+  $(foreach file,$(shell find $(1) $(DEP_FINDPARAMS) $(4)),
+    $(2): $(file)
+    $(file): ;
+  )
 
-  $(2): $(2)_check
-  $(2)_check::
-	if [ -f "$(2)" ]; then \
-		$(if $(3), \
-			$(call find_md5,$(1),$(4)) > $(3).1; \
-			{ [ \! -f "$(3)" ] || diff $(3) $(3).1 >/dev/null; } && \
-		) \
-		{ \
-			[ -f "$(2)_check.1" ] && mv "$(2)_check.1"; \
-		    $(SCRIPT_DIR)/timestamp.pl $(DEP_FINDPARAMS) $(4) -n $(2) $(1) && { \
-				$(call debug_eval,$(SUBDIR),r,echo "No need to rebuild $(2)";) \
-				touch -r "$(2)" "$(2)_check"; \
-			} \
-		} || { \
-			$(call debug_eval,$(SUBDIR),r,echo "Need to rebuild $(2)";) \
-			touch "$(2)_check"; \
-		}; \
-		$(if $(3), mv $(3).1 $(3);) \
-	else \
-		$(if $(3), rm -f $(3) $(3).1;) \
-		$(call debug_eval,$(SUBDIR),r,echo "Target $(2) not built";) \
-		true; \
-	fi
-
+  ifneq ($(3),)
+    ifneq ($$(shell find $(1) $(DEP_FINDPARAMS) $(4) 2>/dev/null | md5s),$(if $(3),$(shell cat $(3) 2>/dev/null)))
+      $(2): $(3)
+    endif
+  
+    $(3): FORCE
+	  @-find $(1) $(DEP_FINDPARAMS) $(4) 2>/dev/null | md5s > $$@
+  endif
 endef
-

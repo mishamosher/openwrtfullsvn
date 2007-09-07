@@ -21,20 +21,18 @@ include $(INCLUDE_DIR)/package.mk
 define Package/kexec-tools
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=@i386 +zlib
+  DEPENDS:=@LINUX_2_6_X86 +zlib
   TITLE:=Kernel boots kernel
+  DESCRIPTION:=\
+	kexec is a set of systems call that allows you to load \\\
+	another kernel from the currently executing Linux kernel.
   URL:=http://www.xmission.com/~ebiederm/files/kexec/README
-endef
-
-define Package/kexec-tools/description
- kexec is a set of systems call that allows you to load 
- another kernel from the currently executing Linux kernel.
 endef
 
 MAKE_FLAGS += \
 	DESTDIR="$(PKG_INSTALL_DIR)" \
 	EXTRA_CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" \
-	BUILD_CFLAGS="-Os" \
+	BUILD_CFLAGS="-O2" \
 	LIBS="$(TARGET_LDFLAGS) -lz" \
 	install
 

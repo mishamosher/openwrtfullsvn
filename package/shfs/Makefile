@@ -21,40 +21,35 @@ include $(INCLUDE_DIR)/package.mk
 
 define Package/shfs/Default
   TITLE:=ShFS
+  DESCRIPTION:=\
+	ShFS is a simple and easy to use Linux kernel module which allows you to \\\
+	mount remote filesystems using a plain shell (SSH) connection. When using \\\
+	ShFS, you can access all remote files just like the local ones, only the \\\
+	access is governed through the transport security of SSH.
   URL:=http://shfs.sourceforge.net/
 endef
 
-define Package/shfs/Default/description
- ShFS is a simple and easy to use Linux kernel module which allows you to 
- mount remote filesystems using a plain shell (SSH) connection. When using 
- ShFS, you can access all remote files just like the local ones, only the 
- access is governed through the transport security of SSH.
-endef
-
 define KernelPackage/shfs
-$(call Package/shfs/Default)
+  $(call Package/shfs/Default)
   TITLE+= (kernel module)
+  DESCRIPTION+=\\\
+	\\\
+	This package contains the ShFS kernel module.
   FILES:=$(PKG_INSTALL_DIR)/lib/modules/$(LINUX_VERSION)/kernel/fs/shfs/shfs.$(LINUX_KMOD_SUFFIX)
   SUBMENU:=Filesystems
+  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
   AUTOLOAD:=$(call AutoLoad,40,shfs)
 endef
 
-define KernelPackage/shfs/description
-$(call Package/shfs/Default/description)
- This package contains the ShFS kernel module.
-endef
-
 define Package/shfs-utils
-$(call Package/shfs/Default)
+  $(call Package/shfs/Default)
   SECTION:=utils
   CATEGORY:=Utilities
   DEPENDS+=+kmod-shfs
   TITLE+= (utilities)
-endef
-
-define Package/shfs-utils/description
-$(call Package/shfs/Default/description)
- This package contains the ShFS utilities.
+  DESCRIPTION+=\\\
+	\\\
+	This package contains the ShFS utilities.
 endef
 
 define Build/Compile

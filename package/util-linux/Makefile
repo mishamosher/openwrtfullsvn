@@ -13,7 +13,10 @@ PKG_VERSION:=2.12r
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_SOURCE_URL:=@KERNEL/linux/utils/$(PKG_NAME)/
+PKG_SOURCE_URL:=ftp://ftp.kernel.org/pub/linux/utils/$(PKG_NAME)/ \
+	http://ftp.kernel.org/pub/linux/utils/$(PKG_NAME)/ \
+	ftp://ftp.de.kernel.org/pub/linux/utils/$(PKG_NAME)/ \
+	http://ftp.de.kernel.org/pub/linux/utils/$(PKG_NAME)/
 PKG_MD5SUM:=c261230b27fc0fbcc287c76884caf2d3
 
 include $(INCLUDE_DIR)/package.mk
@@ -21,75 +24,51 @@ include $(INCLUDE_DIR)/package.mk
 define Package/util-linux/Default
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:=@!TARGET_ETRAX
   URL:=http://www.kernel.org/pub/linux/utils/util-linux/
 endef
 
 define Package/fdisk
-$(call Package/util-linux/Default)
+  $(call Package/util-linux/Default)
   TITLE:=Partition table manipulation utility
-endef
-
-define Package/fdisk/description
- This package contains a utility for managing disk partition tables.
+  DESCRIPTION:=\
+	This package contains an utility for managing disk partition tables.
+  URL:=http://www.kernel.org/pub/linux/utils/util-linux/
 endef
 
 define Package/cfdisk
-$(call Package/util-linux/Default)
+  $(call Package/util-linux/Default)
   TITLE:=Partition table manipulation utility
-  DEPENDS:= +libncurses
-endef
-
-define Package/cfdisk/description
- This package contains a utility for managing disk partition tables.
+  DEPENDS:=+libncurses
+  DESCRIPTION:=\
+	This package contains an utility for managing disk partition tables.
+  URL:=http://www.kernel.org/pub/linux/utils/util-linux/
 endef
 
 define Package/losetup
-$(call Package/util-linux/Default)
+  $(call Package/util-linux/Default)
   TITLE:=Loopback devices setup and control utility
-endef
-
-define Package/losetup/description
- This package contains a utility for managing loopback devices.
+  DESCRIPTION:=\
+	This package contains an utility for managing loopback devices.
 endef
 
 define Package/swap-utils
-$(call Package/util-linux/Default)
+  $(call Package/util-linux/Default)
   TITLE:=Swap space management utilities
+  DESCRIPTION:=\
+	This package contains a collection of tools for managing swap space: \\\
+	- mkswap\\\
+	- swapon\\\
+	- swapoff
 endef
 
-define Package/swap-utils/description
- This package contains a collection of tools for managing swap space: 
- - mkswap
- - swapon
- - swapoff
-endef
-
-define Package/hwclock
-$(call Package/util-linux/Default)
-  TITLE:=Utilities for managing the hardware clock
-endef
-
-define Package/hwclock/description
- This package contains a utility for managing the hardware clock.
-endef
-
-define Build/Configure
-	# this is NOT GNU configure!
-	( cd $(PKG_BUILD_DIR); \
-		CC="$(TARGET_CC)" \
-		CFLAGS="$(TARGET_CPPFLAGS)" \
-		LDFLAGS="$(TARGET_LDFLAGS)" \
-		./configure \
-	);
-endef
-
+TARGET_CFLAGS += -I$(PKG_BUILD_DIR)/lib
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR) \
+	$(call Build/Compile/Default, \
 		OPT="$(TARGET_CFLAGS)" \
 		INSTALLSUID="install -m 4755" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		all install
+		all install \
+	)
 endef
 
 define Package/Template
@@ -119,12 +98,7 @@ define Package/swap-utils/install
 	$(call Package/Template,sbin/swapoff,$(1)/usr/sbin)
 endef
 
-define Package/hwclock/install
-	$(call Package/Template,sbin/hwclock,$(1)/usr/sbin)
-endef
-
 $(eval $(call BuildPackage,fdisk))
 $(eval $(call BuildPackage,cfdisk))
 $(eval $(call BuildPackage,losetup))
 $(eval $(call BuildPackage,swap-utils))
-$(eval $(call BuildPackage,hwclock))

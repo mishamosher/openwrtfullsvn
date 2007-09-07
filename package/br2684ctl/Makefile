@@ -25,10 +25,11 @@ define Package/$(PKG_NAME)
   SECTION:=net
   CATEGORY:=Base system
   TITLE:=ATM Ethernet bridging configuration utility
+  DESCRIPTION:=ATM Ethernet bridging configuration utility
   URL:=http://ftp.debian.org/debian/pool/main/b/br2684ctl
 endef
 
-MAKE_FLAGS += CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS) $(TARGET_LDFLAGS)"
+MAKE_FLAGS += CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_LDFLAGS)"
 
 define Package/$(PKG_NAME)/install
 	$(INSTALL_DIR) $(1)/etc/init.d

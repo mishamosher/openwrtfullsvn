@@ -71,7 +71,6 @@ disable_atheros() (
 )
 
 enable_atheros() {
-	local device="$1"
 	config_get channel "$device" channel
 	config_get vifs "$device" vifs
 	
@@ -157,8 +156,10 @@ enable_atheros() {
 		esac
 		config_get ssid "$vif" ssid
 
-		config_get_bool bgscan "$vif" bgscan 0
-		iwpriv "$ifname" bgscan "$bgscan"
+		[ "$mode" = "sta" ] && {
+			config_get_bool bgscan "$vif" bgscan 1
+			iwpriv "$ifname" bgscan "$bgscan"
+		}
 
 		config_get_bool antdiv "$device" diversity 1
 		sysctl -w dev."$device".diversity="$antdiv" >&-
@@ -244,7 +245,7 @@ EOF
 						#add wpa_supplicant calls here
 					;;
 				esac
-				[ -z "$proto" ] || wpa_supplicant ${bridge:+ -b $bridge} -B -D wext -i "$ifname" -c /var/run/wpa_supplicant-$ifname.conf
+				[ -z "$proto" ] || wpa_supplicant ${bridge:+ -b $bridge} -Bw -D wext -i "$ifname" -c /var/run/wpa_supplicant-$ifname.conf
 			;;
 		esac
 		first=0

@@ -20,11 +20,9 @@ define Package/robocfg
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=BCM5325E/536x switch configuration utility
-endef
-
-define Package/robocfg/description
- This package contains an utility for configuring the Broadcom BCM5325E/536x 
- based switches.
+  DESCRIPTION:=\
+	This package contains an utility for configuring the Broadcom BCM5325E/536x \\\
+	based switches.
 endef
 
 define Build/Prepare

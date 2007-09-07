@@ -46,11 +46,11 @@ define Kernel/Configure/2.6
 	-$(MAKE) $(KERNEL_MAKEOPTS) CC="$(KERNEL_CC)" oldconfig prepare scripts
 endef
 define Kernel/Configure/Default
-	$(SCRIPT_DIR)/config.pl '+' $(GENERIC_LINUX_CONFIG) \
-		$(if $(wildcard ./config/profile-$(PROFILE)),'+' $(LINUX_CONFIG) ./config/profile-$(PROFILE), $(LINUX_CONFIG)) \
-		> $(LINUX_DIR)/.config.target
-	$(SCRIPT_DIR)/metadata.pl kconfig $(TMP_DIR)/.packageinfo $(TOPDIR)/.config > $(LINUX_DIR)/.config.override
-	$(SCRIPT_DIR)/config.pl 'm+' $(LINUX_DIR)/.config.target $(LINUX_DIR)/.config.override >$(LINUX_DIR)/.config
+	@if [ -f "./config/profile-$(PROFILE)" ]; then \
+		$(SCRIPT_DIR)/config.pl '+' $(GENERIC_LINUX_CONFIG) '+' $(LINUX_CONFIG) ./config/profile-$(PROFILE) > $(LINUX_DIR)/.config; \
+	else \
+		$(SCRIPT_DIR)/config.pl '+' $(GENERIC_LINUX_CONFIG) $(LINUX_CONFIG) > $(LINUX_DIR)/.config; \
+	fi
 	$(call Kernel/Configure/$(KERNEL))
 	rm -rf $(KERNEL_BUILD_DIR)/modules
 	@rm -f $(BUILD_DIR)/linux
@@ -59,7 +59,7 @@ endef
 
 define Kernel/CompileModules/Default
 	rm -f $(LINUX_DIR)/vmlinux $(LINUX_DIR)/System.map
-	$(MAKE) $(KERNEL_MAKEOPTS) CC="$(KERNEL_CC)" modules
+	$(MAKE) -j$(CONFIG_JLEVEL) $(KERNEL_MAKEOPTS) CC="$(KERNEL_CC)" modules
 endef
 
 ifeq ($(KERNEL),2.6)
@@ -67,7 +67,7 @@ ifeq ($(KERNEL),2.6)
     define Kernel/SetInitramfs
 		mv $(LINUX_DIR)/.config $(LINUX_DIR)/.config.old
 		grep -v INITRAMFS $(LINUX_DIR)/.config.old > $(LINUX_DIR)/.config
-		echo 'CONFIG_INITRAMFS_SOURCE="$(TARGET_DIR)"' >> $(LINUX_DIR)/.config
+		echo 'CONFIG_INITRAMFS_SOURCE="../../root"' >> $(LINUX_DIR)/.config
 		echo 'CONFIG_INITRAMFS_ROOT_UID=0' >> $(LINUX_DIR)/.config
 		echo 'CONFIG_INITRAMFS_ROOT_GID=0' >> $(LINUX_DIR)/.config
     endef
@@ -75,14 +75,14 @@ ifeq ($(KERNEL),2.6)
     define Kernel/SetInitramfs
 		mv $(LINUX_DIR)/.config $(LINUX_DIR)/.config.old
 		grep -v INITRAMFS $(LINUX_DIR)/.config.old > $(LINUX_DIR)/.config
-		rm -f $(TARGET_DIR)/init
+		rm -f $(BUILD_DIR)/root/init
 		echo 'CONFIG_INITRAMFS_SOURCE=""' >> $(LINUX_DIR)/.config
     endef
   endif
 endif
 define Kernel/CompileImage/Default
 	$(call Kernel/SetInitramfs)
-	$(MAKE) $(KERNEL_MAKEOPTS) CC="$(KERNEL_CC)" $(KERNELNAME)
+	$(MAKE) -j$(CONFIG_JLEVEL) $(KERNEL_MAKEOPTS) CC="$(KERNEL_CC)" $(KERNELNAME)
 	$(KERNEL_CROSS)objcopy -O binary -R .reginfo -R .note -R .comment -R .mdebug -S $(LINUX_DIR)/vmlinux $(LINUX_KERNEL)
 	$(KERNEL_CROSS)objcopy -R .reginfo -R .note -R .comment -R .mdebug -S $(LINUX_DIR)/vmlinux $(KERNEL_BUILD_DIR)/vmlinux.elf
 endef

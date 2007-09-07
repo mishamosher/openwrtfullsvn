@@ -12,12 +12,15 @@ include $(INCLUDE_DIR)/kernel.mk
 PKG_NAME:=broadcom-diag
 PKG_RELEASE:=1
 
+PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)
+
 include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/diag
   SUBMENU:=Other modules
-  DEPENDS:=@TARGET_BRCM_2_4||TARGET_BRCM47XX
+  DEPENDS:=@LINUX_2_4_BRCM||LINUX_2_6_BRCM||LINUX_2_6_BRCM47XX
   TITLE:=Driver for router LEDs and Buttons
+  VERSION:=$(PKG_RELEASE)+$(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE)
   FILES:=$(PKG_BUILD_DIR)/diag.$(LINUX_KMOD_SUFFIX)
 endef
 
@@ -26,7 +29,7 @@ define Build/Prepare
 	$(CP) ./src/* $(PKG_BUILD_DIR)/
 endef
 
-ifeq ($(BOARD),brcm-2.4)
+ifeq ($(BOARD),brcm)
 	BUILDFLAGS=-DBCMDRIVER -I$(LINUX_DIR)/arch/mips/bcm947xx/include $(if $(CONFIG_LINUX_2_4),-DLINUX_2_4)
 endif
 

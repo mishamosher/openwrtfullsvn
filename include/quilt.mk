@@ -10,10 +10,6 @@ ifeq ($(KERNEL_BUILD),1)
 endif
 PATCH_DIR?=./patches
 
-ifeq ($(MAKECMDGOALS),refresh)
-  override QUILT=1
-endif
-
 define Quilt/Patch
 	@for patch in $$$$( (cd $(1) && ls) 2>/dev/null ); do ( \
 		cp "$(1)/$$$$patch" $(PKG_BUILD_DIR); \
@@ -59,34 +55,14 @@ define Kernel/Patch/Default
 	$(if $(strip $(QUILT)),touch $(PKG_BUILD_DIR)/.quilt_used)
 endef
 
-ifeq ($(KERNEL_BUILD),1)
-$(STAMP_PATCHED): $(STAMP_PREPARED)
-	@cd $(PKG_BUILD_DIR); quilt pop -a -f >/dev/null 2>/dev/null || true
-	(\
-		cd $(PKG_BUILD_DIR)/patches; \
-		rm -f series; \
-		for file in *; do \
-			if [ -f $$file/series ]; then \
-				echo "Converting $$file/series"; \
-				awk -v file="$$file/" '$$0 !~ /^#/ { print file $$0 }' $$file/series >> series; \
-			else \
-				echo "Sorting patches in $$file"; \
-				find $$file/* -type f \! -name series | sort >> series; \
-			fi; \
-		done; \
-	)
-	if [ -s "$(PKG_BUILD_DIR)/patches/series" ]; then (cd $(PKG_BUILD_DIR); quilt push -a); fi
-	touch $@
-else
 $(STAMP_PATCHED): $(STAMP_PREPARED)
 	@cd $(PKG_BUILD_DIR); quilt pop -a -f >/dev/null 2>/dev/null || true
 	(\
 		cd $(PKG_BUILD_DIR)/patches; \
 		find * -type f \! -name series | sort > series; \
 	)
-	if [ -s "$(PKG_BUILD_DIR)/patches/series" ]; then (cd $(PKG_BUILD_DIR); quilt push -a); fi
+	[ -f "$(PKG_BUILD_DIR)/patches/series" ] && cd $(PKG_BUILD_DIR); quilt push -a
 	touch $@
-endif
 
 define Quilt/RefreshDir
 	mkdir -p $(1)

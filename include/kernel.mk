@@ -5,16 +5,12 @@
 # See /LICENSE for more information.
 #
 
-include $(INCLUDE_DIR)/kernel-version.mk
-
 ifeq ($(DUMP),1)
   KERNEL?=<KERNEL>
   BOARD?=<BOARD>
   LINUX_VERSION?=<LINUX_VERSION>
 else
   include $(INCLUDE_DIR)/target.mk
-
-  export GCC_HONOUR_COPTS=s
 
   ifeq ($(KERNEL),2.6)
     LINUX_KMOD_SUFFIX=ko
@@ -30,10 +26,11 @@ else
     KERNEL_CROSS:=$(TARGET_CROSS)
   endif
 
-  PLATFORM_DIR := $(TOPDIR)/target/linux/$(BOARD)
-  PATCH_DIR ?= ./patches$(shell [ -d "./patches-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
-  KERNEL_BUILD_DIR ?= $(BUILD_DIR_BASE)/linux-$(BOARD)$(if $(BUILD_SUFFIX),_$(BUILD_SUFFIX))
-  LINUX_DIR ?= $(KERNEL_BUILD_DIR)/linux-$(LINUX_VERSION)
+  KERNEL_PATCHVER:=$(shell echo $(LINUX_VERSION) | cut -d. -f1,2,3 | cut -d- -f1)
+  PLATFORM_DIR := $(TOPDIR)/target/linux/$(BOARD)-$(KERNEL)
+  PATCH_DIR := ./patches$(shell [ -d "./patches-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
+  KERNEL_BUILD_DIR:=$(BUILD_DIR)/linux-$(KERNEL)-$(BOARD)
+  LINUX_DIR := $(KERNEL_BUILD_DIR)/linux-$(LINUX_VERSION)
 
   MODULES_SUBDIR:=lib/modules/$(LINUX_VERSION)
   TARGET_MODULES_DIR := $(LINUX_TARGET_DIR)/$(MODULES_SUBDIR)
@@ -42,9 +39,12 @@ else
 
   LINUX_SOURCE:=linux-$(LINUX_VERSION).tar.bz2
   TESTING:=$(if $(findstring -rc,$(LINUX_VERSION)),/testing,)
-  LINUX_SITE:=@KERNEL/linux/kernel/v$(KERNEL)$(TESTING) \
+  LINUX_SITE:=http://www.us.kernel.org/pub/linux/kernel/v$(KERNEL)$(TESTING) \
+           http://www.us.kernel.org/pub/linux/kernel/v$(KERNEL)$(TESTING) \
+           http://www.kernel.org/pub/linux/kernel/v$(KERNEL)$(TESTING) \
+           http://www.de.kernel.org/pub/linux/kernel/v$(KERNEL)$(TESTING)
 
-  PKG_BUILD_DIR ?= $(KERNEL_BUILD_DIR)/$(PKG_NAME)$(if $(PKG_VERSION),-$(PKG_VERSION))
+  PKG_BUILD_DIR ?= $(KERNEL_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
 endif
 GENERIC_PLATFORM_DIR := $(TOPDIR)/target/linux/generic-$(KERNEL)
 GENERIC_PATCH_DIR := $(GENERIC_PLATFORM_DIR)/patches$(shell [ -d "$(GENERIC_PLATFORM_DIR)/patches-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
@@ -52,6 +52,7 @@ GENERIC_PATCH_DIR := $(GENERIC_PLATFORM_DIR)/patches$(shell [ -d "$(GENERIC_PLAT
 
 define KernelPackage/Defaults
   FILES:=
+  KCONFIG:=m
   AUTOLOAD:=
 endef
 
@@ -90,28 +91,21 @@ define KernelPackage
     TITLE:=$(TITLE)
     SECTION:=kernel
     CATEGORY:=Kernel modules
+    DEFAULT:=$(KMOD_DEFAULT)
     DESCRIPTION:=$(DESCRIPTION)
     EXTRA_DEPENDS:=kernel (=$(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE))
-    VERSION:=$(LINUX_VERSION)$(if $(PKG_VERSION),+$(PKG_VERSION))-$(BOARD)-$(if $(PKG_RELEASE),$(PKG_RELEASE),$(LINUX_RELEASE))
     $(call KernelPackage/$(1))
     $(call KernelPackage/$(1)/$(KERNEL))
     $(call KernelPackage/$(1)/$(BOARD)-$(KERNEL))
   endef
 
-  ifdef KernelPackage/$(1)/description
-    define Package/kmod-$(1)/description
-$(call KernelPackage/$(1)/description)
-    endef
-  endif
-
-  # check that all CONFIG_* symbols in $(KCONFIG) are set to 'm'
-  ifeq ($(filter-out m,$(foreach c,$(filter-out %=y %=n %=m,$(KCONFIG)),$(if $($(c)),$($(c)),n))),)
+  ifeq ($(findstring m,$(KCONFIG)),m)
     ifneq ($(strip $(FILES)),)
       define Package/kmod-$(1)/install
-		  mkdir -p $$(1)/lib/modules/$(LINUX_VERSION)
-		  $(CP) -L $$(FILES) $$(1)/lib/modules/$(LINUX_VERSION)/
-		  $(call ModuleAutoLoad,$(1),$$(1),$(AUTOLOAD))
-		  $(call KernelPackage/$(1)/install,$$(1))
+		mkdir -p $$(1)/lib/modules/$(LINUX_VERSION)
+		$(CP) -L $$(FILES) $$(1)/lib/modules/$(LINUX_VERSION)/
+		$(call ModuleAutoLoad,$(1),$$(1),$(AUTOLOAD))
+		$(call KernelPackage/$(1)/install,$$(1))
       endef
     endif
   endif

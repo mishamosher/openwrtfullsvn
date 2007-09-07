@@ -18,15 +18,17 @@ PKG_MD5SUM:=84fef49cc39ff2605204246666f65864
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/linux-atm
-  SECTION:=libs
-  CATEGORY:=Libraries
-  TITLE:=Linux ATM library
+define Package/linux-atm/Default
   URL:=http://linux-atm.sourceforge.net/
 endef
 
-define Package/linux-atm/description
-  This package contains a library for accessing the Linux ATM subsystem.
+define Package/linux-atm
+  $(call Package/linux-atm/Default)
+  SECTION:=libs
+  CATEGORY:=Libraries
+  TITLE:=Linux ATM Library
+  DESCRIPTION:=\
+	This package contains a library for accessing the Linux ATM subsystem.
 endef
 
 define Build/Configure
@@ -63,3 +65,7 @@ define Package/linux-atm/install
 endef
 
 $(eval $(call BuildPackage,linux-atm))
+
+$(eval $(call RequireCommand,automake, \
+	$(PKG_NAME) requires automake. \
+))

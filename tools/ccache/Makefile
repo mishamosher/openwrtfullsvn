@@ -15,6 +15,8 @@ PKG_SOURCE_URL:=http://samba.org/ftp/ccache/
 PKG_MD5SUM:=73c1ed1e767c1752dd0f548ec1e66ce7
 PKG_CAT:=zcat
 
+PKG_BUILD_DIR:=$(TOOLCHAIN_BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+
 include $(INCLUDE_DIR)/host-build.mk
 
 ifneq ($(strip $(shell which ccache >/dev/null && echo found)),found)
@@ -24,7 +26,7 @@ ifneq ($(strip $(shell which ccache >/dev/null && echo found)),found)
 
   define Build/Install
 	$(MAKE) -C $(PKG_BUILD_DIR) \
-		DESTDIR="$(STAGING_DIR_HOST)" \
+		DESTDIR="$(STAGING_DIR)" \
 		install
   endef
 

@@ -43,6 +43,7 @@ menu "Target Images"
 		  
 	config TARGET_ROOTFS_EXT2FS
 		bool "ext2"
+		default y if !USES_SQUASHFS && !USES_JFFS2
 		default y if USES_EXT2
 		depends !TARGET_ROOTFS_INITRAMFS
 		help
@@ -101,6 +102,13 @@ config TAR_VERBOSITY
 	prompt "Tar verbose" if BUILDOPTS
 	default n
 
+config JLEVEL
+	int
+	prompt "Number of jobs to run simultaneously" if BUILDOPTS
+	default "1"
+	help
+	    Number of jobs to run simultanesouly
+
 config CCACHE
 	bool
 	prompt "Use ccache" if BUILDOPTS
@@ -115,17 +123,10 @@ config SOURCE_FEEDS
 	help
 		Separate sources with spaces : " "
 
-config BUILD_SUFFIX
-	string
-	prompt "Build suffix to append to the BUILD_DIR variable" if BUILDOPTS
-	default ""
-	help
-		Build suffix to append to the BUILD_DIR variable, i.e: build_dir_suffix
-
 config SOURCE_FEEDS_REV
 	string
 	prompt "Revision for the source feed svn checkout" if BUILDOPTS
-	default ""
+	default "8180"
 
 
 source "toolchain/Config.in"

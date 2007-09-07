@@ -391,9 +391,10 @@ sub readInFirmware {
     my($filename, $partitions_ref) = @_;
 
     my($firmware_buf);
+    my($total_length)   = 0x800000;
 
     open FILE,$filename or die "Can't find firmware image \"$filename\": $!\n";
-    read FILE,$firmware_buf,$flash_len or die "Can't read $flash_len bytes from \"$filename\": $!\n";
+    read FILE,$firmware_buf,$total_length or die "Can't read $total_length bytes from \"$filename\": $!\n";
     close FILE or die "Can't close \"$filename\": $!\n";
 
     $debug and printf("Read 0x%08X bytes from \"%s\"\n", length($firmware_buf), $filename);
@@ -929,7 +930,7 @@ sub defaultPartitions {
 
 # Main routine starts here ...
 
-my($unpack, $pack, $little, $fatflash, $input, $output, $redboot);
+my($unpack, $pack, $little, $input, $output, $redboot);
 my($kernel, $sysconf, $ramdisk, $fisdir);
 my($microcode, $trailer, $ethaddr, $loader);
 
@@ -945,7 +946,6 @@ if (!GetOptions("d|debug"       => \$debug,
 		"u|unpack"      => \$unpack,
 		"p|pack"        => \$pack,
 		"l|little"      => \$little,
-		"F|fatflash"    => \$fatflash,
 		"i|input=s"     => \$input,
 		"o|output=s"    => \$output,
 		"b|redboot=s"   => \$redboot,
@@ -965,7 +965,6 @@ if (!GetOptions("d|debug"       => \$debug,
     print "  [-u|--unpack]			Unpack a firmware image\n";
     print "  [-p|--pack]			Pack a firmware image\n";
     print "  [-l|--little]			Convert Kernel and Ramdisk to little-endian\n";
-    print "  [-F|--fatflash]			Generate an image for 16MB flash\n";
     print "  [-i|--input]     <file>		Input firmware image filename\n";
     print "  [-o|--output]    <file>		Output firmware image filename\n";
     print "  [-b|--redboot]   <file>		Input/Output RedBoot filename\n";
@@ -1044,18 +1043,6 @@ if (defined $little)  {
 	    ($_->{'name'} eq 'Kernel') or
 	    ($_->{'name'} eq 'Ramdisk')) {
 	    $_->{'byteswap'} = 1;
-	}
-    } @partitions;
-}
-
-if (defined $fatflash)  {
-    $flash_len = 0x01000000;
-    map {
-	if (($_->{'name'} eq 'FIS directory') or
-	    ($_->{'name'} eq 'Loader config') or
-	    ($_->{'name'} eq 'Microcode') or
-	    ($_->{'name'} eq 'Trailer')) {
-	    $_->{'offset'} += 0x00800000;
 	}
     } @partitions;
 }

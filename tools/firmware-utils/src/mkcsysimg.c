@@ -1,7 +1,7 @@
 /*
  *  $Id$
  *
- *  Copyright (C) 2007 Gabor Juhos <juhosg at openwrt.org>
+ *  Copyright (C) 2007 Gabor Juhos <juhosg@freemail.hu>
  *
  *  This program was based on the code found in various Linux
  *  source tarballs released by Edimax for it's devices.
@@ -728,7 +728,7 @@ find_board(char *model)
 
 	ret = NULL;
 	for (board = boards; board->model != NULL; board++){
-		if (strcasecmp(model, board->model) == 0) {
+		if (strcmp(model, board->model) == 0) {
 			ret = board;
 			break;
 		}

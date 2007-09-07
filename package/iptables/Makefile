@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=iptables
-PKG_VERSION:=1.3.8
+PKG_VERSION:=1.3.7
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
@@ -18,7 +18,7 @@ PKG_SOURCE_URL:=http://www.netfilter.org/projects/iptables/files \
 	ftp://ftp.be.netfilter.org/pub/netfilter/iptables/ \
 	ftp://ftp.de.netfilter.org/pub/netfilter/iptables/ \
 	ftp://ftp.no.netfilter.org/pub/netfilter/iptables/
-PKG_MD5SUM:=0a9209f928002e5eee9cdff8fef4d4b3
+PKG_MD5SUM:=dd965bdacbb86ce2a6498829fddda6b7
 
 include $(INCLUDE_DIR)/package.mk
 ifeq ($(DUMP),)
@@ -34,7 +34,7 @@ define Package/iptables/Default
 endef
 
 define Package/iptables
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   TITLE:=IPv4 firewall administration tool
   MENU:=1
 endef
@@ -45,154 +45,139 @@ define Package/iptables/conffiles
 endef
 
 define Package/iptables-mod-conntrack
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-conntrack
   TITLE:=connection tracking modules
-endef
-
-define Package/iptables-mod-conntrack/description
- iptables extensions for connection tracking.
- Includes:
- - libipt_conntrack
- - libipt_helper
- - libipt_connmark/CONNMARK
+  DESCRIPTION:=\
+	iptables extensions for connection tracking.\\\
+	\\\
+	Includes: \\\
+	- libipt_conntrack \\\
+	- libipt_helper \\\
+	- libipt_connmark/CONNMARK
 endef
 
 define Package/iptables-mod-filter
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-filter
   TITLE:=filter modules
-endef
-
-define Package/iptables-mod-filter/description
- iptables extensions for packet content inspection.
- Includes: 
- - libipt_ipp2p
- - libipt_layer7 
+  DESCRIPTION:=\
+	iptables extensions for packet content inspection.\\\
+	\\\
+	Includes: \\\
+	- libipt_ipp2p \\\
+	- libipt_layer7 
 endef
 
 define Package/iptables-mod-imq
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-imq
   TITLE:=IMQ support
-endef
-
-define Package/iptables-mod-imq/description
- iptables extension for IMQ support.
- Includes: 
- - libipt_IMQ
+  DESCRIPTION:=\
+	iptables extension for IMQ support.\\\
+	\\\
+	Includes: \\\
+	- libipt_IMQ
 endef
 
 define Package/iptables-mod-ipopt
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-ipopt
   TITLE:=IP/Packet option modules
-endef
-
-define Package/iptables-mod-ipopt/description
- iptables extensions for matching/changing IP packet options.\\\
- Includes: 
- - libipt_CLASSIFY
- - libipt_dscp/DSCP
- - libipt_ecn/ECN
- - libipt_length
- - libipt_mac
- - libipt_tos/TOS
- - libipt_tcpmms
- - libipt_ttl/TTL
- - libipt_unclean 
+  DESCRIPTION:=\
+	iptables extensions for matching/changing IP packet options.\\\
+	\\\
+	Includes: \\\
+	- libipt_CLASSIFY \\\
+	- libipt_dscp/DSCP \\\
+	- libipt_ecn/ECN \\\
+	- libipt_length \\\
+	- libipt_mac \\\
+	- libipt_tos/TOS \\\
+	- libipt_tcpmms \\\
+	- libipt_ttl/TTL \\\
+	- libipt_unclean 
 endef
 
 define Package/iptables-mod-ipsec
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-ipsec
   TITLE:=IPSec extensions
-endef
-
-define Package/iptables-mod-ipsec/description
- iptables extensions for matching ipsec traffic.
- Includes: 
- - libipt_ah
- - libipt_esp
+  DESCRIPTION:=\
+	iptables extensions for matching ipsec traffic.\\\
+	\\\
+	Includes: \\\
+	- libipt_ah \\\
+	- libipt_esp
 endef
 
 define Package/iptables-mod-nat
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-nat
   TITLE:=extra NAT targets
-endef
-
-define Package/iptables-mod-nat/description
- iptables extensions for different NAT targets.
- Includes: 
- - libipt_REDIRECT
+  DESCRIPTION:=\
+	iptables extensions for different NAT targets.\\\
+	\\\
+	Includes: \\\
+	- libipt_REDIRECT
 endef
 
 define Package/iptables-mod-ulog
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-ulog
   TITLE:=user-space packet logging
-endef
-
-define Package/iptables-mod-ulog/description
- iptables extensions for user-space packet logging.
- Includes: 
- - libipt_ULOG
+  DESCRIPTION:=\
+	iptables extensions for user-space packet logging.\\\
+	\\\
+	Includes: \\\
+	- libipt_ULOG
 endef
 
 define Package/iptables-mod-iprange
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-iprange
   TITLE:=ip range module
-endef
-
-define Package/iptables-mod-iprange/description
- iptables extensions for matching ip ranges.
- Includes: 
- - libipt_iprange
+  DESCRIPTION:=\
+	iptables extensions for matching ip ranges.\\\
+	\\\
+	Includes: \\\
+	- libipt_iprange
 endef
 
 define Package/iptables-mod-extra
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-extra
   TITLE:=other extra iptables extensions
-endef
-
-define Package/iptables-mod-extra/description
- other extra iptables extensions.
- Includes: 
- - libipt_limit
- - libipt_owner
- - libipt_physdev
- - libipt_pkttype
- - libipt_recent
- - libipt_NOTRACK
+  DESCRIPTION:=\
+	other extra iptables extensions.\\\
+	\\\
+	Includes: \\\
+	- libipt_limit \\\
+	- libipt_owner \\\
+	- libipt_physdev \\\
+	- libipt_pkttype \\\
+	- libipt_recent \\\
+	- libipt_NOTRACK
 endef
 
 define Package/iptables-mod-ipset
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables +kmod-ipt-ipset
   TITLE:=ipset iptables extension
+  DESCRIPTION:=\
+    ipset
 endef
 
 define Package/iptables-utils
-$(call Package/iptables/Default)
+  $(call Package/iptables/Default)
   DEPENDS:=iptables
   TITLE:=iptables save and restore utilities
 endef
 
 define Package/ip6tables
-$(call Package/iptables/Default)
-  DEPENDS:=+kmod-ipv6
+  $(call Package/iptables/Default)
   CATEGORY:=Network
   TITLE:=IPv6 firewall administration tool
-endef
-
-define Package/ip6tables-utils
- $(call Package/iptables/Default)
- DEPENDS:=ip6tables
- CATEGORY:=Network
- TITLE:=ip6tables save and restore utilities
 endef
 
 define Build/Configure
@@ -210,7 +195,7 @@ define Build/Compile
 		LDFLAGS="-rdynamic -static-libgcc" \
 		KERNEL_DIR="$(LINUX_DIR)" PREFIX=/usr \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		all experimental install install-experimental
+		all install
 endef
 
 define Build/InstallDev
@@ -266,11 +251,6 @@ define Package/ip6tables/install
 	)
 endef
 
-define Package/ip6tables-utils/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(CP) $(PKG_INSTALL_DIR)/usr/sbin/ip6tables-{save,restore} $(1)/usr/sbin/
-endef
-
 define BuildPlugin
   define Package/$(1)/install
 	$(INSTALL_DIR) $$(1)/usr/lib/iptables
@@ -300,4 +280,3 @@ $(eval $(call BuildPlugin,iptables-mod-nat,$(IPT_NAT-m)))
 $(eval $(call BuildPlugin,iptables-mod-iprange,$(IPT_IPRANGE-m)))
 $(eval $(call BuildPlugin,iptables-mod-ulog,$(IPT_ULOG-m)))
 $(eval $(call BuildPackage,ip6tables))
-$(eval $(call BuildPackage,ip6tables-utils))

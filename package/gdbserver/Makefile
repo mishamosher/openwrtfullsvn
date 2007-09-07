@@ -11,7 +11,7 @@ PKG_NAME:=gdbserver
 PKG_VERSION:=6.3
 PKG_RELEASE:=1
 
-GDB_DIR:=$(BUILD_DIR_TOOLCHAIN)/gdb-$(PKG_VERSION)
+GDB_DIR:=$(TOOLCHAIN_BUILD_DIR)/gdb-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -20,11 +20,8 @@ define Package/gdbserver
   CATEGORY:=Utilities
   DEPENDS:=@GDB@
   TITLE:=Remote Server for the GNU Debugger
-endef
-
-define Package/gdbserver/description
- GDBSERVER is a program that allows you to run GDB on a different machine 
- than the one which is running the program being debugged.
+  DESCRIPTION:=GDBSERVER is a program that allows you to run GDB on a different machine\\\
+than the one which is running the program being debugged.
 endef
 
 define Build/Configure

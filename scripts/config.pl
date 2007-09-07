@@ -49,17 +49,15 @@ sub config_and($$) {
 }
 
 
-sub config_add($$$) {
+sub config_add($$) {
 	my $cfg1 = shift;
 	my $cfg2 = shift;
-	my $mod_plus = shift;
 	my %config;
 	
 	for ($cfg1, $cfg2) {
 		my %cfg = %$_;
 		
 		foreach my $config (keys %cfg) {
-			next if $mod_plus and $config{$config} and $config{$config} eq "y";
 			$config{$config} = $cfg{$config};
 		}
 	}
@@ -125,11 +123,7 @@ sub parse_expr($) {
 	} elsif ($arg =~ /^\+/) {
 		my $arg1 = parse_expr($pos);
 		my $arg2 = parse_expr($pos);
-		return config_add($arg1, $arg2, 0);
-	} elsif ($arg =~ /^m\+/) {
-		my $arg1 = parse_expr($pos);
-		my $arg2 = parse_expr($pos);
-		return config_add($arg1, $arg2, 1);
+		return config_add($arg1, $arg2);
 	} elsif ($arg eq '>') {
 		my $arg1 = parse_expr($pos);
 		my $arg2 = parse_expr($pos);

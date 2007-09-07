@@ -22,38 +22,34 @@ include $(INCLUDE_DIR)/package.mk
 define Package/strongswan/Default
   TITLE:=strongSwan
   DEPENDS:=@LINUX_2_4
+  DESCRIPTION:=\
+	strongSwan is an IPsec implementation for Linux.
   URL:=http://www.strongswan.org/
 endef
 
-define Package/strongswan/Default/description
- strongSwan is an IPsec implementation for Linux.
-endef
-
 define Package/strongswan
-$(call Package/strongswan/Default)
+  $(call Package/strongswan/Default)
   SECTION:=net
   CATEGORY:=Network
   DEPENDS:=+kmod-strongswan +libgmp @LINUX_2_4
   TITLE+= (daemon)
-endef
-
-define Package/strongswan/description
-$(call Package/strongswan/Default/description)
- This package contains the strongSwan user-land daemon.
+  DESCRIPTION+=\\\
+	\\\
+	This package contains the strongSwan user-land daemon.
+  URL:=http://www.strongswan.org/
 endef
 
 define KernelPackage/strongswan
-$(call Package/strongswan/Default)
   SUBMENU:=Network Support
+  $(call Package/strongswan/Default)
   TITLE+= (kernel module)
   DEPENDS:=@LINUX_2_4
+  DESCRIPTION+=\\\
+	\\\
+	This package contains the strongSwan kernel module.
+  VERSION:=$(LINUX_VERSION)+$(PKG_VERSION)-$(BOARD)-$(PKG_RELEASE)
   FILES:=$(PKG_BUILD_DIR)/linux/net/ipsec/ipsec.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,ipsec)
-endef
-
-define KernelPackage/strongswan/description
-$(call Package/strongswan/Default/description)
- This package contains the strongSwan kernel module.
 endef
 
 PKG_MAKE_OPTS:= \

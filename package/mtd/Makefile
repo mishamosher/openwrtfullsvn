@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mtd
-PKG_RELEASE:=6
+PKG_RELEASE:=5
 
 PKG_BUILD_DIR := $(KERNEL_BUILD_DIR)/$(PKG_NAME)
 
@@ -20,11 +20,9 @@ define Package/mtd
   SECTION:=utils
   CATEGORY:=Base system
   TITLE:=Update utility for trx firmware images
-endef
-
-define Package/mtd/description
- This package contains an utility useful to upgrade from other firmware or 
- older OpenWrt releases.
+  DESCRIPTION:=\
+	This package contains an utility useful to upgrade from other firmware or \\\
+	older OpenWrt releases.
 endef
 
 define Build/Prepare

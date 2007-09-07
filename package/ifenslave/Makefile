@@ -19,25 +19,22 @@ define Package/ifenslave
   CATEGORY:=Network
   DEPENDS:=@LINUX_2_6 +kmod-bonding
   TITLE:=A utility to manipulate kernel ethernet bonding devices
+  DESCRIPTION:=ifenslave is needed to add/remove interfaces to/from ethernet bond devices
   VERSION:=$(LINUX_VERSION)-$(PKG_RELEASE)
   URL:=http://www.kernel.org
 endef
 
-define Package/ifenslave/description
- ifenslave is needed to add/remove interfaces to/from ethernet bond devices.
-endef
-
 define Build/Prepare
+	$(CP) $(LINUX_DIR)/Documentation/networking/ifenslave.c  $(PKG_BUILD_DIR)/
 endef
 
 define Build/Compile
-	$(TARGET_CC) $(TARGET_CFLAGS) -o $(PKG_BUILD_DIR)/ifenslave \
-		$(LINUX_DIR)/Documentation/networking/ifenslave.c
+	$(TARGET_CC) $(TARGET_CFLAGS) $(PKG_BUILD_DIR)/ifenslave.c -o $(PKG_BUILD_DIR)/$(PKG_NAME)
 endef
 
 define Package/ifenslave/install
 	$(INSTALL_DIR) $(1)/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/ifenslave $(1)/sbin/
+	$(CP) $(PKG_BUILD_DIR)/$(PKG_NAME) $(1)/sbin/
 endef
 
 $(eval $(call BuildPackage,ifenslave))

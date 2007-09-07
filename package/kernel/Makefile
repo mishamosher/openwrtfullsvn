@@ -10,9 +10,13 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=kernel
+PKG_VERSION:=$(LINUX_VERSION)-$(BOARD)
+PKG_RELEASE:=$(LINUX_RELEASE)
 
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/packages
-SCAN_DEPS=modules/*.mk
+
+# build all in-tree kmod-* packages by default
+KMOD_DEFAULT:=m
 
 include $(INCLUDE_DIR)/package.mk
 ifeq ($(DUMP),)
@@ -37,6 +41,7 @@ define Package/kernel
   CATEGORY:=Kernel
   DEFAULT:=y
   TITLE:=Virtual kernel package
+  DESCRIPTION:=Virtual kernel package
   VERSION:=$(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE)
 endef
 

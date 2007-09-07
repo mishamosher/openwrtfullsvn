@@ -17,6 +17,12 @@ config PCMCIA_SUPPORT
 config USB_SUPPORT
 	bool
 
+config ATM_SUPPORT
+	bool
+
+config VIDEO_SUPPORT
+	bool
+
 config BIG_ENDIAN
 	bool
 
@@ -39,10 +45,7 @@ config PROFILE_KCONFIG
 
 config i386
 	bool
-
-config i686
-	bool 
-
+	
 config mips
 	select BIG_ENDIAN
 	bool
@@ -99,7 +102,6 @@ config ARCH
 	default "avr32"   if avr32
 	default "cris"    if cris
 	default "i386"    if i386
-	default "i686"    if i686
 	default "m68k"    if m68k
 	default "mips"    if mips
 	default "mipsel"  if mipsel

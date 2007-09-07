@@ -30,7 +30,6 @@
 enum polarity_t {
 	REVERSE = 0,
 	NORMAL = 1,
-	INPUT = 2,
 };
 
 enum {

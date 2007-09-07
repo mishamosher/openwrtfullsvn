@@ -10,41 +10,36 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=kmod-wlcompat
-PKG_RELEASE:=6
+PKG_RELEASE:=5
+
+PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(PKG_NAME)
 
 include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/wlcompat/Default
   SUBMENU:=Proprietary BCM43xx WiFi driver
-  SUBMENUDEP:=@TARGET_BRCM_2_4
-  DEPENDS:=@TARGET_BRCM_2_4 @PACKAGE_kmod-brcm-wl||PACKAGE_kmod-brcm-wl-mimo +wireless-tools
+  SUBMENUDEP:=@LINUX_2_4_BRCM
+  DEPENDS:=@LINUX_2_4_BRCM @PACKAGE_kmod-brcm-wl||PACKAGE_kmod-brcm-wl-mimo +wireless-tools
   TITLE:=Broadcom wl wrapper module
-endef
-
-define KernelPackage/wlcompat/Default/description
- This package contains a wrapper module, that provides Wireless Extension 
- support for the proprietary Broadcom wl module.
+  DESCRIPTION:=\
+	This package contains a wrapper module, that provides Wireless Extension \\\
+	support for the proprietary Broadcom wl module.
+  VERSION:=$(LINUX_VERSION)+$(BOARD)-$(PKG_RELEASE)
 endef
 
 define KernelPackage/wlcompat
-$(call KernelPackage/wlcompat/Default)
+  $(call KernelPackage/wlcompat/Default)
   FILES:=$(PKG_BUILD_DIR)/wlcompat.o
   AUTOLOAD:=$(call AutoLoad,50,wlcompat)
 endef
 
-define KernelPackage/wlcompat/description
-$(call KernelPackage/wlcompat/Default/description)
-endef
-
 define KernelPackage/wlcompat-debug
-$(call KernelPackage/wlcompat/Default)
+  $(call KernelPackage/wlcompat/Default)
   TITLE+= (debug)
+  DESCRIPTION+=\\\
+	\\\
+	This is a debugging version.
   FILES:=$(PKG_BUILD_DIR)/wlcompat-debug.o
-endef
-
-define KernelPackage/wlcompat-debug/description
-$(call KernelPackage/wlcompat/Default/description)
- This is a debugging version.
 endef
 
 define Build/Prepare

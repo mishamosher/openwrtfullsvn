@@ -8,9 +8,7 @@
 
 ifeq ($(NO_TRACE_MAKE),)
 NO_TRACE_MAKE := $(MAKE) V=99
-SUBMAKE := $(MAKE)
 export NO_TRACE_MAKE
-export SUBMAKE
 endif
 
 ifndef KBUILD_VERBOSE
@@ -26,25 +24,23 @@ ifeq ($(IS_TTY),1)
 endif
 
 define MESSAGE
-	/bin/echo -e "$(_Y)$(1)$(_N)" >&3
+	echo -e "$(_Y)$(1)$(_N)" >&3
 endef
 
 ifneq ($(KBUILD_VERBOSE),99)
   ifeq ($(QUIET),1)
-    ifneq ($(CURDIR),$(TOPDIR))
-      _DIR:=$(patsubst $(TOPDIR)/%,%,${CURDIR})
-    else
-      _DIR:=
-    endif
-    _NULL:=$(if $(MAKECMDGOALS),$(shell \
-		$(call MESSAGE, "make[$(MAKELEVEL)]$(if $(_DIR), -C $(_DIR)) $(MAKECMDGOALS)"); \
-    ))
+    $(MAKECMDGOALS): trace
+    trace: FORCE
+	@[ -f "$(MAKECMDGOALS)" ] || { \
+		[ -z "$${PWD##$$TOPDIR}" ] || DIR=" -C $${PWD##$$TOPDIR/}"; \
+		$(call MESSAGE, "make[$$(($(MAKELEVEL)+1))]$$DIR $(MAKECMDGOALS)"); \
+	}
   else
+    export QUIET:=1
     ifeq ($(KBUILD_VERBOSE),0)
       MAKE:=&>/dev/null $(MAKE)
     endif
-    export QUIET:=1
-    MAKE:=cmd() { $(MAKE) -s $$* || {  echo "make $$*: build failed. Please re-run make with V=99 to see what's going on"; false; } } 3>&1 4>&2; cmd
+    MAKE:=cmd() { $(MAKE) $$* || {  echo "Build failed. Please re-run make with V=99 to see what's going on"; false; } } 3>&1 4>&2; cmd
   endif
 
   .SILENT: $(MAKECMDGOALS)
