@@ -1,6 +1,6 @@
 --- a/net80211/ieee80211_scan.c
 +++ b/net80211/ieee80211_scan.c
-@@ -291,7 +291,8 @@ scan_restart_pwrsav(unsigned long arg)
+@@ -291,7 +291,8 @@
  	struct ieee80211com *ic = vap->iv_ic;
  	int delay;
  

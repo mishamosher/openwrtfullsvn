@@ -12,20 +12,12 @@ include $(INCLUDE_DIR)/kernel.mk
 PKG_NAME:=mac80211
 PKG_RELEASE:=1
 
-ifneq ($(CONFIG_LINUX_2_6_27),)
-  PKG_VERSION:=2008-11-03
-  PKG_SOURCE_URL:=http://www.orbit-lab.org/kernel/compat-wireless-2.6/2008/11
-else
-  PKG_VERSION:=2008-08-06
-  PKG_SOURCE_URL:=http://www.orbit-lab.org/kernel/compat-wireless-2.6/2008/08
-  PATCH_DIR:=./patches-old
-endif
-
+PKG_VERSION:=2008-08-06
 PKG_SOURCE:=compat-wireless-$(PKG_VERSION).tar.bz2
+PKG_SOURCE_URL:=http://www.orbit-lab.org/kernel/compat-wireless-2.6/2008/08/
 PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/compat-wireless-$(PKG_VERSION)
 
 include $(INCLUDE_DIR)/package.mk
-STAMP_CONFIGURED:=$(STAMP_CONFIGURED)_$(call confvar,CONFIG_PACKAGE_kmod-mac80211)
 
 define KernelPackage/mac80211
   SUBMENU:=Wireless Drivers
@@ -44,7 +36,6 @@ endef
 # Ralink rt2x00 drivers
 RT61FW:=RT61_Firmware_V1.2.zip
 RT71FW:=RT71W_Firmware_V1.8.zip
-RT2860FW:=RT2860_Firmware_V11.zip
 
 define Download/rt61
   FILE:=$(RT61FW)
@@ -59,13 +50,6 @@ define Download/rt71w
   MD5SUM:=1e7a5dc574e0268574fcda3fd5cf52f7
 endef
 $(eval $(call Download,rt71w))
-
-define Download/rt2860
-  FILE:=$(RT2860FW)
-  URL:=http://www.ralinktech.com.tw/data/drivers
-  MD5SUM:=440a81756a52c53528f16faa41c40124
-endef
-$(eval $(call Download,rt2860))
 
 define KernelPackage/rt2x00/Default
   SUBMENU:=Wireless Drivers
@@ -136,27 +120,10 @@ define KernelPackage/rt73-usb
   AUTOLOAD:=$(call AutoLoad,27,rt73usb)
 endef
 
-define KernelPackage/rt2800-pci
-$(call KernelPackage/rt2x00/Default)
-  DEPENDS+= @PCI_SUPPORT +kmod-rt2x00-pci @LINUX_2_6_27
-  TITLE+= (RT2860 PCI)
-  FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/rt2x00/rt2800pci.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,27,rt2800pci)
-endef
-
-ZD1211FW_NAME:=zd1211-firmware
-ZD1211FW_VERSION:=1.4
-define Download/zd1211rw
-  FILE:=$(ZD1211FW_NAME)-$(ZD1211FW_VERSION).tar.bz2
-  URL:=@SF/zd1211/
-  MD5SUM:=19f28781d76569af8551c9d11294c870
-endef
-$(eval $(call Download,zd1211rw))
-
-define KernelPackage/zd1211rw
+define KernelPackage/net-zd1211rw
   SUBMENU:=Wireless Drivers
   TITLE:=Zydas ZD1211 support
-  DEPENDS:=@LINUX_2_6_24||@LINUX_2_6_25||@LINUX_2_6_26||@LINUX_2_6_27 @USB_SUPPORT +kmod-usb-core +kmod-mac80211
+  DEPENDS:=@LINUX_2_6_24||LINUX_2_6_25 @USB_SUPPORT +kmod-ieee80211-softmac
   FILES:=$(PKG_BUILD_DIR)/drivers/net/wireless/zd1211rw/zd1211rw.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,60,zd1211rw)
 endef
@@ -170,11 +137,9 @@ define KernelPackage/ath5k
 endef
 
 BUILDFLAGS:= \
-	-I$(PKG_BUILD_DIR)/include \
 	$(foreach opt,$(CONFOPTS),-DCONFIG_$(opt)) \
 	$(if $(CONFIG_LEDS_TRIGGERS), -DCONFIG_MAC80211_LEDS -DCONFIG_LEDS_TRIGGERS) \
-	$(if $(CONFIG_DEBUG_FS), -DCONFIG_MAC80211_DEBUGFS) \
-	-D__CONFIG_MAC80211_RC_DEFAULT=minstrel \
+	-D__CONFIG_MAC80211_RC_DEFAULT=pid \
 
 MAKE_OPTS:= \
 	CROSS_COMPILE="$(TARGET_CROSS)" \
@@ -183,11 +148,9 @@ MAKE_OPTS:= \
 	$(foreach opt,$(CONFOPTS),CONFIG_$(opt)=m) \
 	CONFIG_NL80211=y \
 	CONFIG_MAC80211_RC_PID=y \
-	CONFIG_MAC80211_RC_MINSTREL=y \
 	CONFIG_MAC80211_LEDS=$(CONFIG_LEDS_TRIGGERS) \
-	CONFIG_MAC80211_DEBUGFS=$(CONFIG_DEBUG_FS) \
+	LINUXINCLUDE="-I$(PKG_BUILD_DIR)/include -I$(LINUX_DIR)/include -include linux/autoconf.h" \
 	KLIB_BUILD="$(LINUX_DIR)" \
-	MODPROBE=:
 
 define Build/Prepare
 	rm -rf $(PKG_BUILD_DIR)
@@ -197,9 +160,7 @@ define Build/Prepare
 	$(if $(QUILT),touch $(PKG_BUILD_DIR)/.quilt_used)
 	unzip -jod $(PKG_BUILD_DIR) $(DL_DIR)/$(RT61FW)
 	unzip -jod $(PKG_BUILD_DIR) $(DL_DIR)/$(RT71FW)
-	-unzip -jod $(PKG_BUILD_DIR) $(DL_DIR)/$(RT2860FW)
-	$(TAR) -C $(PKG_BUILD_DIR) -xjf $(DL_DIR)/$(ZD1211FW_NAME)-$(ZD1211FW_VERSION).tar.bz2
-	$(if $(CONFIG_TARGET_brcm47xx),rm -rf $(PKG_BUILD_DIR)/include/linux/ssb)
+	rm -rf $(PKG_BUILD_DIR)/include/linux/ssb
 endef
 
 ifneq ($(CONFIG_PACKAGE_kmod-mac80211),)
@@ -233,17 +194,8 @@ define KernelPackage/rt73-usb/install
 	$(INSTALL_DATA) $(PKG_BUILD_DIR)/rt73.bin $(1)/lib/firmware/
 endef
 
-define KernelPackage/rt2800-pci/install
-	$(INSTALL_DIR) $(1)/lib/firmware
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/rt2860.bin $(1)/lib/firmware/
-endef
-
-define KernelPackage/zd1211rw/install
-	$(INSTALL_DIR) $(1)/lib/firmware/zd1211
-	$(INSTALL_DATA) $(PKG_BUILD_DIR)/$(ZD1211FW_NAME)/zd1211* $(1)/lib/firmware/zd1211
-endef
-
 $(eval $(call KernelPackage,ath5k))
+$(eval $(call KernelPackage,net-zd1211rw))
 $(eval $(call KernelPackage,mac80211))
 $(eval $(call KernelPackage,rt2x00-lib))
 $(eval $(call KernelPackage,rt2x00-pci))
@@ -253,5 +205,3 @@ $(eval $(call KernelPackage,rt2500-pci))
 $(eval $(call KernelPackage,rt2500-usb))
 $(eval $(call KernelPackage,rt61-pci))
 $(eval $(call KernelPackage,rt73-usb))
-$(eval $(call KernelPackage,rt2800-pci))
-$(eval $(call KernelPackage,zd1211rw))

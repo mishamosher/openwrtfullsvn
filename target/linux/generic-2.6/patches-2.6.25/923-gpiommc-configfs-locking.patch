@@ -1,11 +1,9 @@
 The gpiommc configfs context structure needs locking, as configfs
 does not lock access between files.
 
-Index: linux-2.6.25.17/drivers/mmc/host/gpiommc.c
-===================================================================
---- linux-2.6.25.17.orig/drivers/mmc/host/gpiommc.c	2008-10-18 23:33:54.000000000 +0200
-+++ linux-2.6.25.17/drivers/mmc/host/gpiommc.c	2008-10-18 23:34:33.000000000 +0200
-@@ -140,6 +140,8 @@ struct gpiommc_configfs_device {
+--- a/drivers/mmc/host/gpiommc.c
++++ b/drivers/mmc/host/gpiommc.c
+@@ -143,6 +143,8 @@
  	struct platform_device *pdev;
  	/* The configuration */
  	struct gpiommc_platform_data pdata;
@@ -14,7 +12,7 @@ Index: linux-2.6.25.17/drivers/mmc/host/gpiommc.c
  };
  
  #define GPIO_INVALID	-1
-@@ -230,6 +232,8 @@ static ssize_t gpiommc_config_attr_show(
+@@ -233,6 +235,8 @@
  	unsigned int gpio;
  	int err = 0;
  
@@ -23,7 +21,7 @@ Index: linux-2.6.25.17/drivers/mmc/host/gpiommc.c
  	if (attr == &gpiommc_attr_DI) {
  		gpio = dev->pdata.pins.gpio_di;
  		if (gpio == GPIO_INVALID)
-@@ -290,6 +294,8 @@ static ssize_t gpiommc_config_attr_show(
+@@ -293,6 +297,8 @@
  	WARN_ON(1);
  	err = -ENOSYS;
  out:
@@ -32,7 +30,7 @@ Index: linux-2.6.25.17/drivers/mmc/host/gpiommc.c
  	return err ? err : count;
  }
  
-@@ -349,6 +355,8 @@ static ssize_t gpiommc_config_attr_store
+@@ -352,6 +358,8 @@
  	int err = -EINVAL;
  	unsigned long data;
  
@@ -41,7 +39,7 @@ Index: linux-2.6.25.17/drivers/mmc/host/gpiommc.c
  	if (attr == &gpiommc_attr_register) {
  		err = strict_strtoul(page, 10, &data);
  		if (err)
-@@ -474,6 +482,8 @@ static ssize_t gpiommc_config_attr_store
+@@ -477,6 +485,8 @@
  	WARN_ON(1);
  	err = -ENOSYS;
  out:
@@ -50,7 +48,7 @@ Index: linux-2.6.25.17/drivers/mmc/host/gpiommc.c
  	return err ? err : count;
  }
  
-@@ -510,6 +520,7 @@ static struct config_item *gpiommc_make_
+@@ -513,6 +523,7 @@
  	if (!dev)
  		return NULL;
  

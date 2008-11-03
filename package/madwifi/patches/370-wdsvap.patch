@@ -1,6 +1,6 @@
 --- a/ath/if_ath.c
 +++ b/ath/if_ath.c
-@@ -124,7 +124,7 @@ enum {
+@@ -124,7 +124,7 @@
  };
  
  static struct ieee80211vap *ath_vap_create(struct ieee80211com *,
@@ -9,7 +9,7 @@
  static void ath_vap_delete(struct ieee80211vap *);
  static int ath_init(struct net_device *);
  static int ath_set_ack_bitrate(struct ath_softc *, int);
-@@ -1123,8 +1123,6 @@ ath_attach(u_int16_t devid, struct net_d
+@@ -1123,8 +1123,6 @@
  			autocreatemode = IEEE80211_M_IBSS;
  		else if (!strcmp(autocreate, "ahdemo"))
  			autocreatemode = IEEE80211_M_AHDEMO;
@@ -18,7 +18,7 @@
  		else if (!strcmp(autocreate, "monitor"))
  			autocreatemode = IEEE80211_M_MONITOR;
  		else {
-@@ -1137,7 +1135,7 @@ ath_attach(u_int16_t devid, struct net_d
+@@ -1137,7 +1135,7 @@
  	if (autocreatemode != -1) {
  		rtnl_lock();
  		vap = ieee80211_create_vap(ic, "ath%d", dev,
@@ -27,7 +27,7 @@
  		rtnl_unlock();
  		if (vap == NULL)
  			EPRINTF(sc, "Autocreation of %s VAP failed.", autocreate);
-@@ -1230,14 +1228,14 @@ ath_detach(struct net_device *dev)
+@@ -1230,14 +1228,14 @@
  
  static struct ieee80211vap *
  ath_vap_create(struct ieee80211com *ic, const char *name,
@@ -44,7 +44,7 @@
  
  	if (ic->ic_dev->flags & IFF_RUNNING) {
  		/* needs to disable hardware too */
-@@ -1271,8 +1269,12 @@ ath_vap_create(struct ieee80211com *ic, 
+@@ -1271,8 +1269,12 @@
  		} else
  			ic_opmode = opmode;
  		break;
@@ -58,7 +58,7 @@
  		/* permit multiple APs and/or WDS links */
  		/* XXX sta+ap for repeater/bridge application */
  		if ((sc->sc_nvaps != 0) && (ic->ic_opmode == IEEE80211_M_STA))
-@@ -1304,7 +1306,7 @@ ath_vap_create(struct ieee80211com *ic, 
+@@ -1304,7 +1306,7 @@
  	}
  
  	avp = dev->priv;
@@ -67,7 +67,7 @@
  	/* override with driver methods */
  	vap = &avp->av_vap;
  	avp->av_newstate = vap->iv_newstate;
-@@ -4209,8 +4211,7 @@ ath_calcrxfilter(struct ath_softc *sc)
+@@ -4209,8 +4211,7 @@
  	if (ic->ic_opmode == IEEE80211_M_STA ||
  	    sc->sc_opmode == HAL_M_IBSS ||	/* NB: AHDEMO too */
  	    (sc->sc_nostabeacons) || sc->sc_scanning ||
@@ -77,7 +77,7 @@
  		rfilt |= HAL_RX_FILTER_BEACON;
  	if (sc->sc_nmonvaps > 0)
  		rfilt |= (HAL_RX_FILTER_CONTROL | HAL_RX_FILTER_BEACON |
-@@ -9030,8 +9031,6 @@ ath_calibrate(unsigned long arg)
+@@ -9030,8 +9031,6 @@
  		 * set sc->beacons if we might need to restart
                   * them after ath_reset. */
  		if (!sc->sc_beacons &&
@@ -88,7 +88,7 @@
  			sc->sc_beacons = 1;
 --- a/net80211/ieee80211.c
 +++ b/net80211/ieee80211.c
-@@ -396,7 +396,7 @@ EXPORT_SYMBOL(ieee80211_ifdetach);
+@@ -396,7 +396,7 @@
  
  int
  ieee80211_vap_setup(struct ieee80211com *ic, struct net_device *dev,
@@ -97,7 +97,7 @@
  {
  #define	IEEE80211_C_OPMODE \
  	(IEEE80211_C_IBSS | IEEE80211_C_HOSTAP | IEEE80211_C_AHDEMO | \
-@@ -510,9 +510,18 @@ ieee80211_vap_setup(struct ieee80211com 
+@@ -510,9 +510,18 @@
  
  	vap->iv_monitor_crc_errors = 0;
  	vap->iv_monitor_phy_errors = 0;
@@ -118,7 +118,7 @@
  	/* NB: Defer setting dev_addr so driver can override */
  
  	ieee80211_crypto_vattach(vap);
-@@ -547,7 +556,8 @@ ieee80211_vap_attach(struct ieee80211vap
+@@ -547,7 +556,8 @@
  	ifmedia_set(&vap->iv_media, imr.ifm_active);
  
  	IEEE80211_LOCK_IRQ(ic);
@@ -128,7 +128,7 @@
  	IEEE80211_UNLOCK_IRQ(ic);
  
  	IEEE80211_ADDR_COPY(dev->dev_addr, vap->iv_myaddr);
-@@ -579,10 +589,25 @@ ieee80211_vap_detach(struct ieee80211vap
+@@ -579,10 +589,24 @@
  {
  	struct ieee80211com *ic = vap->iv_ic;
  	struct net_device *dev = vap->iv_dev;
@@ -136,8 +136,7 @@
 +
 +	/* Drop all WDS links that belong to this vap */
 +	while ((avp = TAILQ_FIRST(&vap->iv_wdslinks)) != NULL) {
-+		if (avp->iv_state != IEEE80211_S_INIT)
-+			ieee80211_stop(avp->iv_dev);
++		ieee80211_stop(avp->iv_dev);
 +		ic->ic_vap_delete(avp);
 +	}
  
@@ -157,7 +156,7 @@
  	IEEE80211_UNLOCK_IRQ(ic);
 --- a/net80211/ieee80211_ioctl.h
 +++ b/net80211/ieee80211_ioctl.h
-@@ -474,7 +474,7 @@ struct ieee80211req {
+@@ -474,7 +474,7 @@
  #define	IEEE80211_IOC_DTIM_PERIOD	52	/* DTIM period (beacons) */
  #define	IEEE80211_IOC_BEACON_INTERVAL	53	/* beacon interval (ms) */
  #define	IEEE80211_IOC_ADDMAC		54	/* add sta to MAC ACL table */
@@ -166,7 +165,7 @@
  #define	IEEE80211_IOC_FF		56	/* ATH fast frames (on, off) */
  #define	IEEE80211_IOC_TURBOP		57	/* ATH turbo' (on, off) */
  #define	IEEE80211_IOC_APPIEBUF		58	/* IE in the management frame */
-@@ -552,8 +552,8 @@ struct ieee80211req_scan_result {
+@@ -552,8 +552,8 @@
  #define	IEEE80211_IOCTL_HALMAP		(SIOCIWFIRSTPRIV+21)
  #define	IEEE80211_IOCTL_ADDMAC		(SIOCIWFIRSTPRIV+22)
  #define	IEEE80211_IOCTL_DELMAC		(SIOCIWFIRSTPRIV+24)
@@ -179,7 +178,7 @@
  
 --- a/net80211/ieee80211_linux.h
 +++ b/net80211/ieee80211_linux.h
-@@ -650,5 +650,5 @@ struct ifreq;
+@@ -650,5 +650,5 @@
  int ieee80211_ioctl_create_vap(struct ieee80211com *, struct ifreq *,
  	struct net_device *);
  struct ieee80211vap *ieee80211_create_vap(struct ieee80211com *, char *,
@@ -188,7 +187,7 @@
  #endif /* _NET80211_IEEE80211_LINUX_H_ */
 --- a/net80211/ieee80211_var.h
 +++ b/net80211/ieee80211_var.h
-@@ -187,6 +187,12 @@ struct ieee80211vap {
+@@ -187,6 +187,12 @@
  	struct ieee80211_proc_entry *iv_proc_entries;
  	struct vlan_group *iv_vlgrp;			/* vlan group state */
  
@@ -201,7 +200,7 @@
  	TAILQ_ENTRY(ieee80211vap) iv_next;		/* list of vap instances */
  	struct ieee80211com *iv_ic;			/* back ptr to common state */
  	u_int32_t iv_debug;				/* debug msg flags */
-@@ -447,7 +453,7 @@ struct ieee80211com {
+@@ -447,7 +453,7 @@
  	atomic_t ic_node_counter;
  	/* Virtual AP create/delete */
  	struct ieee80211vap *(*ic_vap_create)(struct ieee80211com *,
@@ -210,7 +209,7 @@
  	void (*ic_vap_delete)(struct ieee80211vap *);
  
  	/* Send/recv 802.11 management frame */
-@@ -703,7 +709,7 @@ MALLOC_DECLARE(M_80211_VAP);
+@@ -703,7 +709,7 @@
  int ieee80211_ifattach(struct ieee80211com *);
  void ieee80211_ifdetach(struct ieee80211com *);
  int ieee80211_vap_setup(struct ieee80211com *, struct net_device *,
@@ -221,7 +220,7 @@
  void ieee80211_mark_dfs(struct ieee80211com *, struct ieee80211_channel *);
 --- a/net80211/ieee80211_wireless.c
 +++ b/net80211/ieee80211_wireless.c
-@@ -2190,7 +2190,7 @@ ieee80211_setupxr(struct ieee80211vap *v
+@@ -2190,7 +2190,7 @@
  			ieee80211_scan_flush(ic);	/* NB: could optimize */
  
  			if (!(xrvap = ic->ic_vap_create(ic, name, IEEE80211_M_HOSTAP,
@@ -230,7 +229,7 @@
  				return;
  
  			/* We use iv_xrvap to link to the parent VAP as well */
-@@ -3801,74 +3801,54 @@ ieee80211_ioctl_setmlme(struct net_devic
+@@ -3801,74 +3801,51 @@
  	return 0;
  }
  
@@ -255,9 +254,7 @@
 -	}
 -
 -	memcpy(vap->wds_mac, sa->sa_data, IEEE80211_ADDR_LEN);
-+	if (vap->iv_opmode != IEEE80211_M_HOSTAP)
-+		return -EINVAL;
- 
+-
 -	printk("%s: Added WDS MAC: " MAC_FMT "\n", dev->name,
 -		MAC_ADDR(vap->wds_mac));
 +	name = kmalloc(strlen(vap->iv_dev->name) + sizeof(WDSNAME) + 1, GFP_KERNEL);
@@ -332,7 +329,7 @@
  }
  
  /*
-@@ -5391,8 +5371,8 @@ static const struct iw_priv_args ieee802
+@@ -5391,8 +5368,8 @@
  	  IW_PRIV_TYPE_ADDR | IW_PRIV_SIZE_FIXED | 1, 0, "kickmac"},
  	{ IEEE80211_IOCTL_WDSADDMAC,
  	  IW_PRIV_TYPE_ADDR | IW_PRIV_SIZE_FIXED | 1, 0,"wds_add" },
@@ -343,7 +340,7 @@
  	{ IEEE80211_IOCTL_SETCHANLIST,
  	  IW_PRIV_TYPE_CHANLIST | IW_PRIV_SIZE_FIXED, 0,"setchanlist" },
  	{ IEEE80211_IOCTL_GETCHANLIST,
-@@ -5884,8 +5864,8 @@ static const iw_handler ieee80211_priv_h
+@@ -5884,8 +5861,8 @@
  #endif
  	set_priv(IEEE80211_IOCTL_ADDMAC, ieee80211_ioctl_addmac),
  	set_priv(IEEE80211_IOCTL_DELMAC, ieee80211_ioctl_delmac),
@@ -354,7 +351,7 @@
  	set_priv(IEEE80211_IOCTL_KICKMAC, ieee80211_ioctl_kickmac),
  	set_priv(IEEE80211_IOCTL_SETSCANLIST, ieee80211_ioctl_setscanlist),
  #ifdef ATH_REVERSE_ENGINEERING
-@@ -5956,7 +5936,7 @@ ieee80211_ioctl_create_vap(struct ieee80
+@@ -5956,7 +5933,7 @@
  
  	strncpy(name, cp.icp_name, sizeof(name));
  
@@ -363,7 +360,7 @@
  	if (vap == NULL)
  		return -EIO;
  
-@@ -5973,9 +5953,9 @@ EXPORT_SYMBOL(ieee80211_ioctl_create_vap
+@@ -5973,9 +5950,9 @@
   */
  struct ieee80211vap*
  ieee80211_create_vap(struct ieee80211com *ic, char *name,
@@ -377,62 +374,48 @@
  
 --- a/net80211/ieee80211_input.c
 +++ b/net80211/ieee80211_input.c
-@@ -199,8 +199,9 @@ ieee80211_input(struct ieee80211vap * va
- {
- #define	HAS_SEQ(type)	((type & 0x4) == 0)
+@@ -201,6 +201,7 @@
  	struct ieee80211_node * ni = ni_or_null;
--	struct ieee80211com *ic = vap->iv_ic;
--	struct net_device *dev = vap->iv_dev;
-+	struct ieee80211com *ic;
-+	struct net_device *dev;
+ 	struct ieee80211com *ic = vap->iv_ic;
+ 	struct net_device *dev = vap->iv_dev;
 +	struct ieee80211_node *ni_wds = NULL;
  	struct ieee80211_frame *wh;
  	struct ieee80211_key *key;
  	struct ether_header *eh;
-@@ -212,6 +213,19 @@ ieee80211_input(struct ieee80211vap * va
- 	u_int8_t *bssid;
- 	u_int16_t rxseq;
- 
-+	type = -1;			/* undefined */
-+
-+	if (!vap)
-+		goto out;
-+
-+	ic = vap->iv_ic;
-+	if (!ic)
-+		goto out;
-+
-+	dev = vap->iv_dev;
-+	if (!dev)
-+		goto out;
-+
- 	/* initialize ni as in the previous API */
- 	if (ni_or_null == NULL) {
-                /* This function does not 'own' vap->iv_bss, so we cannot
-@@ -227,7 +241,6 @@ ieee80211_input(struct ieee80211vap * va
- 
- 	/* XXX adjust device in sk_buff? */
- 
--	type = -1;			/* undefined */
- 	/*
- 	 * In monitor mode, send everything directly to bpf.
- 	 * Also do not process frames w/o i_addr2 any further.
-@@ -545,11 +558,11 @@ ieee80211_input(struct ieee80211vap * va
+@@ -545,11 +546,29 @@
  			 * the node table for the packet source address (addr4).
  			 * If not, add one.
  			 */
+-			/* XXX: Useless node mgmt API; make better */
 +
- 			/* XXX: Useless node mgmt API; make better */
--			if (dir == IEEE80211_FC1_DIR_DSTODS) {
++			/* check for wds link first */
+ 			if (dir == IEEE80211_FC1_DIR_DSTODS) {
 -				struct ieee80211_node_table *nt;
-+			if ((dir == IEEE80211_FC1_DIR_DSTODS) && !vap->iv_wdsnode && !ni_wds) {
++				struct ieee80211vap *avp;
++
++				TAILQ_FOREACH(avp, &vap->iv_wdslinks, iv_wdsnext) {
++					if (!memcmp(avp->wds_mac, wh->i_addr2, IEEE80211_ADDR_LEN)) {
++						IEEE80211_LOCK_IRQ(ni->ni_ic);
++						ni_wds = avp->iv_wdsnode;
++						IEEE80211_UNLOCK_IRQ(ni->ni_ic);
++						break;
++					}
++				}
++				if (ni_wds != NULL) {
++					ieee80211_unref_node(&ni);
++					ni = ieee80211_ref_node(ni_wds);
++				}
++			}
++
++			/* XXX: Useless node mgmt API; make better */
++			if ((dir == IEEE80211_FC1_DIR_DSTODS) && !ni_wds) {
 +				struct ieee80211_node_table *nt = &ic->ic_sta;
  				struct ieee80211_frame_addr4 *wh4;
 -				struct ieee80211_node *ni_wds;
  
  				if (!(vap->iv_flags_ext & IEEE80211_FEXT_WDS)) {
  					IEEE80211_DISCARD(vap, IEEE80211_MSG_INPUT,
-@@ -557,7 +570,6 @@ ieee80211_input(struct ieee80211vap * va
+@@ -557,7 +576,6 @@
  					goto err;
  				}
  				wh4 = (struct ieee80211_frame_addr4 *)skb->data;
@@ -440,7 +423,7 @@
  				ni_wds = ieee80211_find_wds_node(nt, wh4->i_addr4);
  				/* Last call increments ref count if !NULL */
  				if ((ni_wds != NULL) && (ni_wds != ni)) {
-@@ -3084,8 +3096,7 @@ ieee80211_recv_mgmt(struct ieee80211vap 
+@@ -3084,8 +3102,7 @@
  		    (vap->iv_opmode == IEEE80211_M_STA && ni->ni_associd) ||
  		    (vap->iv_opmode == IEEE80211_M_IBSS) ||
  			((subtype == IEEE80211_FC0_SUBTYPE_BEACON) &&
@@ -450,7 +433,7 @@
  			vap->iv_stats.is_rx_mgtdiscard++;
  			return;
  		}
-@@ -3471,13 +3482,54 @@ ieee80211_recv_mgmt(struct ieee80211vap 
+@@ -3471,13 +3488,53 @@
  		 */
  		if (ic->ic_flags & IEEE80211_F_SCAN) {
  			ieee80211_add_scan(vap, &scan, wh, subtype, rssi, rtsf);
@@ -477,18 +460,17 @@
 +
 +				TAILQ_FOREACH(avp, &vap->iv_wdslinks, iv_wdsnext) {
 +					if (!memcmp(avp->wds_mac, wh->i_addr2, IEEE80211_ADDR_LEN)) {
-+						if (avp->iv_state != IEEE80211_S_RUN)
-+							continue;
 +						found = 1;
 +						break;
 +					}
 +				}
-+				if (!found)
-+					break;
-+
-+				ni = ni_or_null = avp->iv_wdsnode;
-+			} else if (vap->iv_opmode == IEEE80211_M_WDS) {
-+				ni = ni_or_null = vap->iv_wdsnode;
++				if (found) {
++					if (!avp->iv_wdsnode)
++						break;
++					ni = ni_or_null = avp->iv_wdsnode;
++				} else {
++					avp = NULL;
++				}
 +			}
 +			IEEE80211_UNLOCK_IRQ(vap->iv_ic);
 +
@@ -510,7 +492,7 @@
  			} else {
  				/*
  				 * Copy data from beacon to neighbor table.
-@@ -3490,6 +3542,7 @@ ieee80211_recv_mgmt(struct ieee80211vap 
+@@ -3490,6 +3547,7 @@
  				IEEE80211_ADDR_COPY(ni->ni_bssid, wh->i_addr3);
  				memcpy(ni->ni_tstamp.data, scan.tstamp,
  					sizeof(ni->ni_tstamp));
@@ -520,31 +502,10 @@
  				ni->ni_capinfo = scan.capinfo;
 --- a/net80211/ieee80211_node.c
 +++ b/net80211/ieee80211_node.c
-@@ -831,12 +831,18 @@ node_table_leave_locked(struct ieee80211
- 		LIST_REMOVE(ni, ni_hash);
- 	}
- 	ni->ni_table = NULL;
-+	if (ni->ni_vap->iv_wdsnode == ni) {
-+#ifdef IEEE80211_DEBUG_REFCNT
-+		ieee80211_unref_node_debug(&ni->ni_vap->iv_wdsnode, func, line);
-+#else
-+		ieee80211_unref_node(&ni->ni_vap->iv_wdsnode);
-+#endif
-+	}
- #ifdef IEEE80211_DEBUG_REFCNT
- 	ieee80211_unref_node_debug(&ni, func, line);
- #else
- 	ieee80211_unref_node(&ni);
- #endif
--	
- }
- 
- /* This is overridden by ath_node_alloc in ath/if_ath.c, and so
-@@ -1553,22 +1559,39 @@ ieee80211_find_rxnode(struct ieee80211co
+@@ -1553,22 +1553,24 @@
  	((wh->i_fc[0] & IEEE80211_FC0_SUBTYPE_MASK) == IEEE80211_FC0_SUBTYPE_PS_POLL)
  	struct ieee80211_node_table *nt;
  	struct ieee80211_node *ni;
-+	struct ieee80211vap *vap, *avp;
 +	const u_int8_t *addr;
 +
 +	if (IS_CTL(wh) && !IS_PSPOLL(wh) /*&& !IS_RTS(ah)*/)
@@ -560,56 +521,22 @@
  	nt = &ic->ic_sta;
  	IEEE80211_NODE_TABLE_LOCK_IRQ(nt);
 -	if (IS_CTL(wh) && !IS_PSPOLL(wh) /*&& !IS_RTS(ah)*/)
--#ifdef IEEE80211_DEBUG_REFCNT
+ #ifdef IEEE80211_DEBUG_REFCNT
 -		ni = ieee80211_find_node_locked_debug(nt, wh->i_addr1, func, line);
--#else
++	ni = ieee80211_find_node_locked_debug(nt, addr, func, line);
+ #else
 -		ni = ieee80211_find_node_locked(nt, wh->i_addr1);
 -#endif
 -	else
-+	if ((wh->i_fc[1] & IEEE80211_FC1_DIR_MASK) == IEEE80211_FC1_DIR_DSTODS) {
-+		TAILQ_FOREACH(vap, &ic->ic_vaps, iv_next) {
-+			TAILQ_FOREACH(avp, &vap->iv_wdslinks, iv_wdsnext) {
-+				if (!IEEE80211_ADDR_EQ(addr, avp->wds_mac))
-+					continue;
-+
-+				if (avp->iv_wdsnode)
-+					return ieee80211_ref_node(avp->iv_wdsnode);
-+				else
-+					return NULL;
-+			}
-+		}
-+	}
-+
- #ifdef IEEE80211_DEBUG_REFCNT
+-#ifdef IEEE80211_DEBUG_REFCNT
 -		ni = ieee80211_find_node_locked_debug(nt, wh->i_addr2, func, line);
-+	ni = ieee80211_find_node_locked_debug(nt, addr, func, line);
- #else
+-#else
 -		ni = ieee80211_find_node_locked(nt, wh->i_addr2);
 +	ni = ieee80211_find_node_locked(nt, addr);
  #endif
  	IEEE80211_NODE_TABLE_UNLOCK_IRQ(nt);
  
-@@ -1596,9 +1619,19 @@ ieee80211_find_txnode_debug(struct ieee8
- ieee80211_find_txnode(struct ieee80211vap *vap, const u_int8_t *mac)
- #endif
- {
-+	struct ieee80211com *ic = vap->iv_ic;
- 	struct ieee80211_node_table *nt;
- 	struct ieee80211_node *ni = NULL;
- 
-+	IEEE80211_LOCK_IRQ(ic);
-+	if (vap->iv_opmode == IEEE80211_M_WDS) {
-+		if (vap->iv_wdsnode)
-+			return ieee80211_ref_node(vap->iv_wdsnode);
-+		else
-+			return NULL;
-+	}
-+	IEEE80211_UNLOCK_IRQ(ic);
-+
- 	/*
- 	 * The destination address should be in the node table
- 	 * unless we are operating in station mode or this is a
-@@ -1669,6 +1702,11 @@ ieee80211_free_node(struct ieee80211_nod
+@@ -1669,6 +1671,11 @@
  {
  	struct ieee80211vap *vap = ni->ni_vap;
  
@@ -621,7 +548,7 @@
  	atomic_dec(&ni->ni_ic->ic_node_counter);
  	node_print_message(IEEE80211_MSG_NODE|IEEE80211_MSG_NODE_REF,
  			   1 /* show counter */, 
-@@ -1781,22 +1819,6 @@ restart:
+@@ -1781,22 +1788,6 @@
  		    jiffies > ni->ni_rxfragstamp + HZ) {
  			ieee80211_dev_kfree_skb(&ni->ni_rxfrag);
  		}
@@ -646,19 +573,27 @@
  			struct ieee80211vap *vap = ni->ni_vap;
 --- a/net80211/ieee80211_output.c
 +++ b/net80211/ieee80211_output.c
-@@ -246,10 +246,7 @@ ieee80211_hardstart(struct sk_buff *skb,
+@@ -246,10 +246,16 @@
  	 * things like power save.
  	 */
  	eh = (struct ether_header *)skb->data;
 -	if (vap->iv_opmode == IEEE80211_M_WDS)
 -		ni = ieee80211_find_txnode(vap, vap->wds_mac);
 -	else
--		ni = ieee80211_find_txnode(vap, eh->ether_dhost);
-+	ni = ieee80211_find_txnode(vap, eh->ether_dhost);
++	if (vap->iv_opmode == IEEE80211_M_WDS) {
++		IEEE80211_LOCK_IRQ(ic);
++		ni = vap->iv_wdsnode;
++		IEEE80211_UNLOCK_IRQ(ic);
++		if (!ni)
++			goto bad;
++		ni = ieee80211_ref_node(vap->iv_wdsnode);
++	} else {
+ 		ni = ieee80211_find_txnode(vap, eh->ether_dhost);
++	}
  	if (ni == NULL) {
  		/* NB: ieee80211_find_txnode does stat+msg */
  		goto bad;
-@@ -788,7 +785,7 @@ ieee80211_encap(struct ieee80211_node *n
+@@ -788,7 +794,7 @@
  		break;
  	case IEEE80211_M_WDS:
  		use4addr = 1;
@@ -667,7 +602,7 @@
  		break;
  	case IEEE80211_M_HOSTAP:
  		if (!IEEE80211_IS_MULTICAST(eh.ether_dhost) &&
-@@ -973,7 +970,7 @@ ieee80211_encap(struct ieee80211_node *n
+@@ -973,7 +979,7 @@
  			break;
  		case IEEE80211_M_WDS:
  			wh->i_fc[1] = IEEE80211_FC1_DIR_DSTODS;
@@ -678,7 +613,7 @@
  			IEEE80211_ADDR_COPY(WH4(wh)->i_addr4, eh.ether_shost);
 --- a/tools/athkey.c
 +++ b/tools/athkey.c
-@@ -118,7 +118,7 @@ set80211priv(const char *dev, int op, vo
+@@ -118,7 +118,7 @@
  				IOCTL_ERR(IEEE80211_IOCTL_ADDMAC),
  				IOCTL_ERR(IEEE80211_IOCTL_DELMAC),
  				IOCTL_ERR(IEEE80211_IOCTL_WDSADDMAC),
@@ -689,7 +624,7 @@
  			};
 --- a/tools/athchans.c
 +++ b/tools/athchans.c
-@@ -118,7 +118,7 @@ set80211priv(const char *dev, int op, vo
+@@ -118,7 +118,7 @@
  				IOCTL_ERR(IEEE80211_IOCTL_ADDMAC),
  				IOCTL_ERR(IEEE80211_IOCTL_DELMAC),
  				IOCTL_ERR(IEEE80211_IOCTL_WDSADDMAC),
@@ -700,7 +635,7 @@
  			};
 --- a/tools/wlanconfig.c
 +++ b/tools/wlanconfig.c
-@@ -968,7 +968,7 @@ do80211priv(struct iwreq *iwr, const cha
+@@ -968,7 +968,7 @@
  			IOCTL_ERR(IEEE80211_IOCTL_ADDMAC),
  			IOCTL_ERR(IEEE80211_IOCTL_DELMAC),
  			IOCTL_ERR(IEEE80211_IOCTL_WDSADDMAC),
@@ -711,74 +646,7 @@
  		};
 --- a/net80211/ieee80211_proto.c
 +++ b/net80211/ieee80211_proto.c
-@@ -1090,7 +1090,7 @@ ieee80211_open(struct net_device *dev)
- void
- ieee80211_start_running(struct ieee80211com *ic)
- {
--	struct ieee80211vap *vap;
-+	struct ieee80211vap *vap, *avp;
- 	struct net_device *dev;
- 
- 	/* XXX locking */
-@@ -1099,6 +1099,13 @@ ieee80211_start_running(struct ieee80211
- 		/* NB: avoid recursion */
- 		if ((dev->flags & IFF_UP) && !(dev->flags & IFF_RUNNING))
- 			ieee80211_open(dev);
-+
-+		TAILQ_FOREACH(avp, &vap->iv_wdslinks, iv_wdsnext) {
-+			dev = avp->iv_dev;
-+			/* NB: avoid recursion */
-+			if ((dev->flags & IFF_UP) && !(dev->flags & IFF_RUNNING))
-+				ieee80211_open(dev);
-+		}
- 	}
- }
- EXPORT_SYMBOL(ieee80211_start_running);
-@@ -1116,11 +1123,21 @@ ieee80211_stop(struct net_device *dev)
- 	struct ieee80211vap *vap = dev->priv;
- 	struct ieee80211com *ic = vap->iv_ic;
- 	struct net_device *parent = ic->ic_dev;
-+	struct ieee80211vap *avp;
- 
- 	IEEE80211_DPRINTF(vap,
- 		IEEE80211_MSG_STATE | IEEE80211_MSG_DEBUG,
- 		"%s\n", "stop running");
- 
-+	if (vap->iv_wdsnode)
-+		ieee80211_unref_node(&vap->iv_wdsnode);
-+
-+	/* stop wds interfaces */
-+	TAILQ_FOREACH(avp, &vap->iv_wdslinks, iv_next) {
-+		if (avp->iv_state != IEEE80211_S_INIT)
-+			ieee80211_stop(avp->iv_dev);
-+	}
-+
- 	ieee80211_new_state(vap, IEEE80211_S_INIT, -1);
- 	if (dev->flags & IFF_RUNNING) {
- 		dev->flags &= ~IFF_RUNNING;		/* mark us stopped */
-@@ -1148,7 +1165,7 @@ EXPORT_SYMBOL(ieee80211_stop);
- void
- ieee80211_stop_running(struct ieee80211com *ic)
- {
--	struct ieee80211vap *vap;
-+	struct ieee80211vap *vap, *avp;
- 	struct net_device *dev;
- 
- 	/* XXX locking */
-@@ -1156,6 +1173,12 @@ ieee80211_stop_running(struct ieee80211c
- 		dev = vap->iv_dev;
- 		if (dev->flags & IFF_RUNNING)	/* NB: avoid recursion */
- 			ieee80211_stop(dev);
-+
-+		TAILQ_FOREACH(avp, &vap->iv_wdslinks, iv_wdsnext) {
-+			dev = avp->iv_dev;
-+			if (dev->flags & IFF_RUNNING)	/* NB: avoid recursion */
-+				ieee80211_stop(dev);
-+		}
- 	}
- }
- EXPORT_SYMBOL(ieee80211_stop_running);
-@@ -1557,57 +1580,12 @@ __ieee80211_newstate(struct ieee80211vap
+@@ -1557,57 +1557,12 @@
  		switch (ostate) {
  		case IEEE80211_S_INIT:
  			if (vap->iv_opmode == IEEE80211_M_MONITOR ||
@@ -836,14 +704,3 @@
  				break;
  			}
  			/* fall thru... */
-@@ -1808,6 +1786,10 @@ ieee80211_newstate(struct ieee80211vap *
- 			  ieee80211_state_name[dstate]);
- 
- 	ieee80211_update_link_status(vap, nstate, ostate);
-+
-+	if ((nstate != IEEE80211_S_RUN) && vap->iv_wdsnode)
-+		ieee80211_unref_node(&vap->iv_wdsnode);
-+
- 	switch (nstate) {
- 	case IEEE80211_S_AUTH:
- 	case IEEE80211_S_ASSOC:

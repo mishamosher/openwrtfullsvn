@@ -1,6 +1,6 @@
 --- a/scripts/get_arch.mk
 +++ b/scripts/get_arch.mk
-@@ -36,6 +36,13 @@ ifeq (,$(ARCH-y))
+@@ -36,6 +36,13 @@
  $(Cannot determine ARCH)
  endif
  

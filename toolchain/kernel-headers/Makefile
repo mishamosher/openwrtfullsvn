@@ -33,11 +33,9 @@ define Build/Configure/cris
 endef
 
 define Build/Configure/powerpc
-	if [ -d $(PKG_BUILD_DIR)/include/asm-ppc ]; then \
-		$(CP) $(PKG_BUILD_DIR)/include/asm-ppc/* $(PKG_BUILD_DIR)/include/asm-powerpc/; \
-		rm -rf $(PKG_BUILD_DIR)/include/asm-ppc; \
-		ln -s $(PKG_BUILD_DIR)/include/asm-powerpc $(PKG_BUILD_DIR)/include/asm-ppc; \
-	fi
+	$(CP) $(PKG_BUILD_DIR)/include/asm-ppc/* $(PKG_BUILD_DIR)/include/asm-powerpc/
+	rm -rf $(PKG_BUILD_DIR)/include/asm-ppc
+	ln -s $(PKG_BUILD_DIR)/include/asm-powerpc $(PKG_BUILD_DIR)/include/asm-ppc
 endef
 
 ifneq (,$(findstring uml,$(BOARD)))
@@ -55,11 +53,6 @@ define Build/Prepare
 	ln -sf linux-$(LINUX_VERSION) $(LINUX_HEADERS_DIR)
 	yes '' | $(KMAKE) oldconfig
 	$(KMAKE) include/linux/version.h include/asm
-	if [ -d $(PKG_BUILD_DIR)/arch/$(LINUX_KARCH)/include/asm ]; then \
-		$(CP) \
-			$(PKG_BUILD_DIR)/arch/$(LINUX_KARCH)/include/asm/. \
-			$(PKG_BUILD_DIR)/include/asm-$(LINUX_KARCH)/; \
-	fi
 	$(call Build/Configure/$(ARCH))
 endef
 
