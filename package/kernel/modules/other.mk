@@ -22,20 +22,6 @@ endef
 
 $(eval $(call KernelPackage,crc-itu-t))
 
-define KernelPackage/crc-ccitt
-  SUBMENU:=$(OTHER_MENU)
-  TITLE:=CRC-CCITT support
-  KCONFIG:=CONFIG_CRC_CCITT
-  FILES:=$(LINUX_DIR)/lib/crc-ccitt.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,20,crc-ccitt)
-endef
-
-define KernelPackage/crc-ccitt/description
- Kernel module for CRC-CCITT support
-endef
-
-$(eval $(call KernelPackage,crc-ccitt))
-
 
 define KernelPackage/crc7
   SUBMENU:=$(OTHER_MENU)
@@ -105,8 +91,9 @@ define KernelPackage/pcmcia-core/2.4
 #	CONFIG_CARDBUS
   FILES:= \
 	$(LINUX_DIR)/drivers/pcmcia/pcmcia_core.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/pcmcia/ds.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,40,pcmcia_core ds)
+	$(LINUX_DIR)/drivers/pcmcia/ds.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,40,pcmcia_core yenta_socket ds)
 endef
 
 define KernelPackage/pcmcia-core/2.6
@@ -119,8 +106,18 @@ define KernelPackage/pcmcia-core/2.6
   FILES:= \
 	$(LINUX_DIR)/drivers/pcmcia/pcmcia_core.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/pcmcia/pcmcia.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/pcmcia/rsrc_nonstatic.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,40,pcmcia_core pcmcia rsrc_nonstatic)
+	$(LINUX_DIR)/drivers/pcmcia/rsrc_nonstatic.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,40,pcmcia_core pcmcia rsrc_nonstatic yenta_socket)
+endef
+
+define KernelPackage/pcmcia-core/au1000-2.6
+  FILES:= \
+	$(LINUX_DIR)/drivers/pcmcia/pcmcia_core.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/pcmcia/pcmcia.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/pcmcia/rsrc_nonstatic.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/pcmcia/au1x00_ss.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,40,pcmcia_core pcmcia rsrc_nonstatic au1x00_ss)
 endef
 
 define KernelPackage/pcmcia-core/description
@@ -129,42 +126,6 @@ endef
 
 $(eval $(call KernelPackage,pcmcia-core))
 
-
-define KernelPackage/pcmcia-yenta
-  SUBMENU:=$(OTHER_MENU)
-  TITLE:=yenta socket driver
-  DEPENDS:=kmod-pcmcia-core
-  KCONFIG:=CONFIG_YENTA
-  FILES:=$(LINUX_DIR)/drivers/pcmcia/yenta_socket.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,41,yenta_socket)
-endef
-
-$(eval $(call KernelPackage,pcmcia-yenta))
-
-define KernelPackage/pcmcia-au1000
-  SUBMENU:=$(OTHER_MENU)
-  TITLE:=RMI/AMD Au1000 PCMCIA support
-  DEPENDS:=kmod-pcmcia-core @TARGET_au1000
-  FILES:=$(LINUX_DIR)/drivers/pcmcia/au1x00_ss.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,41,au1x00_ss)
-endef
-
-$(eval $(call KernelPackage,pcmcia-au1000))
-
-define KernelPackage/pcmcia-bcm63xx
-  SUBMENU:=$(OTHER_MENU)
-  TITLE:=Broadcom BCM63xx PCMCIA support
-  DEPENDS:=kmod-pcmcia-core @TARGET_brcm63xx
-  KCONFIG:=CONFIG_PCMCIA_BCM63XX
-  FILES:=$(LINUX_DIR)/drivers/pcmcia/bcm63xx_pcmcia.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,41,bcm63xx_pcmcia)
-endef
-
-define KernelPackage/pcmcia-bcm63xx/description
-  Kernel support for PCMCIA/CardBus controller on the BCM63xx SoC
-endef
-
-$(eval $(call KernelPackage,pcmcia-bcm63xx))
 
 define KernelPackage/pcmcia-serial
   SUBMENU:=$(OTHER_MENU)
@@ -191,30 +152,6 @@ define KernelPackage/pcmcia-serial/description
 endef
 
 $(eval $(call KernelPackage,pcmcia-serial))
-
-define KernelPackage/ssb
-  SUBMENU:=$(OTHER_MENU)
-  TITLE:=Silicon Sonics Backplane glue code
-  DEPENDS:=@PCI_SUPPORT @!TARGET_brcm47xx
-  KCONFIG:=\
-	CONFIG_SSB \
-	CONFIG_SSB_B43_PCI_BRIDGE=y \
-	CONFIG_SSB_DRIVER_PCICORE=y \
-	CONFIG_SSB_DRIVER_PCICORE_POSSIBLE=y \
-	CONFIG_SSB_PCIHOST=y \
-	CONFIG_SSB_PCIHOST_POSSIBLE=y \
-	CONFIG_SSB_POSSIBLE=y \
-	CONFIG_SSB_SPROM=y \
-	CONFIG_SSB_SILENT=y
-  FILES:=$(LINUX_DIR)/drivers/ssb/ssb.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,29,ssb)
-endef
-
-define KernelPackage/ssb/description
-  Silicon Sonics Backplane glue code.
-endef
-
-$(eval $(call KernelPackage,ssb))
 
 
 define KernelPackage/bluetooth
@@ -543,22 +480,6 @@ endef
 $(eval $(call KernelPackage,scx200-wdt))
 
 
-define KernelPackage/sc520-wdt
-  SUBMENU:=$(OTHER_MENU)
-  TITLE:=Natsemi SC520 Watchdog support
-  DEPENDS:=@TARGET_x86
-  KCONFIG:=CONFIG_SC520_WDT
-  FILES:=$(LINUX_DIR)/drivers/$(WATCHDOG_DIR)/sc520_wdt.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,sc520_wdt)
-endef
-
-define KernelPackage/sc520-wdt/description
-  Kernel module for SC520 Watchdog
-endef
-
-$(eval $(call KernelPackage,sc520-wdt))
-
-
 define KernelPackage/input-core
   SUBMENU:=$(OTHER_MENU)
   TITLE:=Input device core
@@ -722,17 +643,21 @@ endef
 
 $(eval $(call KernelPackage,spi-dev))
 
-define KernelPackage/cs5535-gpio
+define KernelPackage/crypto-dev-ixp4xx
   SUBMENU:=$(OTHER_MENU)
-  TITLE:=AMD CS5535/CS5536 GPIO driver
-  DEPENDS:=@TARGET_x86||@TARGET_olpc
-  KCONFIG:=CONFIG_CS5535_GPIO
-  FILES:=$(LINUX_DIR)/drivers/char/cs5535_gpio.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,90,cs5535_gpio)
+  TITLE:=IXP4xx crypto driver
+  DEPENDS:=\
+	@TARGET_ixp4xx +kmod-crypto-core +kmod-crypto-des +kmod-crypto-aead \
+	+kmod-crypto-authenc
+  KCONFIG:=\
+	CONFIG_CRYPTO_HW=y \
+	CONFIG_CRYPTO_DEV_IXP4XX
+  FILES:=$(LINUX_DIR)/drivers/crypto/ixp4xx_crypto.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,90,ixp4xx_crypto)
 endef
 
-define KernelPackage/cs5535-gpio/description
- This package contains the AMD CS5535/CS5536 GPIO driver
+define KernelPackage/crypto-dev-ixp4xx/description
+ Kernel support for the IXP4xx HW crypto engine.
 endef
 
-$(eval $(call KernelPackage,cs5535-gpio))
+$(eval $(call KernelPackage,crypto-dev-ixp4xx))

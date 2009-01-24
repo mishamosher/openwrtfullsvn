@@ -122,7 +122,6 @@ enable_broadcom() {
 	config_get_bool frameburst "$device" frameburst
 	config_get macfilter "$device" macfilter
 	config_get maclist "$device" maclist
-	config_get macaddr "$device" macaddr
 	local vif_pre_up vif_post_up vif_do_up txpower
 
 	_c=0
@@ -245,7 +244,6 @@ enable_broadcom() {
 		
 		config_get ifname "$vif" ifname
 		#append if_up "ifconfig $ifname up" ";$N"
-
 		local net_cfg bridge
 		net_cfg="$(find_net_config "$vif")"
 		[ -z "$net_cfg" ] || {

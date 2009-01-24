@@ -1,8 +1,7 @@
 # Choose uclibc version.
 
 choice
-	prompt "uClibc Version"
-	depends on TOOLCHAINOPTS && USE_UCLIBC
+	prompt "uClibc Version" if TOOLCHAINOPTS
 	default UCLIBC_VERSION_0_9_29
 	help
 	  Select the version of uClibc you wish to use.
@@ -17,15 +16,11 @@ choice
 	config UCLIBC_VERSION_0_9_29
 		bool "uClibc 0.9.29"
 
-	config UCLIBC_VERSION_0_9_30
-		bool "uClibc 0.9.30"
-
 endchoice
 
 config UCLIBC_EXTRA_VERSION
 	string
-	prompt "Extra uClibc version"
-	depends on TOOLCHAINOPTS && USE_UCLIBC
+	prompt "Extra uClibc version" if TOOLCHAINOPTS
 	default "snapshot"   if UCLIBC_VERSION_SNAPSHOT
 	default ".2"         if UCLIBC_VERSION_0_9_28
 	default ""

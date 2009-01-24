@@ -31,7 +31,7 @@ else
   endif
 
   PATCH_DIR ?= ./patches$(shell [ -d "./patches-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
-  FILES_DIR ?= $(foreach dir,$(wildcard ./files ./files-$(KERNEL_PATCHVER)),"$(dir)")
+  FILES_DIR ?= ./files$(shell [ -d "./files-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
   KERNEL_BUILD_DIR ?= $(BUILD_DIR_BASE)/linux-$(BOARD)$(if $(SUBTARGET),_$(SUBTARGET))$(if $(BUILD_SUFFIX),_$(BUILD_SUFFIX))
   LINUX_DIR ?= $(KERNEL_BUILD_DIR)/linux-$(LINUX_VERSION)
 
@@ -53,7 +53,7 @@ ifneq (,$(findstring uml,$(BOARD)))
   LINUX_KARCH:=um
 else
   ifeq (,$(LINUX_KARCH))
-    LINUX_KARCH:=$(shell echo $(ARCH) | sed -e 's/i[3-9]86/x86/' \
+    LINUX_KARCH:=$(shell echo $(ARCH) | sed -e 's/i[3-9]86/i386/' \
 	  -e 's/mipsel/mips/' \
 	  -e 's/mipseb/mips/' \
 	  -e 's/sh[234]/sh/' \

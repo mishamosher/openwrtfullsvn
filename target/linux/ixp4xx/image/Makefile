@@ -9,22 +9,21 @@ include $(INCLUDE_DIR)/image.mk
 
 define Image/Build/slug
 	BIN_DIR=$(BIN_DIR) $(TOPDIR)/scripts/slugimage.pl \
-		-L $(BIN_DIR)/apex-nslu2-armeb.bin \
+		-L $(KDIR)/apex-nslu2-armeb.bin \
 		-k $(BIN_DIR)/openwrt-nslu2-zImage \
 		-r rootfs:$(BIN_DIR)/openwrt-$(BOARD)-$(1).img \
 		-p -o $(BIN_DIR)/openwrt-nslu2-$(1).bin
 	BIN_DIR=$(BIN_DIR) $(TOPDIR)/scripts/slugimage.pl \
-		-F -L $(BIN_DIR)/apex-nslu2-16mb-armeb.bin \
+		-F -L $(KDIR)/apex-nslu2-16mb-armeb.bin \
 		-k $(BIN_DIR)/openwrt-nslu2-zImage \
 		-r rootfs:$(BIN_DIR)/openwrt-$(BOARD)-$(1).img \
 		-p -o $(BIN_DIR)/openwrt-nslu2-$(1)-16mb.bin
 endef
 
 define Build/Compile
-	mkdir -p $(BIN_DIR)
 	$(MAKE) -C apex \
 		BUILD_DIR="$(KDIR)" \
-		TARGET="$(BIN_DIR)" \
+		TARGET="$(KDIR)" \
 		compile	
 endef
 

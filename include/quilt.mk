@@ -66,11 +66,13 @@ define Build/Patch/Default
 	$(call PatchDir,$(PATCH_DIR),)
 endef
 
-kernel_files=$(foreach fdir,$(GENERIC_FILES_DIR) $(FILES_DIR),$(fdir)/.)
 define Kernel/Patch/Default
 	rm -rf $(PKG_BUILD_DIR)/patches; mkdir -p $(PKG_BUILD_DIR)/patches
-	$(if $(kernel_files),$(CP) $(kernel_files) $(LINUX_DIR)/)
-	find $(LINUX_DIR)/ -name \*.rej -or -name \*.orig | $(XARGS) rm -f
+	if [ -d $(GENERIC_FILES_DIR) ]; then $(CP) $(GENERIC_FILES_DIR)/* $(LINUX_DIR)/; fi
+	if [ -d $(FILES_DIR) ]; then \
+		$(CP) $(FILES_DIR)/* $(LINUX_DIR)/; \
+		find $(LINUX_DIR)/ -name \*.rej | xargs rm -f; \
+	fi
 	$(call PatchDir,$(GENERIC_PATCH_DIR),generic/)
 	$(call PatchDir,$(PATCH_DIR),platform/)
 endef
@@ -126,7 +128,7 @@ define Build/Quilt
 
   $(STAMP_CONFIGURED): $(STAMP_CHECKED) FORCE
   $(STAMP_CHECKED): $(STAMP_PATCHED)
-	if [ -s "$(PKG_BUILD_DIR)/patches/series" ]; then (cd $(PKG_BUILD_DIR); if quilt next >/dev/null 2>&1; then quilt push -a; else quilt top; fi >/dev/null 2>&1); fi
+	if [ -s "$(PKG_BUILD_DIR)/patches/series" ]; then (cd $(PKG_BUILD_DIR); quilt next >/dev/null 2>&1 && quilt push -a || quilt top >/dev/null 2>&1); fi
 	touch $$@
 
   quilt-check: $(STAMP_PREPARED) FORCE

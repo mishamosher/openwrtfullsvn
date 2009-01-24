@@ -15,13 +15,13 @@ ifeq ($(CONFIG_LINUX_2_4),y)
   PKG_VERSION:=1.3.8
   PKG_RELEASE:=4
   PKG_MD5SUM:=0a9209f928002e5eee9cdff8fef4d4b3
-  MAKE_TARGETS:=experimental install-experimental install-devel
+  MAKE_TARGETS:=experimental install-experimental
 endif
 
 ifeq ($(CONFIG_LINUX_2_6),y)
-  PKG_VERSION:=1.4.1.1
+  PKG_VERSION:=1.4.0
   PKG_RELEASE:=1
-  PKG_MD5SUM:=723fa88d8a0915e184f99e03e9bf06cb
+  PKG_MD5SUM:=90cfa8a554a29b0b859a625e701af2a7
 endif
 
 PKG_VERSION?=<IPTABLES_VERSION>
@@ -107,7 +107,7 @@ define Package/iptables-mod-filter/description
 endef
 
 define Package/iptables-mod-imq
-$(call Package/iptables/Module, +kmod-ipt-imq @!LINUX_2_6_27)
+$(call Package/iptables/Module, +kmod-ipt-imq)
   TITLE:=IMQ support
 endef
 
@@ -245,21 +245,14 @@ define Build/Prepare
 	$(call Build/Prepare/Default)
 endef
 
-ifeq ($(KERNEL),2.4)
-  define Build/Configure
+define Build/Configure
 	chmod a+x $(PKG_BUILD_DIR)/extensions/.*-test*
 	rm -f $(PKG_BUILD_DIR)/.configured*
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		clean
-  endef
-endif
+endef
 
-TARGET_CPPFLAGS := -I$(PKG_BUILD_DIR)/include $(TARGET_CPPFLAGS)
 TARGET_CFLAGS += $(FPIC)
-CONFIGURE_ARGS += \
-	--enable-devel \
-	--with-kernel="$(LINUX_DIR)" \
-	--with-xtlibdir=/usr/lib/iptables 
 
 define Build/Compile
 	mkdir -p $(PKG_INSTALL_DIR)
@@ -274,7 +267,13 @@ define Build/Compile
 endef
 
 define Build/InstallDev
-	$(INSTALL_DIR) $(1)/usr/lib
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		$(TARGET_CONFIGURE_OPTS) \
+		COPT_FLAGS="$(TARGET_CFLAGS)" \
+		KERNEL_DIR="$(LINUX_DIR)" PREFIX=/usr \
+		KBUILD_OUTPUT="$(LINUX_DIR)" \
+		DESTDIR="$(1)" \
+		install-devel
 	$(CP) $(PKG_BUILD_DIR)/include $(1)/usr
 	$(CP) $(PKG_BUILD_DIR)/libiptc/libiptc.a $(1)/usr/lib
 endef

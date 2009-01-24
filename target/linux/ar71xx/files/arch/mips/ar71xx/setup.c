@@ -23,7 +23,6 @@
 #include <asm/traps.h>
 #include <asm/time.h>		/* for mips_hpt_frequency */
 #include <asm/reboot.h>		/* for _machine_{restart,halt} */
-#include <asm/mips_machine.h>
 
 #include <asm/mach-ar71xx/ar71xx.h>
 #include <asm/mach-ar71xx/pci.h>
@@ -36,8 +35,6 @@
 #define AR71XX_MEM_SIZE_MIN	0x0200000
 #define AR71XX_MEM_SIZE_MAX	0x8000000
 
-unsigned long ar71xx_mach_type;
-
 u32 ar71xx_cpu_freq;
 EXPORT_SYMBOL_GPL(ar71xx_cpu_freq);
 
@@ -46,9 +43,6 @@ EXPORT_SYMBOL_GPL(ar71xx_ahb_freq);
 
 u32 ar71xx_ddr_freq;
 EXPORT_SYMBOL_GPL(ar71xx_ddr_freq);
-
-enum ar71xx_soc_type ar71xx_soc;
-EXPORT_SYMBOL_GPL(ar71xx_soc);
 
 int (*ar71xx_pci_bios_init)(unsigned nr_irqs,
 			     struct ar71xx_pci_irq *map) __initdata;
@@ -91,14 +85,28 @@ int __init ar71xx_pci_init(unsigned nr_irqs, struct ar71xx_pci_irq *map)
 
 static void __init ar71xx_detect_mem_size(void)
 {
-	unsigned long size;
+	volatile u8 *p;
+	u8 memsave;
+	u32 size;
 
-	for (size = AR71XX_MEM_SIZE_MIN; size < AR71XX_MEM_SIZE_MAX;
-	     size <<= 1 ) {
-		if (!memcmp(ar71xx_detect_mem_size,
-			    ar71xx_detect_mem_size + size, 1024))
-			break;
+	p = (volatile u8 *) KSEG1ADDR(0);
+	memsave = *p;
+	for (size = AR71XX_MEM_SIZE_MIN;
+	     size <= (AR71XX_MEM_SIZE_MAX >> 1); size <<= 1) {
+		volatile u8 *r;
+
+		r = (p + size);
+		*p = 0x55;
+		if (*r == 0x55) {
+			/* Mirrored data found, try another pattern */
+			*p = 0xAA;
+			if (*r == 0xAA) {
+				/* Mirrored data found again, stop detection */
+				break;
+			}
+		}
 	}
+	*p = memsave;
 
 	add_memory_region(0, size, BOOT_MEM_RAM);
 }
@@ -109,37 +117,23 @@ static void __init ar71xx_detect_sys_type(void)
 	u32 id;
 	u32 rev;
 
-	id = ar71xx_reset_rr(AR71XX_RESET_REG_REV_ID) & REV_ID_MASK;
+	id = ar71xx_reset_rr(RESET_REG_REV_ID) & REV_ID_MASK;
 	rev = (id >> REV_ID_REVISION_SHIFT) & REV_ID_REVISION_MASK;
-
 	switch (id & REV_ID_CHIP_MASK) {
 	case REV_ID_CHIP_AR7130:
-		ar71xx_soc = AR71XX_SOC_AR7130;
 		chip = "7130";
 		break;
-
 	case REV_ID_CHIP_AR7141:
-		ar71xx_soc = AR71XX_SOC_AR7141;
 		chip = "7141";
 		break;
-
 	case REV_ID_CHIP_AR7161:
-		ar71xx_soc = AR71XX_SOC_AR7161;
 		chip = "7161";
 		break;
-
 	case REV_ID_CHIP_AR9130:
-		ar71xx_soc = AR71XX_SOC_AR9130;
 		chip = "9130";
 		break;
-
-	case REV_ID_CHIP_AR9132:
-		ar71xx_soc = AR71XX_SOC_AR9132;
-		chip = "9132";
-		break;
-
 	default:
-		panic("ar71xx: unknown chip id:0x%02x\n", id);
+		chip = "71xx";
 	}
 
 	sprintf(ar71xx_sys_type, "Atheros AR%s rev %u (id:0x%02x)",
@@ -152,7 +146,7 @@ static void __init ar91xx_detect_sys_frequency(void)
 	u32 freq;
 	u32 div;
 
-	pll = ar71xx_pll_rr(AR91XX_PLL_REG_CPU_CONFIG);
+	pll = ar71xx_pll_rr(PLL_REG_CPU_PLL_CFG);
 
 	div = ((pll >> AR91XX_PLL_DIV_SHIFT) & AR91XX_PLL_DIV_MASK);
 	freq = div * AR91XX_BASE_FREQ;
@@ -172,7 +166,12 @@ static void __init ar71xx_detect_sys_frequency(void)
 	u32 freq;
 	u32 div;
 
-	pll = ar71xx_pll_rr(AR71XX_PLL_REG_CPU_CONFIG);
+	if ((ar71xx_reset_rr(RESET_REG_REV_ID) & REV_ID_MASK) >=
+			REV_ID_CHIP_AR9130) {
+		return ar91xx_detect_sys_frequency();
+	}
+
+	pll = ar71xx_pll_rr(PLL_REG_CPU_PLL_CFG);
 
 	div = ((pll >> AR71XX_PLL_DIV_SHIFT) & AR71XX_PLL_DIV_MASK) + 1;
 	freq = div * AR71XX_BASE_FREQ;
@@ -185,25 +184,6 @@ static void __init ar71xx_detect_sys_frequency(void)
 
 	div = (((pll >> AR71XX_AHB_DIV_SHIFT) & AR71XX_AHB_DIV_MASK) + 1) * 2;
 	ar71xx_ahb_freq = ar71xx_cpu_freq / div;
-}
-
-static void __init detect_sys_frequency(void)
-{
-	switch (ar71xx_soc) {
-	case AR71XX_SOC_AR7130:
-	case AR71XX_SOC_AR7141:
-	case AR71XX_SOC_AR7161:
-		ar71xx_detect_sys_frequency();
-		break;
-
-	case AR71XX_SOC_AR9130:
-	case AR71XX_SOC_AR9132:
-		ar91xx_detect_sys_frequency();
-		break;
-
-	default:
-		BUG();
-	}
 }
 
 #ifdef CONFIG_AR71XX_EARLY_SERIAL
@@ -256,7 +236,7 @@ void __init plat_mem_setup(void)
 
 	ar71xx_detect_mem_size();
 	ar71xx_detect_sys_type();
-	detect_sys_frequency();
+	ar71xx_detect_sys_frequency();
 
 	_machine_restart = ar71xx_restart;
 	_machine_halt = ar71xx_halt;
@@ -271,16 +251,3 @@ void __init plat_time_init(void)
 {
 	mips_hpt_frequency = ar71xx_cpu_freq / 2;
 }
-
-static int __init ar71xx_machine_setup(void)
-{
-	ar71xx_gpio_init();
-
-	ar71xx_add_device_uart();
-	ar71xx_add_device_wdt();
-
-	mips_machine_setup(ar71xx_mach_type);
-	return 0;
-}
-
-arch_initcall(ar71xx_machine_setup);

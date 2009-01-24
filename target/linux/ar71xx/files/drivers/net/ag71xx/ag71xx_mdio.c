@@ -50,7 +50,7 @@ static int ag71xx_mdio_mii_read(struct ag71xx_mdio *am, int addr, int reg)
 
 	ag71xx_mdio_wr(am, AG71XX_REG_MII_CMD, MII_CMD_WRITE);
 	ag71xx_mdio_wr(am, AG71XX_REG_MII_ADDR,
-			((addr & 0xff) << MII_ADDR_SHIFT) | (reg & 0xff));
+			((addr & 0xff) << MII_ADDR_S) | (reg & 0xff));
 	ag71xx_mdio_wr(am, AG71XX_REG_MII_CMD, MII_CMD_READ);
 
 	i = AG71XX_MDIO_RETRY;
@@ -69,7 +69,7 @@ static int ag71xx_mdio_mii_read(struct ag71xx_mdio *am, int addr, int reg)
 
 	DBG("mii_read: addr=%04x, reg=%04x, value=%04x\n", addr, reg, ret);
 
- out:
+out:
 	return ret;
 }
 
@@ -81,7 +81,7 @@ static void ag71xx_mdio_mii_write(struct ag71xx_mdio *am,
 	DBG("mii_write: addr=%04x, reg=%04x, value=%04x\n", addr, reg, val);
 
 	ag71xx_mdio_wr(am, AG71XX_REG_MII_ADDR,
-			((addr & 0xff) << MII_ADDR_SHIFT) | (reg & 0xff));
+			((addr & 0xff) << MII_ADDR_S) | (reg & 0xff));
 	ag71xx_mdio_wr(am, AG71XX_REG_MII_CTRL, val);
 
 	i = AG71XX_MDIO_RETRY;
@@ -159,9 +159,13 @@ static int __init ag71xx_mdio_probe(struct platform_device *pdev)
 	am->mii_bus.write = ag71xx_mdio_write;
 	am->mii_bus.reset = ag71xx_mdio_reset;
 	am->mii_bus.irq = am->mii_irq;
+#if (LINUX_VERSION_CODE < KERNEL_VERSION(2,6,26))
+	am->mii_bus.id = 0;
+#else
+	snprintf(am->mii_bus.id, MII_BUS_ID_SIZE, "%x", 0);
+#endif
 	am->mii_bus.priv = am;
 	am->mii_bus.dev = &pdev->dev;
-	snprintf(am->mii_bus.id, MII_BUS_ID_SIZE, "%x", 0);
 
 	pdata = pdev->dev.platform_data;
 	if (pdata)
@@ -180,11 +184,11 @@ static int __init ag71xx_mdio_probe(struct platform_device *pdev)
 	ag71xx_mdio_bus = am;
 	return 0;
 
- err_iounmap:
+err_iounmap:
 	iounmap(am->mdio_base);
- err_free_mdio:
+err_free_mdio:
 	kfree(am);
- err_out:
+err_out:
 	return err;
 }
 

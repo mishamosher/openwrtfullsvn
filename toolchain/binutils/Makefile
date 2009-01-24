@@ -18,36 +18,25 @@ endif
 ifeq ($(PKG_VERSION),2.18)
   PKG_MD5SUM:=9d22ee4dafa3a194457caf4706f9cf01
 endif
-ifeq ($(PKG_VERSION),2.19)
-  PKG_MD5SUM:=17a52219dee5a76c1a9d9b0bfd337d66
-endif
 
 PATCH_DIR:=./patches/$(PKG_VERSION)
 
 STAGING_DIR_HOST:=$(TOOLCHAIN_DIR)
 BUILD_DIR_HOST:=$(BUILD_DIR_TOOLCHAIN)
-
 override CONFIG_AUTOREBUILD=
 
 include $(INCLUDE_DIR)/host-build.mk
 
-EXTRA_TARGET=$(if $(CONFIG_EXTRA_TARGET_ARCH),--enable-targets=$(call qstrip,$(CONFIG_EXTRA_TARGET_ARCH_NAME))-linux-$(TARGET_SUFFIX))
-
-define Build/Prepare
-	$(call Build/Prepare/Default)
-	ln -snf $(PKG_NAME)-$(PKG_VERSION) $(BUILD_DIR_TOOLCHAIN)/$(PKG_NAME)
-	$(CP) $(SCRIPT_DIR)/config.{guess,sub} $(PKG_BUILD_DIR)/
-endef
+EXTRA_TARGET=$(if $(CONFIG_EXTRA_TARGET_ARCH),--enable-targets=$(call qstrip,$(CONFIG_EXTRA_TARGET_ARCH_NAME))-linux-uclibc)
 
 define Build/Configure
+	$(CP) $(SCRIPT_DIR)/config.{guess,sub} $(PKG_BUILD_DIR)/
 	(cd $(PKG_BUILD_DIR); \
 		./configure \
-		--prefix=$(TOOLCHAIN_DIR)/usr \
+		--prefix=$(STAGING_DIR_HOST) \
 		--build=$(GNU_HOST_NAME) \
 		--host=$(GNU_HOST_NAME) \
 		--target=$(REAL_GNU_TARGET_NAME) \
-		--with-sysroot=$(TOOLCHAIN_DIR) \
-		--disable-multilib \
 		--disable-werror \
 		--disable-nls \
 		$(EXTRA_TARGET) \
@@ -62,12 +51,6 @@ endef
 
 define Build/Install
 	$(MAKE) -C $(PKG_BUILD_DIR) install
-endef
-
-define Build/Clean
-	rm -rf \
-		$(PKG_BUILD_DIR) \
-		$(BUILD_DIR_TOOLCHAIN)/$(PKG_NAME)
 endef
 
 $(eval $(call HostBuild))

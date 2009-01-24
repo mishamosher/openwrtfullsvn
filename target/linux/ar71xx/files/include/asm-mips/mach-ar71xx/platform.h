@@ -25,22 +25,13 @@ struct ag71xx_platform_data {
 	int		speed;
 	int		duplex;
 	u32		reset_bit;
+	u32		flush_reg;
 	u32		mii_if;
 	u8		mac_addr[ETH_ALEN];
-
-	u8		has_gbit:1;
-	u8		is_ar91xx:1;
-
-	void		(* ddr_flush)(void);
-	void		(* set_pll)(u32 pll);
 };
 
 struct ag71xx_mdio_platform_data {
 	u32		phy_mask;
-};
-
-struct ar71xx_ehci_platform_data {
-	u8		is_ar91xx;
 };
 
 struct ar71xx_spi_platform_data {
@@ -73,15 +64,5 @@ extern void ar71xx_add_device_gpio_buttons(int id,
 				   unsigned poll_interval,
 				   unsigned nbuttons,
 				   struct gpio_button *buttons) __init;
-
-#ifdef CONFIG_AR71XX_EARLY_SERIAL
-static inline void ar71xx_add_device_uart(void) {}
-#else
-extern void ar71xx_add_device_uart(void) __init;
-#endif
-
-extern void ar71xx_add_device_wdt(void) __init;
-
-extern void ar91xx_add_device_wmac(void) __init;
 
 #endif /* __ASM_MACH_AR71XX_PLATFORM_H */

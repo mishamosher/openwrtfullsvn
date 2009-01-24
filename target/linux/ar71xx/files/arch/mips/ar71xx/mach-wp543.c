@@ -31,12 +31,39 @@
 
 #define WP543_BUTTONS_POLL_INTERVAL	20
 
+#ifdef CONFIG_MTD_PARTITIONS
+static struct mtd_partition wp543_partitions[] = {
+	{
+		.name	= "myloader",
+		.offset	= 0,
+		.size	= 0x20000,
+		.mask_flags = MTD_WRITEABLE,
+	} , {
+		.name	= "kernel",
+		.offset	= 0x30000,
+		.size	= 0xd0000,
+	} , {
+		.name	= "rootfs",
+		.offset	= 0x100000,
+		.size	= 0x100000,
+	}
+};
+#endif /* CONFIG_MTD_PARTITIONS */
+
+static struct flash_platform_data wp543_flash_data = {
+#ifdef CONFIG_MTD_PARTITIONS
+	.parts		= wp543_partitions,
+	.nr_parts	= ARRAY_SIZE(wp543_partitions),
+#endif
+};
+
 static struct spi_board_info wp543_spi_info[] = {
 	{
 		.bus_num	= 0,
 		.chip_select	= 0,
 		.max_speed_hz	= 25000000,
 		.modalias	= "m25p80",
+		.platform_data	= &wp543_flash_data,
 	}
 };
 
@@ -114,4 +141,4 @@ static void __init wp543_setup(void)
 					wp543_gpio_buttons);
 }
 
-MIPS_MACHINE(AR71XX_MACH_WP543, "Compex WP543", wp543_setup);
+MIPS_MACHINE(MACH_AR71XX_WP543, "Compex WP543", wp543_setup);
