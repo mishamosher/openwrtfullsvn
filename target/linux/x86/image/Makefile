@@ -49,9 +49,9 @@ ifneq ($(HOST_OS),Darwin)
   define Image/Prepare/grub
 	# for the image builder
 	$(CP) \
-		$(STAGING_DIR_HOST)/usr/lib/grub/i386-*/stage1 \
-		$(STAGING_DIR_HOST)/usr/lib/grub/i386-*/stage2 \
-		$(STAGING_DIR_HOST)/usr/lib/grub/i386-*/e2fs_stage1_5 \
+		$(STAGING_DIR_HOST)/usr/lib/grub/i386-pc/stage1 \
+		$(STAGING_DIR_HOST)/usr/lib/grub/i386-pc/stage2 \
+		$(STAGING_DIR_HOST)/usr/lib/grub/i386-pc/e2fs_stage1_5 \
 		$(KDIR)/
   endef
 else
@@ -66,21 +66,11 @@ ifeq ($(CONFIG_X86_VDI_IMAGES),y)
     # left here because the image builder doesnt need these
     ifeq ($(1),ext2)
 		rm $(BIN_DIR)/openwrt-$(BOARD)-ext2.vdi || true
-		VBoxManage convertfromraw -format VDI $(BIN_DIR)/openwrt-$(BOARD)-ext2.image $(BIN_DIR)/openwrt-$(BOARD)-ext2.vdi
+		vditool DD $(BIN_DIR)/openwrt-$(BOARD)-ext2.vdi $(BIN_DIR)/openwrt-$(BOARD)-ext2.image
     endif
   endef
 endif
 
-ifeq ($(CONFIG_X86_VMDK_IMAGES),y)
-  define Image/Build/vmdk
-    # left here because the image builder doesnt need these
-    ifeq ($(1),ext2)
-		rm $(BIN_DIR)/openwrt-$(BOARD)-ext2.vmdk || true
-		qemu-img convert -f raw $(BIN_DIR)/openwrt-$(BOARD)-ext2.image \
-			-O vmdk $(BIN_DIR)/openwrt-$(BOARD)-ext2.vmdk
-    endif
-  endef
-endif
 
 define Image/Prepare
 	$(CP) $(LINUX_DIR)/arch/x86/boot/bzImage $(KDIR)/bzImage
@@ -113,7 +103,6 @@ define Image/Build
 	$(call Image/Build/$(1))
 	$(call Image/Build/grub,$(1))
 	$(call Image/Build/vdi,$(1))
-	$(call Image/Build/vmdk,$(1))
 	$(CP) $(KDIR)/root.$(1) $(BIN_DIR)/openwrt-$(BOARD)-$(1).fs
 	$(CP) $(KDIR)/bzImage $(BIN_DIR)/openwrt-$(BOARD)-vmlinuz
 endef
@@ -121,13 +110,8 @@ endef
 $(eval $(call BuildImage))
 
 ifeq ($(CONFIG_X86_VDI_IMAGES),y)
-  $(eval $(call RequireCommand,VBoxManage, \
-	You need VBoxManage to generate VirtualBox images. \
+  $(eval $(call RequireCommand,vditool, \
+	You need vditool to generate VirtualBox images. \
   ))
 endif
 
-ifeq ($(CONFIG_X86_VMDK_IMAGES),y)
-   $(eval $(call RequireCommand,qemu-img, \
-	You need qemu-img to generate VMware images. \
-   ))
-endif

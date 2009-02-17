@@ -140,9 +140,8 @@ define KernelPackage/net-hermes
   KCONFIG:=CONFIG_HERMES
   FILES:= \
 	$(LINUX_DIR)/drivers/net/wireless/hermes.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/net/wireless/orinoco.$(LINUX_KMOD_SUFFIX) \
-    $(if $(CONFIG_LINUX_2_6_28),$(LINUX_DIR)/drivers/net/wireless/hermes_dld.$(LINUX_KMOD_SUFFIX))
-  AUTOLOAD:=$(if $(CONFIG_LINUX_2_6_28),$(call AutoLoad,50,hermes hermes_dld orinoco),$(call AutoLoad,50,hermes orinoco))
+	$(LINUX_DIR)/drivers/net/wireless/orinoco.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,50,hermes orinoco)
 endef
 
 define KernelPackage/net-hermes/description
@@ -197,20 +196,5 @@ define KernelPackage/net-prism54/description
  Kernel modules for Intersil Prism54 support
 endef
 
-# Prism54 FullMAC firmware (jbnore.free.fr seems to be rather slow, so we use daemonizer.de)
-PRISM54_FW:=1.0.4.3.arm
-
-define Download/net-prism54
-  FILE:=$(PRISM54_FW)
-  URL:=http://daemonizer.de/prism54/prism54-fw/fw-fullmac/
-  MD5SUM:=8bd4310971772a486b9784c77f8a6df9
-endef
-
-define KernelPackage/net-prism54/install
-	$(INSTALL_DIR) $(1)/lib/firmware
-	$(INSTALL_DATA) $(DL_DIR)/$(PRISM54_FW) $(1)/lib/firmware/isl3890
-endef
-
-$(eval $(call Download,net-prism54))
 $(eval $(call KernelPackage,net-prism54))
 

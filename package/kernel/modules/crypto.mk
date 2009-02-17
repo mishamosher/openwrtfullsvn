@@ -30,29 +30,38 @@ ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.26)),1)
   SHA512_SUFFIX:=$(CRYPTO_GENERIC)
 endif
 
-CRYPTO_MODULES = \
-	ALGAPI=crypto_algapi \
-	AEAD=aead \
-	BLKCIPHER=$(BLKCIPHER_PREFIX)blkcipher \
-	MANAGER=cryptomgr \
-	HASH=crypto_hash \
-	CBC=cbc \
-	ECB=ecb \
-	HMAC=hmac \
-	DEFLATE=deflate
-
-crypto_confvar=CONFIG_CRYPTO_$(word 1,$(subst =,$(space),$(1)))
-crypto_file=$(if $(findstring y,$($(call crypto_confvar,$(1)))),,$(LINUX_DIR)/crypto/$(word 2,$(subst =,$(space),$(1))).$(LINUX_KMOD_SUFFIX))
-crypto_name=$(if $(findstring y,$($(call crypto_confvar,$(1)))),,$(word 2,$(subst =,$(space),$(1))))
-
-# XXX: added CONFIG_CRYPTO_HMAC to KCONFIG so that CONFIG_CRYPTO_HASH is
+# XXX: added CONFIG_CRYPTO_HMAC to KCONFIG so that CONFIG_CRYPTO_HASH is 
 # always set, even if no hash modules are selected
 define KernelPackage/crypto-core
   SUBMENU:=$(CRYPTO_MENU)
   TITLE:=Core CryptoAPI modules
-  KCONFIG:=CONFIG_CRYPTO=y $(foreach mod,$(CRYPTO_MODULES),$(call crypto_confvar,$(mod)))
-  FILES:=$(foreach mod,$(CRYPTO_MODULES),$(call crypto_file,$(mod)))
-  AUTOLOAD:=$(call AutoLoad,01,$(foreach mod,$(CRYPTO_MODULES),$(call crypto_name,$(mod))))
+  KCONFIG:= \
+	CONFIG_CRYPTO=y \
+	CONFIG_CRYPTO_ALGAPI \
+	CONFIG_CRYPTO_BLKCIPHER \
+	CONFIG_CRYPTO_CBC \
+	CONFIG_CRYPTO_DEFLATE \
+	CONFIG_CRYPTO_ECB \
+	CONFIG_CRYPTO_HASH \
+	CONFIG_CRYPTO_HMAC \
+	CONFIG_CRYPTO_MANAGER
+  FILES:= \
+	$(LINUX_DIR)/crypto/crypto_algapi.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/crypto/$(BLKCIPHER_PREFIX)blkcipher.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/crypto/cbc.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/crypto/deflate.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/crypto/ecb.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/crypto/crypto_hash.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/crypto/cryptomgr.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,01, \
+	crypto_algapi \
+	cryptomgr \
+	crypto_hash \
+	$(BLKCIPHER_PREFIX)blkcipher \
+	cbc \
+	ecb \
+	deflate \
+  )
 endef
 
 define KernelPackage/crypto-core/2.4
@@ -68,7 +77,6 @@ define KernelPackage/crypto-hw-padlock
   TITLE:=VIA PadLock ACE with AES/SHA hw crypto module
   DEPENDS:=+kmod-crypto-core
   KCONFIG:= \
-	CONFIG_CRYPTO_HW=y \
 	CONFIG_CRYPTO_DEV_PADLOCK \
 	CONFIG_CRYPTO_DEV_PADLOCK_AES \
 	CONFIG_CRYPTO_DEV_PADLOCK_SHA
@@ -86,7 +94,6 @@ define KernelPackage/crypto-hw-geode
   TITLE:=AMD Geode hardware crypto module
   DEPENDS:=+kmod-crypto-core
   KCONFIG:= \
-	CONFIG_CRYPTO_HW=y \
 	CONFIG_CRYPTO_DEV_GEODE
   FILES:=$(LINUX_DIR)/drivers/crypto/geode-aes.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,09,geode-aes)
@@ -100,7 +107,6 @@ define KernelPackage/crypto-hw-hifn-795x
   TITLE:=HIFN 795x crypto accelerator
   DEPENDS:=+kmod-crypto-core +kmod-crypto-des
   KCONFIG:= \
-	CONFIG_CRYPTO_HW=y \
 	CONFIG_CRYPTO_DEV_HIFN_795X \
 	CONFIG_CRYPTO_DEV_HIFN_795X_RNG=y
   FILES:=$(LINUX_DIR)/drivers/crypto/hifn_795x.$(LINUX_KMOD_SUFFIX)
@@ -108,23 +114,6 @@ define KernelPackage/crypto-hw-hifn-795x
 endef
 
 $(eval $(call KernelPackage,crypto-hw-hifn-795x))
-
-
-define KernelPackage/crypto-hw-ixp4xx
-  SUBMENU:=$(CRYPTO_MENU)
-  TITLE:=Intel IXP4xx hardware crypto module
-  DEPENDS:= \
-	@TARGET_ixp4xx +kmod-crypto-core +kmod-crypto-des +kmod-crypto-authenc
-  KCONFIG:= CONFIG_CRYPTO_DEV_IXP4XX
-  FILES:=$(LINUX_DIR)/drivers/crypto/ixp4xx_crypto.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,90,ixp4xx_crypto)
-endef
-
-define KernelPackage/crypto-hw-ixp4xx/description
-  Kernel support for the Intel IXP4xx HW crypto engine.
-endef
-
-$(eval $(call KernelPackage,crypto-hw-ixp4xx))
 
 
 define KernelPackage/crypto-aes
@@ -157,10 +146,21 @@ endef
 $(eval $(call KernelPackage,crypto-arc4))
 
 
+define KernelPackage/crypto-aead
+  SUBMENU:=$(CRYPTO_MENU)
+  TITLE:=Authenticated Encryption with Associated Data
+  DEPENDS:=+kmod-crypto-core
+  KCONFIG:=CONFIG_CRYPTO_AEAD
+  FILES:=$(LINUX_DIR)/crypto/aead.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,09,aead)
+endef
+
+$(eval $(call KernelPackage,crypto-aead))
+
 define KernelPackage/crypto-authenc
   SUBMENU:=$(CRYPTO_MENU)
   TITLE:=Combined mode wrapper for IPsec
-  DEPENDS:=+kmod-crypto-core
+  DEPENDS:=+kmod-crypto-core +kmod-crypto-aead
   KCONFIG:=CONFIG_CRYPTO_AUTHENC
   FILES:=$(LINUX_DIR)/crypto/authenc.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,09,authenc)
@@ -317,6 +317,7 @@ define KernelPackage/crypto-test
   DEPENDS:=+kmod-crypto-core
   KCONFIG:=CONFIG_CRYPTO_TEST
   FILES:=$(LINUX_DIR)/crypto/tcrypt.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,09,tcrypt)
 endef
 
 $(eval $(call KernelPackage,crypto-test))

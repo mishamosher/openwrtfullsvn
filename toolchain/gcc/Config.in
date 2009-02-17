@@ -6,7 +6,6 @@ choice
 	default GCC_VERSION_4_2_4 if TARGET_avr32
 	default GCC_VERSION_4_2_4 if TARGET_ppc40x
 	default GCC_VERSION_4_2_4 if TARGET_ppc44x
-	default GCC_VERSION_4_2_4 if TARGET_ps3
 	default GCC_VERSION_4_1_2
 	help
 	  Select the version of gcc you wish to use.
@@ -21,18 +20,6 @@ choice
 	config GCC_VERSION_4_2_4
 		depends !LINUX_2_4
 		bool "gcc 4.2.4"
-
-	config GCC_VERSION_4_3_1
-		depends !LINUX_2_4
-		bool "gcc 4.3.1"
-
-	config GCC_VERSION_4_3_2
-		depends !LINUX_2_4
-		bool "gcc 4.3.2"
-
-	config GCC_VERSION_4_3_3
-		depends !LINUX_2_4
-		bool "gcc 4.3.3"
 
 endchoice
 
@@ -53,7 +40,6 @@ config EXTRA_GCC_CONFIG_OPTIONS
 
 config SSP_SUPPORT
 	bool
-	depends !GCC_VERSION_3_4_6
 	prompt "Enable Smash Stacking Protection support" if TOOLCHAINOPTS
 	default n
 	help

@@ -1,5 +1,7 @@
---- a/arch/mips/kernel/head.S
-+++ b/arch/mips/kernel/head.S
+Index: linux-2.6.21.7/arch/mips/kernel/head.S
+===================================================================
+--- linux-2.6.21.7.orig/arch/mips/kernel/head.S
++++ linux-2.6.21.7/arch/mips/kernel/head.S
 @@ -129,11 +129,15 @@
  #endif
  	.endm

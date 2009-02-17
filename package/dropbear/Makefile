@@ -14,8 +14,8 @@ PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:= \
-	http://matt.ucc.asn.au/dropbear/releases/ \
-	http://www.mirrors.wiretapped.net/security/cryptography/apps/ssh/dropbear/
+	http://www.mirrors.wiretapped.net/security/cryptography/apps/ssh/dropbear/ \
+	http://matt.ucc.asn.au/dropbear/releases/
 PKG_MD5SUM:=1045df60c2bdbd39c707238305a1e9e5
 
 include $(INCLUDE_DIR)/package.mk
@@ -33,12 +33,6 @@ endef
 
 define Package/dropbear/description
  A small SSH2 server/client designed for small memory environments.
-endef
-
-define Package/dropbear/conffiles
-/etc/dropbear/dropbear_rsa_host_key
-/etc/dropbear/dropbear_dss_host_key 
-/etc/config/dropbear 
 endef
 
 define Package/dropbearconvert
@@ -95,9 +89,8 @@ define Package/dropbear/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/dropbear.init $(1)/etc/init.d/dropbear
 	$(INSTALL_DIR) $(1)/usr/lib/opkg/info
-	$(INSTALL_DIR) $(1)/etc/dropbear
-	touch $(1)/etc/dropbear/dropbear_rsa_host_key
-	touch $(1)/etc/dropbear/dropbear_dss_host_key
+	echo /etc/dropbear/dropbear_rsa_host_key > $(1)/usr/lib/opkg/info/dropbear.conffiles
+	echo /etc/dropbear/dropbear_dss_host_key >> $(1)/usr/lib/opkg/info/dropbear.conffiles
 endef
 
 define Package/dropbearconvert/install

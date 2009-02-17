@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=e2fsprogs
 PKG_VERSION:=1.40.11
-PKG_RELEASE:=3
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/e2fsprogs
@@ -146,9 +146,6 @@ define Package/e2fsprogs/install
 	ln -sf mke2fs $(1)/usr/sbin/mkfs.ext3
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(foreach lib,com_err e2p,$(PKG_INSTALL_DIR)/usr/lib/lib$(lib).so.*) $(1)/usr/lib/
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./files/e2fsck.init $(1)/etc/init.d/e2fsck
-
 endef
 
 define Package/libuuid/install
@@ -168,7 +165,7 @@ endef
 
 define Package/libext2fs/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libext2fs.so* $(1)/usr/lib/
+	$(INSTALL_DATA) $(PKG_INSTALL_DIR)/usr/lib/libext2fs.so* $(1)/usr/lib/
 endef
 
 define Package/tune2fs/install

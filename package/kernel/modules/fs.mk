@@ -237,16 +237,11 @@ endef
 $(eval $(call KernelPackage,fs-nfsd))
 
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.28)),1)
-  MSDOS_DIR:=fat
-endif
-MSDOS_DIR?=msdos
-
 define KernelPackage/fs-msdos
   SUBMENU:=$(FS_MENU)
   TITLE:=MSDOS filesystem support
   KCONFIG:=CONFIG_MSDOS_FS
-  FILES:=$(LINUX_DIR)/fs/$(MSDOS_DIR)/msdos.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(LINUX_DIR)/fs/msdos/msdos.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,40,msdos)
 $(call KernelPackage/nls/Depends)
 endef
@@ -282,7 +277,7 @@ define KernelPackage/fs-vfat
 	CONFIG_VFAT_FS
   FILES:= \
 	$(LINUX_DIR)/fs/fat/fat.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/fs/$(if $(CONFIG_LINUX_2_6_28),fat,vfat)/vfat.$(LINUX_KMOD_SUFFIX)
+	$(LINUX_DIR)/fs/vfat/vfat.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,fat vfat)
 $(call KernelPackage/nls/Depends)
 endef
@@ -357,23 +352,6 @@ define KernelPackage/nls-cp850/description
 endef
 
 $(eval $(call KernelPackage,nls-cp850))
-
-
-define KernelPackage/nls-cp852
-  SUBMENU:=$(FS_MENU)
-  TITLE:=Codepage 852 (Europe)
-  KCONFIG:=CONFIG_NLS_CODEPAGE_852
-  FILES:=$(LINUX_DIR)/fs/nls/nls_cp852.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,25,nls_cp852)
-$(call KernelPackage/nls/Depends)
-endef
-
-
-define KernelPackage/nls-cp852/description
- Kernel module for NLS Codepage 852 (Europe)
-endef
-
-$(eval $(call KernelPackage,nls-cp852))
 
 
 define KernelPackage/nls-cp1250

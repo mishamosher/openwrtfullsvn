@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,31 +9,18 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=hostapd
-PKG_VERSION:=0.6.8
+PKG_VERSION:=0.6.6
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://hostap.epitest.fi/releases/
 PKG_SOURCE_SUBDIR:=hostapd-$(PKG_VERSION)
 PKG_SOURCE_VERSION:=$(PKG_REV)
-PKG_MD5SUM:=4b183183e20af1386017e9f499184ee1
+PKG_MD5SUM:=cba36847d38c753731afefe1460f5f90
 PKG_BUILD_DEPENDS:=PACKAGE_kmod-madwifi:madwifi PACKAGE_kmod-mac80211:mac80211 PACKAGE_kmod-mac80211:libnl
 
 include $(INCLUDE_DIR)/package.mk
-
-PKG_CONFDEPS := \
-	CONFIG_PACKAGE_kmod-ath9k \
-	CONFIG_PACKAGE_kmod-mac80211 \
-	CONFIG_PACKAGE_kmod-madwifi \
-	CONFIG_PACKAGE_hostapd \
-	CONFIG_PACKAGE_hostapd-mini
-
-STAMP_CONFIGURED:=$(STAMP_CONFIGURED)_$(call confvar,$(PKG_CONFDEPS))
-
-DRIVER_MAKEOPTS= \
-	CONFIG_DRIVER_NL80211=$(CONFIG_PACKAGE_kmod-mac80211) \
-	CONFIG_DRIVER_MADWIFI=$(CONFIG_PACKAGE_kmod-madwifi) \
-	CONFIG_IEEE80211N=$(CONFIG_PACKAGE_kmod-ath9k)
+STAMP_CONFIGURED:=$(STAMP_CONFIGURED)_$(call confvar,CONFIG_PACKAGE_kmod-mac80211 CONFIG_PACKAGE_kmod-madwifi CONFIG_PACKAGE_hostapd CONFIG_PACKAGE_hostapd-mini)
 
 define Package/hostapd/Default
   SECTION:=net
@@ -54,7 +41,7 @@ endef
 #endef
 
 define Package/hostapd/description
- This package contains a full featured IEEE 802.1x/WPA/EAP/RADIUS
+ This package contains a full featured IEEE 802.1x/WPA/EAP/RADIUS 
  Authenticator.
 endef
 
@@ -68,7 +55,7 @@ endef
 #endef
 
 define Package/hostapd-mini/description
- This package contains a minimal IEEE 802.1x/WPA/EAP/RADIUS Authenticator
+ This package contains a minimal IEEE 802.1x/WPA/EAP/RADIUS Authenticator 
  (WPA-PSK only).
 endef
 
@@ -79,7 +66,7 @@ define Package/hostapd-utils
 endef
 
 define Package/hostapd-utils/description
- This package contains a command line utility to control the
+ This package contains a command line utility to control the 
  IEEE 802.1x/WPA/EAP/RADIUS Authenticator.
 endef
 
@@ -91,13 +78,14 @@ define Build/ConfigureTarget
 		$(PKG_BUILD_DIR)/src \
 		$(PKG_BUILD_DIR)/hostapd.$(1)/
 	$(CP) ./files/$(1).config $(PKG_BUILD_DIR)/hostapd.$(1)/hostapd/.config
+	$(if $(CONFIG_PACKAGE_kmod-mac80211),,$(SED) 's,^CONFIG_DRIVER_NL80211,#CONFIG_DRIVER_NL80211,g' $(PKG_BUILD_DIR)/hostapd.$(1)/hostapd/.config)
+	$(if $(CONFIG_PACKAGE_kmod-madwifi),,$(SED) 's,^CONFIG_DRIVER_MADWIFI,#CONFIG_DRIVER_MADWIFI,g' $(PKG_BUILD_DIR)/hostapd.$(1)/hostapd/.config)
 endef
 
 define Build/CompileTarget
 	CFLAGS="$(TARGET_CFLAGS) -I$(STAGING_DIR)/usr/include/madwifi -I$(STAGING_DIR)/usr/include/mac80211 -I$(STAGING_DIR)/usr/include/libnl -I$(STAGING_DIR)/usr/include" \
 	$(MAKE) -C $(PKG_BUILD_DIR)/hostapd.$(1)/hostapd \
 		$(TARGET_CONFIGURE_OPTS) \
-		$(DRIVER_MAKEOPTS) \
 		LIBS="$(TARGET_LDFLAGS) -L$(STAGING_DIR)/usr/lib \
 			$(if $(CONFIG_PACKAGE_kmod-mac80211),-lm $(STAGING_DIR)/usr/lib/libnl.a) \
 			$(if $(findstring default,$(1)),-lssl -lcrypto)" \
@@ -112,7 +100,7 @@ define Package/InstallTemplate
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/hostapd.$(2)/hostapd/hostapd $$(1)/usr/sbin/
 # config is managed through uci
 #	$(INSTALL_DIR) $$(1)/etc
-#	$(INSTALL_CONF) $(PKG_BUILD_DIR)/hostapd.$(2)/hostapd/hostapd.conf $$(1)/etc/hostapd.conf
+#	$(INSTALL_CONF) $(PKG_BUILD_DIR)/hostapd.$(2)/hostapd/hostapd.conf $$(1)/etc/hostapd.conf 
 endef
 
 define Package/Template

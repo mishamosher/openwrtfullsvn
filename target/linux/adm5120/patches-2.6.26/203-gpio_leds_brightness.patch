@@ -1,6 +1,6 @@
 --- a/drivers/leds/leds-gpio.c
 +++ b/drivers/leds/leds-gpio.c
-@@ -43,13 +43,17 @@ static void gpio_led_set(struct led_clas
+@@ -43,13 +43,17 @@
  		container_of(led_cdev, struct gpio_led_data, cdev);
  	int level;
  

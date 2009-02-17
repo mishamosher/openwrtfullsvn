@@ -67,24 +67,6 @@ endef
 
 $(eval $(call KernelPackage,ata-ixp4xx-cf))
 
-define KernelPackage/ata-rb532-cf
-  SUBMENU:=$(BLOCK_MENU)
-  TITLE:=RB532 Compact Flash support
-  DEPENDS:=@TARGET_rb532 kmod-ata-core @BROKEN
-  KCONFIG:= \
-  	CONFIG_PATA_PLATFORM \
-  	CONFIG_PATA_RB532
-  FILES:=\
-  	$(LINUX_DIR)/drivers/ata/pata_platform.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/drivers/ata/pata_rb532_cf.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,41,pata_platform pata_rb532_cf)
-endef
-
-define KernelPackage/ata-rb532-cf/description
-  RB532 Compact Flash support.
-endef
-
-$(eval $(call KernelPackage,ata-rb532-cf))
 
 define KernelPackage/ata-nvidia-sata
   SUBMENU:=$(BLOCK_MENU)
@@ -131,11 +113,10 @@ endef
 $(eval $(call KernelPackage,ata-via-sata))
 
 
-# XXX: broken on 2.6.28 due to module name/path changes
 define KernelPackage/ide-core
   SUBMENU:=$(BLOCK_MENU)
   TITLE:=IDE (ATA/ATAPI) device support
-  DEPENDS:=@PCI_SUPPORT @LINUX_2_6_28:BROKEN
+  DEPENDS:=@PCI_SUPPORT
   KCONFIG:= \
 	CONFIG_IDE \
 	CONFIG_IDE_GENERIC \
@@ -301,18 +282,3 @@ define KernelPackage/pata-rb153-cf/description
 endef
 
 $(eval $(call KernelPackage,pata-rb153-cf))
-
-
-define KernelPackage/aoe
-  SUBMENU:=$(BLOCK_MENU)
-  TITLE:=ATA over Ethernet support
-  KCONFIG:=CONFIG_ATA_OVER_ETH
-  FILES:=$(LINUX_DIR)/drivers/block/aoe/aoe.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,30,aoe)
-endef
-
-define KernelPackage/aoe/description
-  Kernel support for ATA over Ethernet
-endef
-
-$(eval $(call KernelPackage,aoe))

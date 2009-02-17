@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,12 +9,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq
-PKG_VERSION:=2.47
+PKG_VERSION:=2.46
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://thekelleys.org.uk/dnsmasq
-PKG_MD5SUM:=4524081e56d0b935717d493e8e8d3e11
+PKG_MD5SUM:=79ec740d1a10ee75f13efa4ff36d0250
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -27,10 +27,6 @@ endef
 
 define Package/dnsmasq/description
  It is intended to provide coupled DNS and DHCP service to a LAN.
-endef
-
-define Package/dnsmasq/conffiles
-/etc/config/dhcp
 endef
 
 define Build/Compile

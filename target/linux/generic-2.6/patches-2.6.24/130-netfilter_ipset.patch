@@ -1,20 +1,3 @@
---- a/include/linux/netfilter_ipv4/Kbuild
-+++ b/include/linux/netfilter_ipv4/Kbuild
-@@ -45,3 +45,14 @@ header-y += ipt_ttl.h
- 
- unifdef-y += ip_queue.h
- unifdef-y += ip_tables.h
-+
-+unifdef-y += ip_set.h
-+header-y  += ip_set_iphash.h
-+header-y  += ip_set_ipmap.h
-+header-y  += ip_set_ipporthash.h
-+unifdef-y += ip_set_iptree.h
-+unifdef-y += ip_set_iptreemap.h
-+header-y  += ip_set_jhash.h
-+header-y  += ip_set_macipmap.h
-+unifdef-y += ip_set_nethash.h
-+header-y  += ip_set_portmap.h
 --- /dev/null
 +++ b/include/linux/netfilter_ipv4/ip_set.h
 @@ -0,0 +1,498 @@
@@ -7534,7 +7517,7 @@
 +module_exit(ipt_SET_fini);
 --- a/net/ipv4/netfilter/Kconfig
 +++ b/net/ipv4/netfilter/Kconfig
-@@ -408,5 +408,122 @@ config IP_NF_ARP_MANGLE
+@@ -408,5 +408,122 @@
  	  Allows altering the ARP packet payload: source and destination
  	  hardware and network addresses.
  
@@ -7659,7 +7642,7 @@
  
 --- a/net/ipv4/netfilter/Makefile
 +++ b/net/ipv4/netfilter/Makefile
-@@ -49,6 +49,7 @@ obj-$(CONFIG_IP_NF_MATCH_OWNER) += ipt_o
+@@ -49,6 +49,7 @@
  obj-$(CONFIG_IP_NF_MATCH_RECENT) += ipt_recent.o
  obj-$(CONFIG_IP_NF_MATCH_TOS) += ipt_tos.o
  obj-$(CONFIG_IP_NF_MATCH_TTL) += ipt_ttl.o
@@ -7667,7 +7650,7 @@
  
  obj-$(CONFIG_IP_NF_MATCH_IPP2P) += ipt_ipp2p.o
  
-@@ -64,6 +65,18 @@ obj-$(CONFIG_IP_NF_TARGET_SAME) += ipt_S
+@@ -64,6 +65,18 @@
  obj-$(CONFIG_IP_NF_TARGET_TOS) += ipt_TOS.o
  obj-$(CONFIG_IP_NF_TARGET_TTL) += ipt_TTL.o
  obj-$(CONFIG_IP_NF_TARGET_ULOG) += ipt_ULOG.o

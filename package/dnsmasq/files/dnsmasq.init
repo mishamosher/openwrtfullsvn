@@ -36,10 +36,6 @@ append_parm() {
 	append args "$switch $_loctmp"
 }
 
-append_server() {
-	append args "-S $1"
-}
-
 dnsmasq() {
 	local cfg="$1"
 	append_bool "$cfg" authoritative "-K"
@@ -56,7 +52,6 @@ dnsmasq() {
 	append_bool "$cfg" dbus "-1"
 	append_bool "$cfg" boguspriv "-b"
 	append_bool "$cfg" expandhosts "-E"
-	append_bool "$cfg" enable_tftp "--enable-tftp"
 
 	append_parm "$cfg" dnsforwardmax "-0"
 	append_parm "$cfg" port "-p"
@@ -66,11 +61,8 @@ dnsmasq() {
 	append_parm "$cfg" "queryport" "-Q"
 	append_parm "$cfg" "domain" "-s"
 	append_parm "$cfg" "local" "-S"
-	config_list_foreach "$cfg" "server" append_server
 	append_parm "$cfg" "leasefile" "-l"
 	append_parm "$cfg" "resolvfile" "-r"
-	append_parm "$cfg" "tftp_root" "--tftp-root"
-	append_parm "$cfg" "dhcp_boot" "--dhcp-boot"
 
 	config_get leasefile $cfg leasefile
 	[ -e "$leasefile" ] || touch "$leasefile"
@@ -227,7 +219,7 @@ dhcp_add() {
 	#check for an already active dhcp server on the interface, unless 'force' is set
 	config_get_bool force "$cfg" force 0
 	[ "$force" -gt 0 ] || {
-		udhcpc -n -q -s /bin/true -t 1 -i $ifname >&- && return 0
+		udhcpc -n -q -R -s /bin/true -t 1 -i $ifname >&- && return 0
 	}
 
 	config_get start "$cfg" start

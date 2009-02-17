@@ -36,15 +36,10 @@ config X86_GRUB_BOOTOPTS
 
 
 config X86_VDI_IMAGES
-    bool "Build VirtualBox image files (VDI). Requires VBoxManage"
+    bool "Build VirtualBox image files (VDI). Requires vditool"
     depends TARGET_x86
     depends TARGET_ROOTFS_EXT2FS
     depends X86_GRUB_IMAGES
     select PACKAGE_kmod-pcnet32
 
-config X86_VMDK_IMAGES
-    bool "Build VMware image files (VMDK). Requires qemu-img"
-    depends TARGET_x86
-    depends TARGET_ROOTFS_EXT2FS
-    depends X86_GRUB_IMAGES
-    select PACKAGE_kmod-e1000
+

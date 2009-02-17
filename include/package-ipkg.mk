@@ -17,8 +17,6 @@ IPKG:= \
 IPKG_BUILD:= \
   ipkg-build -c -o 0 -g 0
 
-IPKG_STATE_DIR:=$(TARGET_DIR)/usr/lib/opkg
-
 define BuildIPKGVariable
   $(call shexport,Package/$(1)/$(2))
   $(1)_COMMANDS += var2file "$(call shvar,Package/$(1)/$(2))" $(2);

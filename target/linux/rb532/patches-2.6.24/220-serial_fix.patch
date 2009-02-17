@@ -1,5 +1,7 @@
---- a/drivers/serial/8250.c
-+++ b/drivers/serial/8250.c
+Index: linux-2.6.23.17/drivers/serial/8250.c
+===================================================================
+--- linux-2.6.23.17.orig/drivers/serial/8250.c
++++ linux-2.6.23.17/drivers/serial/8250.c
 @@ -433,6 +433,13 @@ serial_out(struct uart_8250_port *up, in
  	default:
  		outb(value, up->port.iobase + offset);

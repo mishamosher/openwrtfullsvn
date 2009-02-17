@@ -1,6 +1,7 @@
---- a/arch/mips/kernel/time.c
-+++ b/arch/mips/kernel/time.c
-@@ -75,6 +75,7 @@ EXPORT_SYMBOL(perf_irq);
+diff -urN linux-2.6.24.7/arch/mips/kernel/time.c linux-2.6.24.7.new/arch/mips/kernel/time.c
+--- linux-2.6.24.7/arch/mips/kernel/time.c	2008-05-07 01:22:34.000000000 +0200
++++ linux-2.6.24.7.new/arch/mips/kernel/time.c	2008-07-15 15:38:33.000000000 +0200
+@@ -75,6 +75,7 @@
   */
  
  unsigned int mips_hpt_frequency;
@@ -8,9 +9,10 @@
  
  void __init clocksource_set_clock(struct clocksource *cs, unsigned int clock)
  {
---- a/drivers/watchdog/Kconfig
-+++ b/drivers/watchdog/Kconfig
-@@ -639,6 +639,18 @@ config AR7_WDT
+diff -urN linux-2.6.24.7/drivers/watchdog/Kconfig linux-2.6.24.7.new/drivers/watchdog/Kconfig
+--- linux-2.6.24.7/drivers/watchdog/Kconfig	2008-05-07 01:22:34.000000000 +0200
++++ linux-2.6.24.7.new/drivers/watchdog/Kconfig	2008-07-15 15:39:24.000000000 +0200
+@@ -639,6 +639,18 @@
  	help
  	  Hardware driver for the TI AR7 Watchdog Timer.
  

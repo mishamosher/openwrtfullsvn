@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2007-2009 OpenWrt.org
+# Copyright (C) 2007 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,12 +9,11 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=iw
-PKG_VERSION:=0.9.9
+PKG_VERSION:=0.9.5
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://wireless.kernel.org/download/iw/
-PKG_MD5SUM:=fa79323a4dd181fdd3908990191d118d
 PKG_BUILD_DEPENDS:=mac80211 libnl
 
 include $(INCLUDE_DIR)/package.mk
@@ -28,7 +27,8 @@ define Package/iw
 endef
 
 define Build/Configure
-	echo "#define IW_VERSION \"$(PKG_VERSION)\"" > $(PKG_BUILD_DIR)/version.h
+	$(CP) $(PKG_BUILD_DIR)/defconfig $(PKG_BUILD_DIR)/.config
+	echo "#define IW_VERSION \"$(VERSION)\"" > $(PKG_BUILD_DIR)/version.h
 endef
 
 MAKE_FLAGS += \

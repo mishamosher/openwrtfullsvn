@@ -23,11 +23,9 @@ BOARDNAME:=User Mode Linux
 FEATURES:=ext2
 LINUX_CONFIG:=$(CURDIR)/config/$(ARCH)
 
-LINUX_VERSION:=2.6.28.5
+LINUX_VERSION:=2.6.26.5
 
 include $(INCLUDE_DIR)/target.mk
-
-DEFAULT_PACKAGES += hostapd-mini kmod-mac80211-hwsim
 
 endif
 

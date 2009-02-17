@@ -67,7 +67,6 @@ hostapd_setup_vif() {
 		;;
 		*)
 			wpa=0
-			crypto=
 		;;
 	esac
 	config_get ifname "$vif" ifname
@@ -95,7 +94,7 @@ ${bridge:+bridge=$bridge}
 ssid=$ssid
 debug=0
 wpa=$wpa
-${crypto:+wpa_pairwise=$crypto}
+wpa_pairwise=$crypto
 $hostapd_cfg
 EOF
 	hostapd -P /var/run/wifi-$ifname.pid -B /var/run/hostapd-$ifname.conf

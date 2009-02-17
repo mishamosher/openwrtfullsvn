@@ -15,11 +15,10 @@
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/dma-mapping.h>
-#include <linux/etherdevice.h>
 #include <linux/platform_device.h>
 #include <linux/serial_8250.h>
-#include <linux/ath9k_platform.h>
 
+#include <asm/mips_machine.h>
 #include <asm/mach-ar71xx/ar71xx.h>
 #include <asm/mach-ar71xx/platform.h>
 
@@ -28,7 +27,7 @@ static u8 ar71xx_mac_base[ETH_ALEN] __initdata;
 /*
  * OHCI (USB full speed host controller)
  */
-static struct resource ar71xx_ohci_resources[] = {
+static struct resource ar71xx_usb_ohci_resources[] = {
 	[0] = {
 		.start	= AR71XX_OHCI_BASE,
 		.end	= AR71XX_OHCI_BASE + AR71XX_OHCI_SIZE - 1,
@@ -42,11 +41,11 @@ static struct resource ar71xx_ohci_resources[] = {
 };
 
 static u64 ar71xx_ohci_dmamask = DMA_BIT_MASK(32);
-static struct platform_device ar71xx_ohci_device = {
+static struct platform_device ar71xx_usb_ohci_device = {
 	.name		= "ar71xx-ohci",
 	.id		= -1,
-	.resource	= ar71xx_ohci_resources,
-	.num_resources	= ARRAY_SIZE(ar71xx_ohci_resources),
+	.resource	= ar71xx_usb_ohci_resources,
+	.num_resources	= ARRAY_SIZE(ar71xx_usb_ohci_resources),
 	.dev = {
 		.dma_mask		= &ar71xx_ohci_dmamask,
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
@@ -56,7 +55,7 @@ static struct platform_device ar71xx_ohci_device = {
 /*
  * EHCI (USB full speed host controller)
  */
-static struct resource ar71xx_ehci_resources[] = {
+static struct resource ar71xx_usb_ehci_resources[] = {
 	[0] = {
 		.start	= AR71XX_EHCI_BASE,
 		.end	= AR71XX_EHCI_BASE + AR71XX_EHCI_SIZE - 1,
@@ -69,19 +68,15 @@ static struct resource ar71xx_ehci_resources[] = {
 	},
 };
 
-
 static u64 ar71xx_ehci_dmamask = DMA_BIT_MASK(32);
-static struct ar71xx_ehci_platform_data ar71xx_ehci_data;
-
-static struct platform_device ar71xx_ehci_device = {
+static struct platform_device ar71xx_usb_ehci_device = {
 	.name		= "ar71xx-ehci",
 	.id		= -1,
-	.resource	= ar71xx_ehci_resources,
-	.num_resources	= ARRAY_SIZE(ar71xx_ehci_resources),
+	.resource	= ar71xx_usb_ehci_resources,
+	.num_resources	= ARRAY_SIZE(ar71xx_usb_ehci_resources),
 	.dev = {
 		.dma_mask		= &ar71xx_ehci_dmamask,
 		.coherent_dma_mask	= DMA_BIT_MASK(32),
-		.platform_data		= &ar71xx_ehci_data,
 	},
 };
 
@@ -89,7 +84,7 @@ static struct platform_device ar71xx_ehci_device = {
 	(RESET_MODULE_USB_HOST | RESET_MODULE_USB_PHY \
 	| RESET_MODULE_USB_OHCI_DLL)
 
-static void ar71xx_usb_setup(void)
+void __init ar71xx_add_device_usb(void)
 {
 	ar71xx_device_stop(AR71XX_USB_RESET_MASK);
 	mdelay(1000);
@@ -102,44 +97,14 @@ static void ar71xx_usb_setup(void)
 	ar71xx_usb_ctrl_wr(USB_CTRL_REG_FLADJ, 0x20c00);
 
 	mdelay(900);
+
+	platform_device_register(&ar71xx_usb_ohci_device);
+	platform_device_register(&ar71xx_usb_ehci_device);
 }
 
-static void ar91xx_usb_setup(void)
-{
-	ar71xx_device_stop(RESET_MODULE_USBSUS_OVERRIDE);
-	mdelay(10);
-
-	ar71xx_device_start(RESET_MODULE_USB_HOST);
-	mdelay(10);
-
-	ar71xx_device_start(RESET_MODULE_USB_PHY);
-	mdelay(10);
-}
-
-void __init ar71xx_add_device_usb(void)
-{
-	switch (ar71xx_soc) {
-	case AR71XX_SOC_AR7130:
-	case AR71XX_SOC_AR7141:
-	case AR71XX_SOC_AR7161:
-		ar71xx_usb_setup();
-		platform_device_register(&ar71xx_ohci_device);
-		platform_device_register(&ar71xx_ehci_device);
-		break;
-
-	case AR71XX_SOC_AR9130:
-	case AR71XX_SOC_AR9132:
-		ar91xx_usb_setup();
-		ar71xx_ehci_data.is_ar91xx = 1;
-		platform_device_register(&ar71xx_ehci_device);
-		break;
-
-	default:
-		BUG();
-	}
-}
-
-#ifndef CONFIG_AR71XX_EARLY_SERIAL
+#ifdef CONFIG_AR71XX_EARLY_SERIAL
+static void __init ar71xx_add_device_uart(void) {};
+#else
 static struct resource ar71xx_uart_resources[] = {
 	{
 		.start	= AR71XX_UART_BASE,
@@ -171,7 +136,7 @@ static struct platform_device ar71xx_uart_device = {
 	},
 };
 
-void __init ar71xx_add_device_uart(void)
+static void __init ar71xx_add_device_uart(void)
 {
 	ar71xx_uart_data[0].uartclk = ar71xx_ahb_freq;
 	platform_device_register(&ar71xx_uart_device);
@@ -207,79 +172,6 @@ void __init ar71xx_add_device_mdio(u32 phy_mask)
 	platform_device_register(&ar71xx_mdio_device);
 }
 
-static void ar71xx_set_pll(u32 cfg_reg, u32 pll_reg, u32 pll_val, u32 shift)
-{
-	void __iomem *base;
-	u32 t;
-
-	base = ioremap_nocache(AR71XX_PLL_BASE, AR71XX_PLL_SIZE);
-
-	t = __raw_readl(base + cfg_reg);
-	t &= ~(3 << shift);
-	t |=  (2 << shift);
-	__raw_writel(t, base + cfg_reg);
-	udelay(100);
-
-	__raw_writel(pll_val, base + pll_reg);
-
-	t |= (3 << shift);
-	__raw_writel(t, base + cfg_reg);
-	udelay(100);
-
-	t &= ~(3 << shift);
-	__raw_writel(t, base + cfg_reg);
-	udelay(100);
-
-	printk(KERN_DEBUG "ar71xx: pll_reg %#x: %#x\n",
-		(unsigned int)(base + pll_reg), __raw_readl(base + pll_reg));
-
-	iounmap(base);
-}
-
-static void ar71xx_set_pll_ge0(u32 val)
-{
-	ar71xx_set_pll(AR71XX_PLL_REG_SEC_CONFIG, AR71XX_PLL_REG_ETH0_INT_CLOCK,
-			val, AR71XX_ETH0_PLL_SHIFT);
-}
-
-static void ar71xx_set_pll_ge1(u32 val)
-{
-	ar71xx_set_pll(AR71XX_PLL_REG_SEC_CONFIG, AR71XX_PLL_REG_ETH1_INT_CLOCK,
-			 val, AR71XX_ETH1_PLL_SHIFT);
-}
-
-static void ar91xx_set_pll_ge0(u32 val)
-{
-	ar71xx_set_pll(AR91XX_PLL_REG_ETH_CONFIG, AR91XX_PLL_REG_ETH0_INT_CLOCK,
-			 val, AR91XX_ETH0_PLL_SHIFT);
-}
-
-static void ar91xx_set_pll_ge1(u32 val)
-{
-	ar71xx_set_pll(AR91XX_PLL_REG_ETH_CONFIG, AR91XX_PLL_REG_ETH1_INT_CLOCK,
-			 val, AR91XX_ETH1_PLL_SHIFT);
-}
-
-static void ar71xx_ddr_flush_ge0(void)
-{
-	ar71xx_ddr_flush(AR71XX_DDR_REG_FLUSH_GE0);
-}
-
-static void ar71xx_ddr_flush_ge1(void)
-{
-	ar71xx_ddr_flush(AR71XX_DDR_REG_FLUSH_GE1);
-}
-
-static void ar91xx_ddr_flush_ge0(void)
-{
-	ar71xx_ddr_flush(AR91XX_DDR_REG_FLUSH_GE0);
-}
-
-static void ar91xx_ddr_flush_ge1(void)
-{
-	ar71xx_ddr_flush(AR91XX_DDR_REG_FLUSH_GE1);
-}
-
 static struct resource ar71xx_eth0_resources[] = {
 	{
 		.name	= "mac_base",
@@ -306,6 +198,7 @@ static struct resource ar71xx_eth0_resources[] = {
 
 struct ag71xx_platform_data ar71xx_eth0_data = {
 	.reset_bit	= RESET_MODULE_GE0_MAC,
+	.flush_reg	= DDR_REG_FLUSH_GE0,
 };
 
 static struct platform_device ar71xx_eth0_device = {
@@ -344,6 +237,7 @@ static struct resource ar71xx_eth1_resources[] = {
 
 struct ag71xx_platform_data ar71xx_eth1_data = {
 	.reset_bit	= RESET_MODULE_GE1_MAC,
+	.flush_reg	= DDR_REG_FLUSH_GE1,
 };
 
 static struct platform_device ar71xx_eth1_device = {
@@ -360,7 +254,6 @@ static int ar71xx_eth_instance __initdata;
 void __init ar71xx_add_device_eth(unsigned int id)
 {
 	struct platform_device *pdev;
-	struct ag71xx_platform_data *pdata;
 
 	switch (id) {
 	case 0:
@@ -378,10 +271,10 @@ void __init ar71xx_add_device_eth(unsigned int id)
 			ar71xx_eth0_data.mii_if = MII0_CTRL_IF_RMII;
 			break;
 		default:
-			printk(KERN_ERR "ar71xx: invalid PHY interface mode "
-					"for eth0\n");
-			return;
+			BUG();
 		}
+		memcpy(ar71xx_eth0_data.mac_addr, ar71xx_mac_base, ETH_ALEN);
+		ar71xx_eth0_data.mac_addr[5] += ar71xx_eth_instance;
 		pdev = &ar71xx_eth0_device;
 		break;
 	case 1:
@@ -393,82 +286,21 @@ void __init ar71xx_add_device_eth(unsigned int id)
 			ar71xx_eth1_data.mii_if = MII1_CTRL_IF_RGMII;
 			break;
 		default:
-			printk(KERN_ERR "ar71xx: invalid PHY interface mode "
-					"for eth1\n");
-			return;
+			BUG();
 		}
+		memcpy(ar71xx_eth1_data.mac_addr, ar71xx_mac_base, ETH_ALEN);
+		ar71xx_eth1_data.mac_addr[5] += ar71xx_eth_instance;
 		pdev = &ar71xx_eth1_device;
 		break;
 	default:
-		printk(KERN_ERR "ar71xx: invalid ethernet id %d\n", id);
-		return;
-	}
-
-	pdata = pdev->dev.platform_data;
-
-	switch (ar71xx_soc) {
-	case AR71XX_SOC_AR7130:
-		pdata->ddr_flush = id ? ar71xx_ddr_flush_ge1
-				      : ar71xx_ddr_flush_ge0;
-		pdata->set_pll =  id ? ar71xx_set_pll_ge1
-				     : ar71xx_set_pll_ge0;
-		break;
-
-	case AR71XX_SOC_AR7141:
-	case AR71XX_SOC_AR7161:
-		pdata->ddr_flush = id ? ar71xx_ddr_flush_ge1
-				      : ar71xx_ddr_flush_ge0;
-		pdata->set_pll =  id ? ar71xx_set_pll_ge1
-				     : ar71xx_set_pll_ge0;
-		pdata->has_gbit = 1;
-		break;
-
-	case AR71XX_SOC_AR9130:
-		pdata->ddr_flush = id ? ar91xx_ddr_flush_ge1
-				      : ar91xx_ddr_flush_ge0;
-		pdata->set_pll =  id ? ar91xx_set_pll_ge1
-				     : ar91xx_set_pll_ge0;
-		pdata->is_ar91xx = 1;
-		break;
-
-	case AR71XX_SOC_AR9132:
-		pdata->ddr_flush = id ? ar91xx_ddr_flush_ge1
-				      : ar91xx_ddr_flush_ge0;
-		pdata->set_pll =  id ? ar91xx_set_pll_ge1
-				      : ar91xx_set_pll_ge0;
-		pdata->is_ar91xx = 1;
-		pdata->has_gbit = 1;
-		break;
-
-	default:
-		BUG();
-	}
-
-	switch (pdata->phy_if_mode) {
-	case PHY_INTERFACE_MODE_GMII:
-	case PHY_INTERFACE_MODE_RGMII:
-		if (!pdata->has_gbit) {
-			printk(KERN_ERR "ar71xx: no gbit available on eth%d\n",
-					id);
-			return;
-		}
-		/* fallthrough */
-	default:
+		pdev = NULL;
 		break;
 	}
 
-	if (is_valid_ether_addr(ar71xx_mac_base)) {
-		memcpy(pdata->mac_addr, ar71xx_mac_base, ETH_ALEN);
-		pdata->mac_addr[5] += ar71xx_eth_instance;
-	} else {
-		random_ether_addr(pdata->mac_addr);
-		printk(KERN_DEBUG
-			"ar71xx: using random MAC address for eth%d\n",
-			ar71xx_eth_instance);
+	if (pdev) {
+		platform_device_register(pdev);
+		ar71xx_eth_instance++;
 	}
-
-	platform_device_register(pdev);
-	ar71xx_eth_instance++;
 }
 
 static struct resource ar71xx_spi_resources[] = {
@@ -490,6 +322,8 @@ void __init ar71xx_add_device_spi(struct ar71xx_spi_platform_data *pdata,
 				struct spi_board_info const *info,
 				unsigned n)
 {
+	ar71xx_gpio_function_enable(GPIO_FUNC_SPI_EN);
+
 	spi_register_board_info(info, n);
 	ar71xx_spi_device.dev.platform_data = pdata;
 	platform_device_register(&ar71xx_spi_device);
@@ -513,9 +347,8 @@ void __init ar71xx_add_device_leds_gpio(int id, unsigned num_leds,
 	if (!pdev)
 		goto err_free_leds;
 
-	memset(&pdata, 0, sizeof(pdata));
 	pdata.num_leds = num_leds;
-	pdata.leds = p;
+	pdata.leds = leds;
 
 	err = platform_device_add_data(pdev, &pdata, sizeof(pdata));
 	if (err)
@@ -554,7 +387,6 @@ void __init ar71xx_add_device_gpio_buttons(int id,
 	if (!pdev)
 		goto err_free_buttons;
 
-	memset(&pdata, 0, sizeof(pdata));
 	pdata.poll_interval = poll_interval;
 	pdata.nbuttons = nbuttons;
 	pdata.buttons = p;
@@ -595,53 +427,22 @@ void __init ar71xx_parse_mac_addr(char *mac_str)
 	t = sscanf(mac_str, "%02hhx:%02hhx:%02hhx:%02hhx:%02hhx:%02hhx",
 			&tmp[0], &tmp[1], &tmp[2], &tmp[3], &tmp[4], &tmp[5]);
 
-	if (t != ETH_ALEN)
-		t = sscanf(mac_str, "%02hhx.%02hhx.%02hhx.%02hhx.%02hhx.%02hhx",
-			&tmp[0], &tmp[1], &tmp[2], &tmp[3], &tmp[4], &tmp[5]);
-
 	if (t == ETH_ALEN)
 		ar71xx_set_mac_base(tmp);
 	else
-		printk(KERN_DEBUG "ar71xx: failed to parse mac address "
+		printk(KERN_DEBUG "AR71XX: failed to parse mac address "
 				"\"%s\"\n", mac_str);
 }
 
-static struct resource ar91xx_wmac_resources[] = {
-	{
-		.start	= AR91XX_WMAC_BASE,
-		.end	= AR91XX_WMAC_BASE + AR91XX_WMAC_SIZE - 1,
-		.flags	= IORESOURCE_MEM,
-	}, {
-		.start	= AR71XX_CPU_IRQ_WMAC,
-		.end	= AR71XX_CPU_IRQ_WMAC,
-		.flags	= IORESOURCE_IRQ,
-	},
-};
-
-static struct ath9k_platform_data ar91xx_wmac_data;
-
-static struct platform_device ar91xx_wmac_device = {
-	.name		= "ath9k",
-	.id		= -1,
-	.resource	= ar91xx_wmac_resources,
-	.num_resources	= ARRAY_SIZE(ar91xx_wmac_resources),
-	.dev = {
-		.platform_data = &ar91xx_wmac_data,
-	},
-};
-
-void __init ar91xx_add_device_wmac(void)
+static int __init ar71xx_machine_setup(void)
 {
-	u8 *ee = (u8 *) KSEG1ADDR(0x1fff1000);
+	ar71xx_gpio_init();
 
-	memcpy(ar91xx_wmac_data.eeprom_data, ee,
-	       sizeof(ar91xx_wmac_data.eeprom_data));
+	ar71xx_add_device_uart();
+	ar71xx_add_device_wdt();
 
-	ar71xx_device_stop(RESET_MODULE_AMBA2WMAC);
-	mdelay(10);
-
-	ar71xx_device_start(RESET_MODULE_AMBA2WMAC);
-	mdelay(10);
-
-	platform_device_register(&ar91xx_wmac_device);
+	mips_machine_setup();
+	return 0;
 }
+
+arch_initcall(ar71xx_machine_setup);

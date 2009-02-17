@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2008 OpenWrt.org
+# Copyright (C) 2006 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -12,10 +12,6 @@ include $(INCLUDE_DIR)/host-build.mk
 
 define cc
 	$(CC) $(HOST_CFLAGS) -include endian.h -o $(PKG_BUILD_DIR)/bin/$(1) src/$(1).c $(2)
-endef
-
-define cc2
-	$(CC) $(HOST_CFLAGS) -include endian.h -o $(PKG_BUILD_DIR)/bin/$(firstword $(1)) $(foreach src,$(1),src/$(src).c) $(2)
 endef
 
 define Build/Compile
@@ -34,11 +30,8 @@ define Build/Compile
 	$(call cc,lzma2eva,-lz)
 	$(call cc,mkcasfw)
 	$(call cc,mkfwimage,-lz)
-	$(call cc,mkfwimage2,-lz)
 	$(call cc,imagetag)
 	$(call cc,add_header)
-	$(call cc,makeamitbin)
-	$(call cc2,mkplanexfw sha1)
 endef
 
 define Build/Install

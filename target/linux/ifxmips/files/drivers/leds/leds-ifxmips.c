@@ -14,7 +14,7 @@
  *   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA 02111-1307, USA.
  *
  *   Copyright (C) 2006 infineon
- *   Copyright (C) 2007 John Crispin <blogic@openwrt.org>
+ *   Copyright (C) 2007 John Crispin <blogic@openwrt.org> 
  *
  */
 
@@ -25,81 +25,82 @@
 #include <linux/fs.h>
 #include <linux/init.h>
 #include <linux/platform_device.h>
-#include <linux/uaccess.h>
-#include <linux/unistd.h>
+#include <asm/uaccess.h>
+#include <asm/unistd.h>
 #include <linux/errno.h>
-#include <linux/leds.h>
-#include <linux/delay.h>
-
 #include <asm/ifxmips/ifxmips.h>
 #include <asm/ifxmips/ifxmips_gpio.h>
 #include <asm/ifxmips/ifxmips_pmu.h>
+#include <linux/leds.h>
+#include <linux/delay.h>
 
-#define DRVNAME					"ifxmips_led"
+#define DRVNAME							"ifxmips_led"
 
-#if 1
 #define IFXMIPS_LED_CLK_EDGE			IFXMIPS_LED_FALLING
-#else
-#define IFXMIPS_LED_CLK_EDGE			IFXMIPS_LED_RISING
-#endif
+//#define IFXMIPS_LED_CLK_EDGE			IFXMIPS_LED_RISING
 
-#define IFXMIPS_LED_SPEED			IFXMIPS_LED_8HZ
+#define IFXMIPS_LED_SPEED				IFXMIPS_LED_8HZ
 
 #define IFXMIPS_LED_GPIO_PORT			0
 
-#define IFXMIPS_MAX_LED				24
+#define IFXMIPS_MAX_LED					24
 
 struct ifxmips_led {
 	struct led_classdev cdev;
 	u8 bit;
 };
 
-void ifxmips_led_set(unsigned int led)
+void
+ifxmips_led_set (unsigned int led)
 {
 	led &= 0xffffff;
 	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CPU0) | led, IFXMIPS_LED_CPU0);
 }
 EXPORT_SYMBOL(ifxmips_led_set);
 
-void ifxmips_led_clear(unsigned int led)
+void
+ifxmips_led_clear (unsigned int led)
 {
 	led = ~(led & 0xffffff);
 	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CPU0) & led, IFXMIPS_LED_CPU0);
 }
 EXPORT_SYMBOL(ifxmips_led_clear);
 
-void ifxmips_led_blink_set(unsigned int led)
+void
+ifxmips_led_blink_set (unsigned int led)
 {
 	led &= 0xffffff;
 	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) | led, IFXMIPS_LED_CON0);
 }
 EXPORT_SYMBOL(ifxmips_led_blink_set);
 
-void ifxmips_led_blink_clear(unsigned int led)
+void
+ifxmips_led_blink_clear (unsigned int led)
 {
 	led = ~(led & 0xffffff);
 	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) & led, IFXMIPS_LED_CON0);
 }
 EXPORT_SYMBOL(ifxmips_led_blink_clear);
 
-static void ifxmips_ledapi_set(struct led_classdev *led_cdev,
-	enum led_brightness value)
+void
+ifxmips_ledapi_set(struct led_classdev *led_cdev, enum led_brightness value)
 {
-	struct ifxmips_led *led_dev =
-		container_of(led_cdev, struct ifxmips_led, cdev);
+	struct ifxmips_led *led_dev = container_of(led_cdev, struct ifxmips_led, cdev);
 
-	if (value)
+	if(value)
 		ifxmips_led_set(1 << led_dev->bit);
 	else
 		ifxmips_led_clear(1 << led_dev->bit);
 }
 
-void ifxmips_led_setup_gpio(void)
+void
+ifxmips_led_setup_gpio (void)
 {
 	int i = 0;
 
 	/* we need to setup pins SH,D,ST (4,5,6) */
-	for (i = 4; i < 7; i++) {
+	for (i = 4; i < 7; i++)
+	{
 		ifxmips_port_set_altsel0(IFXMIPS_LED_GPIO_PORT, i);
 		ifxmips_port_clear_altsel1(IFXMIPS_LED_GPIO_PORT, i);
 		ifxmips_port_set_dir_out(IFXMIPS_LED_GPIO_PORT, i);
@@ -107,7 +108,8 @@ void ifxmips_led_setup_gpio(void)
 	}
 }
 
-static int ifxmips_led_probe(struct platform_device *dev)
+static int
+ifxmips_led_probe(struct platform_device *dev)
 {
 	int i = 0;
 
@@ -120,39 +122,32 @@ static int ifxmips_led_probe(struct platform_device *dev)
 	ifxmips_w32(0, IFXMIPS_LED_CON1);
 
 	/* setup the clock edge that the shift register is triggered on */
-	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) & ~IFXMIPS_LED_EDGE_MASK,
-		IFXMIPS_LED_CON0);
-	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) | IFXMIPS_LED_CLK_EDGE,
-		IFXMIPS_LED_CON0);
+	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) & ~IFXMIPS_LED_EDGE_MASK, IFXMIPS_LED_CON0);
+	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) | IFXMIPS_LED_CLK_EDGE, IFXMIPS_LED_CON0);
 
 	/* per default leds 15-0 are set */
 	ifxmips_w32(IFXMIPS_LED_GROUP1 | IFXMIPS_LED_GROUP0, IFXMIPS_LED_CON1);
 
 	/* leds are update periodically by the FPID */
-	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) & ~IFXMIPS_LED_UPD_MASK,
-		IFXMIPS_LED_CON1);
-	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) | IFXMIPS_LED_UPD_SRC_FPI,
-		IFXMIPS_LED_CON1);
+	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) & ~IFXMIPS_LED_UPD_MASK, IFXMIPS_LED_CON1);
+	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) | IFXMIPS_LED_UPD_SRC_FPI, IFXMIPS_LED_CON1);
 
 	/* set led update speed */
-	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) & ~IFXMIPS_LED_MASK,
-		IFXMIPS_LED_CON1);
-	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) | IFXMIPS_LED_SPEED,
-		IFXMIPS_LED_CON1);
+	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) & ~IFXMIPS_LED_MASK, IFXMIPS_LED_CON1);
+	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON1) | IFXMIPS_LED_SPEED, IFXMIPS_LED_CON1);
 
 	/* adsl 0 and 1 leds are updated by the arc */
-	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) | IFXMIPS_LED_ADSL_SRC,
-		IFXMIPS_LED_CON0);
+	ifxmips_w32(ifxmips_r32(IFXMIPS_LED_CON0) | IFXMIPS_LED_ADSL_SRC, IFXMIPS_LED_CON0);
 
 	/* per default, the leds are turned on */
 	ifxmips_pmu_enable(IFXMIPS_PMU_PWDCR_LED);
 
-	for (i = 0; i < IFXMIPS_MAX_LED; i++) {
-		struct ifxmips_led *tmp =
-			kzalloc(sizeof(struct ifxmips_led), GFP_KERNEL);
+	for(i = 0; i < IFXMIPS_MAX_LED; i++)
+	{
+		struct ifxmips_led *tmp = kzalloc(sizeof(struct ifxmips_led), GFP_KERNEL);
 		tmp->cdev.brightness_set = ifxmips_ledapi_set;
 		tmp->cdev.name = kmalloc(sizeof("ifxmips:led:00"), GFP_KERNEL);
-		sprintf((char *)tmp->cdev.name, "ifxmips:led:%02d", i);
+		sprintf((char*)tmp->cdev.name, "ifxmips:led:%02d", i);
 		tmp->cdev.default_trigger = NULL;
 		tmp->bit = i;
 		led_classdev_register(&dev->dev, &tmp->cdev);
@@ -161,12 +156,14 @@ static int ifxmips_led_probe(struct platform_device *dev)
 	return 0;
 }
 
-static int ifxmips_led_remove(struct platform_device *pdev)
+static int
+ifxmips_led_remove(struct platform_device *pdev)
 {
 	return 0;
 }
 
-static struct platform_driver ifxmips_led_driver = {
+static struct
+platform_driver ifxmips_led_driver = {
 	.probe = ifxmips_led_probe,
 	.remove = ifxmips_led_remove,
 	.driver = {
@@ -175,17 +172,18 @@ static struct platform_driver ifxmips_led_driver = {
 	},
 };
 
-int __init ifxmips_led_init(void)
+int __init
+ifxmips_led_init (void)
 {
 	int ret = platform_driver_register(&ifxmips_led_driver);
 	if (ret)
-		printk(KERN_INFO
-			"ifxmips_led: Error registering platfom driver!");
+		printk(KERN_INFO "ifxmips_led: Error registering platfom driver!");
 
 	return ret;
 }
 
-void __exit ifxmips_led_exit(void)
+void __exit
+ifxmips_led_exit (void)
 {
 	platform_driver_unregister(&ifxmips_led_driver);
 }

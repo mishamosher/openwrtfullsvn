@@ -26,7 +26,7 @@ ifneq ($(DUMP),1)
     LIB_SUFFIX:=64
   endif
 else
-  LIBC_VERSION:=<LIBC_VERSION>
+  UCLIBC_VERSION:=<UCLIBC_VERSION>
   LIBGCC_VERSION:=<LIBGCC_VERSION>
 endif
 
@@ -72,12 +72,12 @@ endef
 define Package/libgcc
 $(call Package/gcc/Default)
   TITLE:=GCC support library
-  DEPENDS+=@!TARGET_avr32
+  DEPENDS:=@!TARGET_avr32 @!NATIVE_TOOLCHAIN
 endef
 
 define Package/libssp
 $(call Package/gcc/Default)
-  DEPENDS+=@SSP_SUPPORT
+  DEPENDS:=@SSP_SUPPORT
   TITLE:=GCC support library
 endef
 
@@ -85,31 +85,25 @@ define Package/libstdcpp
 $(call Package/gcc/Default)
   NAME:=libstdc++
   TITLE:=GNU Standard C++ Library v3
-  DEPENDS+=@INSTALL_LIBSTDCPP
+  DEPENDS:=@!NATIVE_TOOLCHAIN&&@INSTALL_LIBSTDCPP
 endef
 
-define Package/libc/Default
+define Package/uclibc/Default
   SECTION:=libs
   CATEGORY:=Base system
   DEPENDS:=@!NATIVE_TOOLCHAIN
-  VERSION:=$(LIBC_VERSION)-$(PKG_RELEASE)
-  URL:=$(LIBC_URL)
-endef
-
-define Package/libc
-$(call Package/libc/Default)
-  TITLE:=C library
+  URL:=http://uclibc.org/
+  VERSION:=$(UCLIBC_VERSION)$(UCLIBC_PATCHVER)-$(PKG_RELEASE)
 endef
 
 define Package/libpthread
-$(call Package/libc/Default)
+$(call Package/uclibc/Default)
   TITLE:=POSIX thread library
-  DEPENDS:= +librt
 endef
 
-define Package/librt
-$(call Package/libc/Default)
-  TITLE:=POSIX.1b RealTime extension library
+define Package/uclibc
+$(call Package/uclibc/Default)
+  TITLE:=C library embedded systems
 endef
 
 define Package/ldd
@@ -118,10 +112,9 @@ $(call Package/uclibc/Default)
 endef
 
 define Package/ldconfig
-$(call Package/libc/Default)
+$(call Package/uclibc/Default)
   TITLE:=Shared library path configuration
 endef
-
 
 define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
@@ -160,7 +153,6 @@ define Package/base-files$(TARGET)/install
 		$(SED) 's/$$$$/:13848:0:99999:7:::/' $(1)/etc/shadow \
 	)
 	$(SED) 's,$$$$R,$(REVISION),g' $(1)/etc/banner
-	mkdir -p $(1)/CONTROL
 	mkdir -p $(1)/dev
 	mkdir -p $(1)/etc/crontabs
 	mkdir -p $(1)/jffs
@@ -192,66 +184,40 @@ define Package/libgcc/install
 	$(CP) $(TOOLCHAIN_DIR)/lib$(LIB_SUFFIX)/libgcc_s.so.* $(1)/lib/
 endef
 
-define Package/libssp/install
+ifeq ($(word 1,$(subst ., ,$(LIBGCC_VERSION))),4)
+  define Package/libssp/install
 	$(INSTALL_DIR) $(1)/lib
 	$(CP) $(TOOLCHAIN_DIR)/lib$(LIB_SUFFIX)/libssp.so.* $(1)/lib/
-endef
+  endef
+endif
 
 define Package/libstdcpp/install
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(TOOLCHAIN_DIR)/usr/lib$(LIB_SUFFIX)/libstdc++.so.* $(1)/usr/lib/
-endef
-
-use_libutil=$(if $(CONFIG_USE_GLIBC)$(CONFIG_EGLIBC_OPTION_EGLIBC_UTMP),libutil)
-use_libnsl=$(if $(CONFIG_USE_GLIBC)$(CONFIG_EGLIBC_OPTION_EGLIBC_NIS),libnsl)
-use_nsswitch=$(if $(CONFIG_USE_GLIBC)$(CONFIG_EGLIBC_OPTION_EGLIBC_NSSWITCH),libnss_dns libnss_files)
-
-define Package/glibc/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib/ld*.so.* $(1)/lib/
-	$(CP) $(TOOLCHAIN_DIR)/lib/ld-$(LIBC_VERSION).so $(1)/lib/
-	for file in libanl libc libcidn libcrypt libdl libm $(use_libnsl) $(use_nsswitch) libresolv $(use_libutil); do \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file.so.* $(1)/lib/; \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_VERSION).so $(1)/lib/; \
-	done
-endef
-
-define Package/eglibc/install
-$(call Package/glibc/install,$1)
-endef
-
-define Package/uClibc/install
-	$(INSTALL_DIR) $(1)/lib
-	for file in ld$(LIB_SUFFIX)-uClibc libc libcrypt libdl libm libnsl libresolv libuClibc libutil; do \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file.so.* $(1)/lib/; \
-		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_VERSION).so $(1)/lib/; \
-	done
-endef
-
-define Package/libc/install
-$(call Package/$(LIBC)/install,$1)
+	$(CP) $(TOOLCHAIN_DIR)/lib$(LIB_SUFFIX)/libstdc++.so.* $(1)/lib/
 endef
 
 define Package/libpthread/install
 	$(INSTALL_DIR) $(1)/lib
 	$(CP) $(TOOLCHAIN_DIR)/lib/libpthread.so.* $(1)/lib/
-	$(CP) $(TOOLCHAIN_DIR)/lib/libpthread-$(LIBC_VERSION).so $(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/libpthread-$(UCLIBC_VERSION).so $(1)/lib/
 endef
 
-define Package/librt/install
+define Package/uclibc/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib/librt.so.* $(1)/lib/
-	$(CP) $(TOOLCHAIN_DIR)/lib/librt-$(LIBC_VERSION).so $(1)/lib/
+	for file in ld$(LIB_SUFFIX)-uClibc libc libcrypt libdl libm libnsl libresolv librt libuClibc libutil; do \
+		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file.so.* $(1)/lib/; \
+		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file-$(UCLIBC_VERSION).so $(1)/lib/; \
+	done
 endef
 
 define Package/ldd/install
-	$(INSTALL_DIR) $(1)/usr/bin/
-	$(CP) $(TOOLCHAIN_DIR)/usr/bin/ldd $(1)/usr/bin/
+	$(INSTALL_DIR) $(1)/bin/
+	$(CP) $(TOOLCHAIN_DIR)/target-utils/ldd $(1)/bin/
 endef
 
 define Package/ldconfig/install
-	$(INSTALL_DIR) $(1)/sbin/
-	$(CP) $(TOOLCHAIN_DIR)/sbin/ldconfig $(1)/sbin/
+	$(INSTALL_DIR) $(1)/bin/
+	$(CP) $(TOOLCHAIN_DIR)/target-utils/ldconfig $(1)/bin/
 endef
 
 ifneq ($(DUMP),1)
@@ -259,11 +225,10 @@ ifneq ($(DUMP),1)
 endif
 
 $(eval $(call BuildPackage,base-files$(TARGET)))
-$(eval $(call BuildPackage,libc))
 $(eval $(call BuildPackage,libgcc))
 $(eval $(call BuildPackage,libssp))
 $(eval $(call BuildPackage,libstdcpp))
 $(eval $(call BuildPackage,libpthread))
-$(eval $(call BuildPackage,librt))
+$(eval $(call BuildPackage,uclibc))
 $(eval $(call BuildPackage,ldd))
 $(eval $(call BuildPackage,ldconfig))

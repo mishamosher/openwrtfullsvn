@@ -140,7 +140,7 @@ define KernelPackage/usb2
   TITLE:=Support for USB2 controllers
   KCONFIG:=CONFIG_USB_EHCI_HCD
   FILES:=$(LINUX_DIR)/drivers/usb/host/ehci-hcd.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,40,ehci-hcd)
+  AUTOLOAD:=$(call AutoLoad,50,ehci-hcd)
 endef
 
 define KernelPackage/usb2/description
@@ -575,7 +575,7 @@ $(eval $(call KernelPackage,usb-net-asix))
 
 
 define KernelPackage/usb-net-hso
-  $(call usbdep,kmod-usb-net @LINUX_2_6 @!LINUX_2_6_21 @!LINUX_2_6_23 @!LINUX_2_6_24 @!LINUX_2_6_25)
+  $(call usbdep,kmod-usb-net @LINUX_2_6_26)
   TITLE:=Kernel module for Option USB High Speed Mobile Devices
   KCONFIG:= \
 	CONFIG_RFKILL \
@@ -681,17 +681,4 @@ define KernelPackage/usb-test/description
 endef
 
 $(eval $(call KernelPackage,usb-test))
-
-define KernelPackage/usb-phidget
-  $(call usbdep,@LINUX_2_6)
-  TITLE:=USB Phidget Driver
-  KCONFIG:=CONFIG_USB_PHIDGET CONFIG_USB_PHIDGETKIT CONFIG_USB_PHIDGETMOTORCONTROL CONFIG_USB_PHIDGETSERVO
-  FILES:=$(LINUX_DIR)/drivers/usb/misc/phidget*.ko
-endef
-
-define KernelPackage/usb-phidget/description
- Kernel support for USB Phidget devices.
-endef
-
-$(eval $(call KernelPackage,usb-phidget))
 

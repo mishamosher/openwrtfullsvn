@@ -1,5 +1,7 @@
+Index: linux-2.6.21.7/drivers/net/imq.c
+===================================================================
 --- /dev/null
-+++ b/drivers/net/imq.c
++++ linux-2.6.21.7/drivers/net/imq.c
 @@ -0,0 +1,402 @@
 +/*
 + *             Pseudo-driver for the intermediate queue device.
@@ -403,8 +405,10 @@
 +MODULE_AUTHOR("http://www.linuximq.net");
 +MODULE_DESCRIPTION("Pseudo-driver for the intermediate queue device. See http://www.linuximq.net/ for more information.");
 +MODULE_LICENSE("GPL");
---- a/drivers/net/Kconfig
-+++ b/drivers/net/Kconfig
+Index: linux-2.6.21.7/drivers/net/Kconfig
+===================================================================
+--- linux-2.6.21.7.orig/drivers/net/Kconfig
++++ linux-2.6.21.7/drivers/net/Kconfig
 @@ -96,6 +96,129 @@ config EQUALIZER
  	  To compile this driver as a module, choose M here: the module
  	  will be called eql.  If unsure, say N.
@@ -535,8 +539,10 @@
  config TUN
  	tristate "Universal TUN/TAP device driver support"
  	select CRC32
---- a/drivers/net/Makefile
-+++ b/drivers/net/Makefile
+Index: linux-2.6.21.7/drivers/net/Makefile
+===================================================================
+--- linux-2.6.21.7.orig/drivers/net/Makefile
++++ linux-2.6.21.7/drivers/net/Makefile
 @@ -124,6 +124,7 @@ obj-$(CONFIG_SLIP) += slip.o
  obj-$(CONFIG_SLHC) += slhc.o
  
@@ -545,8 +551,10 @@
  obj-$(CONFIG_IFB) += ifb.o
  obj-$(CONFIG_DE600) += de600.o
  obj-$(CONFIG_DE620) += de620.o
+Index: linux-2.6.21.7/include/linux/imq.h
+===================================================================
 --- /dev/null
-+++ b/include/linux/imq.h
++++ linux-2.6.21.7/include/linux/imq.h
 @@ -0,0 +1,9 @@
 +#ifndef _IMQ_H
 +#define _IMQ_H
@@ -557,8 +565,10 @@
 +#define IMQ_F_ENQUEUE  0x80
 +
 +#endif /* _IMQ_H */
+Index: linux-2.6.21.7/include/linux/netfilter_ipv4/ipt_IMQ.h
+===================================================================
 --- /dev/null
-+++ b/include/linux/netfilter_ipv4/ipt_IMQ.h
++++ linux-2.6.21.7/include/linux/netfilter_ipv4/ipt_IMQ.h
 @@ -0,0 +1,8 @@
 +#ifndef _IPT_IMQ_H
 +#define _IPT_IMQ_H
@@ -568,8 +578,10 @@
 +};
 +
 +#endif /* _IPT_IMQ_H */
+Index: linux-2.6.21.7/include/linux/netfilter_ipv6/ip6t_IMQ.h
+===================================================================
 --- /dev/null
-+++ b/include/linux/netfilter_ipv6/ip6t_IMQ.h
++++ linux-2.6.21.7/include/linux/netfilter_ipv6/ip6t_IMQ.h
 @@ -0,0 +1,8 @@
 +#ifndef _IP6T_IMQ_H
 +#define _IP6T_IMQ_H
@@ -579,8 +591,10 @@
 +};
 +
 +#endif /* _IP6T_IMQ_H */
---- a/include/linux/skbuff.h
-+++ b/include/linux/skbuff.h
+Index: linux-2.6.21.7/include/linux/skbuff.h
+===================================================================
+--- linux-2.6.21.7.orig/include/linux/skbuff.h
++++ linux-2.6.21.7/include/linux/skbuff.h
 @@ -294,6 +294,10 @@ struct sk_buff {
  #if defined(CONFIG_NF_CONNTRACK) || defined(CONFIG_NF_CONNTRACK_MODULE)
  	struct sk_buff		*nfct_reasm;
@@ -592,8 +606,10 @@
  #ifdef CONFIG_BRIDGE_NETFILTER
  	struct nf_bridge_info	*nf_bridge;
  #endif
---- a/net/core/dev.c
-+++ b/net/core/dev.c
+Index: linux-2.6.21.7/net/core/dev.c
+===================================================================
+--- linux-2.6.21.7.orig/net/core/dev.c
++++ linux-2.6.21.7/net/core/dev.c
 @@ -94,6 +94,9 @@
  #include <linux/skbuff.h>
  #include <net/sock.h>
@@ -617,8 +633,10 @@
  			dev_queue_xmit_nit(skb, dev);
  
  		if (netif_needs_gso(dev, skb)) {
---- a/net/core/skbuff.c
-+++ b/net/core/skbuff.c
+Index: linux-2.6.21.7/net/core/skbuff.c
+===================================================================
+--- linux-2.6.21.7.orig/net/core/skbuff.c
++++ linux-2.6.21.7/net/core/skbuff.c
 @@ -430,6 +430,10 @@ struct sk_buff *skb_clone(struct sk_buff
  	C(nfct_reasm);
  	nf_conntrack_get_reasm(skb->nfct_reasm);
@@ -641,8 +659,10 @@
  #ifdef CONFIG_BRIDGE_NETFILTER
  	new->nf_bridge	= old->nf_bridge;
  	nf_bridge_get(old->nf_bridge);
+Index: linux-2.6.21.7/net/ipv4/netfilter/ipt_IMQ.c
+===================================================================
 --- /dev/null
-+++ b/net/ipv4/netfilter/ipt_IMQ.c
++++ linux-2.6.21.7/net/ipv4/netfilter/ipt_IMQ.c
 @@ -0,0 +1,69 @@
 +/*
 + * This target marks packets to be enqueued to an imq device
@@ -713,8 +733,10 @@
 +MODULE_AUTHOR("http://www.linuximq.net");
 +MODULE_DESCRIPTION("Pseudo-driver for the intermediate queue device. See http://www.linuximq.net/ for more information.");
 +MODULE_LICENSE("GPL");
---- a/net/ipv4/netfilter/Kconfig
-+++ b/net/ipv4/netfilter/Kconfig
+Index: linux-2.6.21.7/net/ipv4/netfilter/Kconfig
+===================================================================
+--- linux-2.6.21.7.orig/net/ipv4/netfilter/Kconfig
++++ linux-2.6.21.7/net/ipv4/netfilter/Kconfig
 @@ -587,6 +587,17 @@ config IP_NF_MANGLE
  
  	  To compile it as a module, choose M here.  If unsure, say N.
@@ -733,8 +755,10 @@
  config IP_NF_TARGET_TOS
  	tristate "TOS target support"
  	depends on IP_NF_MANGLE
---- a/net/ipv4/netfilter/Makefile
-+++ b/net/ipv4/netfilter/Makefile
+Index: linux-2.6.21.7/net/ipv4/netfilter/Makefile
+===================================================================
+--- linux-2.6.21.7.orig/net/ipv4/netfilter/Makefile
++++ linux-2.6.21.7/net/ipv4/netfilter/Makefile
 @@ -99,6 +99,7 @@ obj-$(CONFIG_IP_NF_MATCH_IPP2P) += ipt_i
  obj-$(CONFIG_IP_NF_TARGET_REJECT) += ipt_REJECT.o
  obj-$(CONFIG_IP_NF_TARGET_TOS) += ipt_TOS.o
@@ -743,8 +767,10 @@
  obj-$(CONFIG_IP_NF_TARGET_MASQUERADE) += ipt_MASQUERADE.o
  obj-$(CONFIG_IP_NF_TARGET_REDIRECT) += ipt_REDIRECT.o
  obj-$(CONFIG_IP_NF_TARGET_NETMAP) += ipt_NETMAP.o
+Index: linux-2.6.21.7/net/ipv6/netfilter/ip6t_IMQ.c
+===================================================================
 --- /dev/null
-+++ b/net/ipv6/netfilter/ip6t_IMQ.c
++++ linux-2.6.21.7/net/ipv6/netfilter/ip6t_IMQ.c
 @@ -0,0 +1,69 @@
 +/*
 + * This target marks packets to be enqueued to an imq device
@@ -815,8 +841,10 @@
 +MODULE_AUTHOR("http://www.linuximq.net");
 +MODULE_DESCRIPTION("Pseudo-driver for the intermediate queue device. See http://www.linuximq.net/ for more information.");
 +MODULE_LICENSE("GPL");
---- a/net/ipv6/netfilter/Kconfig
-+++ b/net/ipv6/netfilter/Kconfig
+Index: linux-2.6.21.7/net/ipv6/netfilter/Kconfig
+===================================================================
+--- linux-2.6.21.7.orig/net/ipv6/netfilter/Kconfig
++++ linux-2.6.21.7/net/ipv6/netfilter/Kconfig
 @@ -173,6 +173,15 @@ config IP6_NF_MANGLE
  
  	  To compile it as a module, choose M here.  If unsure, say N.
@@ -833,8 +861,10 @@
  config IP6_NF_TARGET_HL
  	tristate  'HL (hoplimit) target support'
  	depends on IP6_NF_MANGLE
---- a/net/ipv6/netfilter/Makefile
-+++ b/net/ipv6/netfilter/Makefile
+Index: linux-2.6.21.7/net/ipv6/netfilter/Makefile
+===================================================================
+--- linux-2.6.21.7.orig/net/ipv6/netfilter/Makefile
++++ linux-2.6.21.7/net/ipv6/netfilter/Makefile
 @@ -13,6 +13,7 @@ obj-$(CONFIG_IP6_NF_MATCH_EUI64) += ip6t
  obj-$(CONFIG_IP6_NF_MATCH_OWNER) += ip6t_owner.o
  obj-$(CONFIG_IP6_NF_FILTER) += ip6table_filter.o
@@ -843,8 +873,10 @@
  obj-$(CONFIG_IP6_NF_TARGET_HL) += ip6t_HL.o
  obj-$(CONFIG_IP6_NF_QUEUE) += ip6_queue.o
  obj-$(CONFIG_IP6_NF_TARGET_LOG) += ip6t_LOG.o
---- a/net/sched/sch_generic.c
-+++ b/net/sched/sch_generic.c
+Index: linux-2.6.21.7/net/sched/sch_generic.c
+===================================================================
+--- linux-2.6.21.7.orig/net/sched/sch_generic.c
++++ linux-2.6.21.7/net/sched/sch_generic.c
 @@ -87,7 +87,6 @@ void qdisc_unlock_tree(struct net_device
  
     NOTE: Called under dev->queue_lock with locally disabled BH.

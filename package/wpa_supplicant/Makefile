@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2008-2009 OpenWrt.org
+# Copyright (C) 2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,14 +9,14 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=wpa_supplicant
-PKG_VERSION:=0.6.8
+PKG_VERSION:=0.6.3
 PKG_RELEASE:=1
-PKG_MD5SUM:=e933332490e0e5acfef2279457f1070a
+PKG_MD5SUM:=b51b2975f21006f85f7297f3fb1acde1
 
 PKG_SOURCE_URL:=http://hostap.epitest.fi/releases
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
-PKG_BUILD_DEPENDS:=PACKAGE_kmod-madwifi:madwifi
+PKG_BUILD_DEPENDS:=madwifi
 
 include $(INCLUDE_DIR)/package.mk
 STAMP_CONFIGURED:=$(STAMP_CONFIGURED)_$(call confvar,CONFIG_PACKAGE_kmod-madwifi CONFIG_WPA_SUPPLICANT_NO_TIMESTAMP_CHECK)
@@ -45,7 +45,7 @@ define Package/wpa-cli
 endef
 
 define Package/wpa-cli/Description
- WPA Supplicant control utility
+ WPA Supplicant control utility 
 endef
 
 CONFIG=$(firstword $(wildcard ./files/config.$(BOARD) ./files/config.$(ARCH) ./config))

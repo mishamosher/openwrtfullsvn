@@ -46,6 +46,8 @@ struct if_usb_card {
 	struct lbs_private *priv;
 
 	struct sk_buff *rx_skb;
+	uint32_t usb_event_cause;
+	uint8_t usb_int_cause;
 
 	uint8_t ep_in;
 	uint8_t ep_out;
@@ -68,7 +70,6 @@ struct if_usb_card {
 	uint8_t fwfinalblk;
 	uint8_t surprise_removed;
 
-	__le16 boot2_version;
 };
 
 /** fwheader */

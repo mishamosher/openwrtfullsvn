@@ -82,60 +82,15 @@ source "target/linux/*/image/Config.in"
 
 endmenu
 
-menu "Global build settings"
 
 config ALL
 	bool "Select all packages by default"
 	default n
 
-comment "Features"
-
-config CLEAN_IPKG
-	bool
-	prompt "Disable ipkg/opkg installation on the target"
-	default n
-	help
-		This removes all ipkg data from the target directory before building the root fs
-
-comment "Package build options"
-
-config DEBUG
-	bool
-	prompt "Compile packages with debugging info"
-	default n
-	help
-		Disables stripping and adds -g3 to the CFLAGS
-
-config DEBUG_DIR
-	bool "Install debugging binaries into a staging directory"
-	default n
-	help
-		This will install all compiled package binaries into build_dir/target-*/debug-*/,
-		useful for cross-debugging via gdb/gdbserver
-
-config NO_STRIP
-	bool "Install unstripped binary on the target (useful for native compiling/debugging)"
-	default n
-
-comment "Kernel build options"
-
-config KERNEL_KALLSYMS
-	bool "Compile the kernel with symbol table information"
-	default n
-	help
-		This will give you more information in stack traces from kernel oopses
-config KERNEL_PROFILING
-	bool "Compile the kernel with profiling enabled"
-	default n
-	help
-		Enable the extended profiling support mechanisms used by profilers such
-		as OProfile.
-
-endmenu
-
 menuconfig DEVEL
 	bool "Advanced configuration options (for developers)"
 	default n
+	select BUILDOPTS
 	select TOOLCHAINOPTS if !NATIVE_TOOLCHAIN
 
 config BROKEN
@@ -152,50 +107,57 @@ config LOCALMIRROR
 	string
 	prompt "Local mirror for source packages" if DEVEL
 
+menuconfig BUILDOPTS
+	bool
+	prompt "Build Options" if DEVEL
+
+config DEBUG
+	bool
+	prompt "Enable debugging" if BUILDOPTS
+	select NO_STRIP
+	default n
+	help
+		Disables stripping and adds -g3 to the CFLAGS
+
+config NO_STRIP
+	bool "Do not strip generated binaries (enable for native compiling)" if BUILDOPTS
+	default n
+
+config CLEAN_IPKG
+	bool
+	prompt "Clean all ipkg files before building the rootfs" if BUILDOPTS
+	default n
+
 config AUTOREBUILD
 	bool
-	prompt "Automatic rebuild of packages" if DEVEL
+	prompt "Automatic rebuild of packages" if BUILDOPTS
 	default y
 	help
 		Automatically rebuild packages when their files change
 
 config BUILD_SUFFIX
 	string
-	prompt "Build suffix to append to the BUILD_DIR variable" if DEVEL
+	prompt "Build suffix to append to the BUILD_DIR variable" if BUILDOPTS
 	default ""
 	help
 		Build suffix to append to the BUILD_DIR variable, i.e: build_dir_suffix
 
+config TAR_VERBOSITY
+	bool 
+	prompt "Tar verbose" if BUILDOPTS
+	default n
+
 config CCACHE
 	bool
-	prompt "Use ccache" if DEVEL
+	prompt "Use ccache" if BUILDOPTS
 	default n
 	help
 		Compiler cache; see http://ccache.samba.org/
 
 config EXTERNAL_KERNEL_TREE
 	string
-	prompt "Use external kernel tree" if DEVEL
+	prompt "Use external kernel tree" if BUILDOPTS
 	default ""
-
-config KERNEL_GIT_CLONE_URI
-	string
-	prompt "Enter git repository to clone" if DEVEL
-	default ""
-	help
-		Enter the full git repository path i.e.:
-		git://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux-2.6.git
-		This will create a git clone of the kernel in your build
-		directory.
-
-config KERNEL_GIT_LOCAL_REPOSITORY
-	string
-	prompt "Enter path to local reference repository" if DEVEL
-	default ""
-	help
-		Enter a full pathname to a local reference git repository.
-		In this instance, the --refererence option of git clone will
-		be used thus creating a quick local clone of your repo.
 
 source "toolchain/Config.in"
 

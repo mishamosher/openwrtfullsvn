@@ -1,5 +1,7 @@
---- a/net/netfilter/Kconfig
-+++ b/net/netfilter/Kconfig
+Index: linux-2.6.21.7/net/netfilter/Kconfig
+===================================================================
+--- linux-2.6.21.7.orig/net/netfilter/Kconfig
++++ linux-2.6.21.7/net/netfilter/Kconfig
 @@ -640,6 +640,27 @@ config NETFILTER_XT_MATCH_STATE
  
  	  To compile it as a module, choose M here.  If unsure, say N.
@@ -28,8 +30,10 @@
  config NETFILTER_XT_MATCH_STATISTIC
  	tristate '"statistic" match support'
  	depends on NETFILTER_XTABLES
---- a/net/netfilter/Makefile
-+++ b/net/netfilter/Makefile
+Index: linux-2.6.21.7/net/netfilter/Makefile
+===================================================================
+--- linux-2.6.21.7.orig/net/netfilter/Makefile
++++ linux-2.6.21.7/net/netfilter/Makefile
 @@ -68,6 +68,7 @@ obj-$(CONFIG_NETFILTER_XT_MATCH_QUOTA) +
  obj-$(CONFIG_NETFILTER_XT_MATCH_REALM) += xt_realm.o
  obj-$(CONFIG_NETFILTER_XT_MATCH_SCTP) += xt_sctp.o
@@ -38,8 +42,10 @@
  obj-$(CONFIG_NETFILTER_XT_MATCH_STATISTIC) += xt_statistic.o
  obj-$(CONFIG_NETFILTER_XT_MATCH_STRING) += xt_string.o
  obj-$(CONFIG_NETFILTER_XT_MATCH_TCPMSS) += xt_tcpmss.o
+Index: linux-2.6.21.7/net/netfilter/xt_layer7.c
+===================================================================
 --- /dev/null
-+++ b/net/netfilter/xt_layer7.c
++++ linux-2.6.21.7/net/netfilter/xt_layer7.c
 @@ -0,0 +1,634 @@
 +/*
 +  Kernel module to match application layer (OSI layer 7) data in connections.
@@ -675,8 +681,10 @@
 +
 +module_init(xt_layer7_init);
 +module_exit(xt_layer7_fini);
+Index: linux-2.6.21.7/net/netfilter/regexp/regexp.c
+===================================================================
 --- /dev/null
-+++ b/net/netfilter/regexp/regexp.c
++++ linux-2.6.21.7/net/netfilter/regexp/regexp.c
 @@ -0,0 +1,1197 @@
 +/*
 + * regcomp and regexec -- regsub and regerror are elsewhere
@@ -1875,8 +1883,10 @@
 +#endif
 +
 +
+Index: linux-2.6.21.7/net/netfilter/regexp/regexp.h
+===================================================================
 --- /dev/null
-+++ b/net/netfilter/regexp/regexp.h
++++ linux-2.6.21.7/net/netfilter/regexp/regexp.h
 @@ -0,0 +1,41 @@
 +/*
 + * Definitions etc. for regexp(3) routines.
@@ -1919,16 +1929,20 @@
 +void regerror(char *s);
 +
 +#endif
+Index: linux-2.6.21.7/net/netfilter/regexp/regmagic.h
+===================================================================
 --- /dev/null
-+++ b/net/netfilter/regexp/regmagic.h
++++ linux-2.6.21.7/net/netfilter/regexp/regmagic.h
 @@ -0,0 +1,5 @@
 +/*
 + * The first byte of the regexp internal "program" is actually this magic
 + * number; the start node begins in the second byte.
 + */
 +#define	MAGIC	0234
+Index: linux-2.6.21.7/net/netfilter/regexp/regsub.c
+===================================================================
 --- /dev/null
-+++ b/net/netfilter/regexp/regsub.c
++++ linux-2.6.21.7/net/netfilter/regexp/regsub.c
 @@ -0,0 +1,95 @@
 +/*
 + * regsub
@@ -2025,8 +2039,10 @@
 +	}
 +	*dst++ = '\0';
 +}
---- a/net/netfilter/nf_conntrack_core.c
-+++ b/net/netfilter/nf_conntrack_core.c
+Index: linux-2.6.21.7/net/netfilter/nf_conntrack_core.c
+===================================================================
+--- linux-2.6.21.7.orig/net/netfilter/nf_conntrack_core.c
++++ linux-2.6.21.7/net/netfilter/nf_conntrack_core.c
 @@ -352,6 +352,14 @@ destroy_conntrack(struct nf_conntrack *n
  	 * too. */
  	nf_ct_remove_expectations(ct);
@@ -2042,8 +2058,10 @@
  	/* We overload first tuple to link into unconfirmed list. */
  	if (!nf_ct_is_confirmed(ct)) {
  		BUG_ON(list_empty(&ct->tuplehash[IP_CT_DIR_ORIGINAL].list));
---- a/net/netfilter/nf_conntrack_standalone.c
-+++ b/net/netfilter/nf_conntrack_standalone.c
+Index: linux-2.6.21.7/net/netfilter/nf_conntrack_standalone.c
+===================================================================
+--- linux-2.6.21.7.orig/net/netfilter/nf_conntrack_standalone.c
++++ linux-2.6.21.7/net/netfilter/nf_conntrack_standalone.c
 @@ -195,7 +195,12 @@ static int ct_seq_show(struct seq_file *
  		return -ENOSPC;
  #endif
@@ -2058,8 +2076,10 @@
  		return -ENOSPC;
  	
  	return 0;
---- a/include/net/netfilter/nf_conntrack.h
-+++ b/include/net/netfilter/nf_conntrack.h
+Index: linux-2.6.21.7/include/net/netfilter/nf_conntrack.h
+===================================================================
+--- linux-2.6.21.7.orig/include/net/netfilter/nf_conntrack.h
++++ linux-2.6.21.7/include/net/netfilter/nf_conntrack.h
 @@ -128,6 +128,22 @@ struct nf_conn
  	u_int32_t secmark;
  #endif
@@ -2083,8 +2103,10 @@
  	/* Storage reserved for other modules: */
  	union nf_conntrack_proto proto;
  
+Index: linux-2.6.21.7/include/linux/netfilter/xt_layer7.h
+===================================================================
 --- /dev/null
-+++ b/include/linux/netfilter/xt_layer7.h
++++ linux-2.6.21.7/include/linux/netfilter/xt_layer7.h
 @@ -0,0 +1,13 @@
 +#ifndef _XT_LAYER7_H
 +#define _XT_LAYER7_H

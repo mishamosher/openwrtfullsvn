@@ -1,5 +1,5 @@
-#
-# Copyright (C) 2006-2009 OpenWrt.org
+# 
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=libnl
 PKG_VERSION:=1.1
-PKG_RELEASE:=4
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://people.suug.ch/~tgr/libnl/files/
@@ -48,7 +48,7 @@ ifneq ($(CONFIG_LINUX_2_6),)
 
   define Package/libnl/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libnl.so.* $(1)/usr/lib/
+	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/lib/libnl.so.* $(1)/usr/lib/
   endef
 endif
 

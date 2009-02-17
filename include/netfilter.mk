@@ -50,7 +50,6 @@ $(eval $(call nf_add,IPT_CORE,CONFIG_IP_NF_TARGET_REJECT, $(P_V4)ipt_REJECT))
 # kernel only
 $(eval $(if $(NF_KMOD),$(call nf_add,IPT_CONNTRACK,CONFIG_NF_CONNTRACK, $(P_XT)nf_conntrack),))
 $(eval $(if $(NF_KMOD),$(call nf_add,IPT_CONNTRACK,CONFIG_IP_NF_CONNTRACK, $(P_V4)ip_conntrack),))
-$(eval $(if $(NF_KMOD),$(call nf_add,IPT_CONNTRACK,CONFIG_NF_DEFRAG_IPV4, $(P_V4)nf_defrag_ipv4),))
 $(eval $(if $(NF_KMOD),$(call nf_add,IPT_CONNTRACK,CONFIG_NF_CONNTRACK_IPV4, $(P_V4)nf_conntrack_ipv4),))
 
 $(eval $(call nf_add,IPT_CONNTRACK,CONFIG_IP_NF_MATCH_STATE, $(P_V4)ipt_state))
@@ -84,9 +83,13 @@ $(eval $(call nf_add,IPT_EXTRA,CONFIG_IP_NF_MATCH_OWNER, $(P_V4)ipt_owner))
 $(eval $(call nf_add,IPT_EXTRA,CONFIG_NETFILTER_XT_MATCH_PHYSDEV, $(P_XT)xt_physdev))
 $(eval $(call nf_add,IPT_EXTRA,CONFIG_IP_NF_MATCH_PKTTYPE, $(P_V4)ipt_pkttype))
 $(eval $(call nf_add,IPT_EXTRA,CONFIG_NETFILTER_XT_MATCH_PKTTYPE, $(P_XT)xt_pkttype))
+$(eval $(call nf_add,IPT_EXTRA,CONFIG_NETFILTER_XT_MATCH_PORTSCAN, $(P_XT)xt_portscan))
 #$(eval $(call nf_add,IPT_EXTRA,CONFIG_IP_NF_MATCH_QUOTA, $(P_V4)ipt_quota))
 $(eval $(call nf_add,IPT_EXTRA,CONFIG_NETFILTER_XT_MATCH_QUOTA, $(P_XT)xt_quota))
 
+$(eval $(call nf_add,IPT_EXTRA,CONFIG_NETFILTER_XT_TARGET_TARPIT, $(P_XT)xt_TARPIT))
+$(eval $(call nf_add,IPT_EXTRA,CONFIG_NETFILTER_XT_TARGET_DELUDE, $(P_XT)xt_DELUDE))
+$(eval $(call nf_add,IPT_EXTRA,CONFIG_NETFILTER_XT_TARGET_CHAOS, $(P_XT)xt_CHAOS))
 #$(eval $(call nf_add,IPT_EXTRA,CONFIG_IP_NF_TARGET_ROUTE, $(P_V4)ipt_ROUTE))
 
 
