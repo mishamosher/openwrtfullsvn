@@ -15,20 +15,20 @@ PKG_MD5SUM:=fd5c547e9d66ba49bc735ccb8c791f2a
 
 include $(INCLUDE_DIR)/host-build.mk
 
-define Host/Compile
-	$(MAKE) -C $(HOST_BUILD_DIR)
+define Build/Compile
+	$(MAKE) -C $(PKG_BUILD_DIR)
 endef
 
-define Host/Install
-	$(MAKE) -C $(HOST_BUILD_DIR) \
+define Build/Install
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		install
 	mv $(STAGING_DIR_HOST)/bin/pkg-config $(STAGING_DIR_HOST)/bin/pkg-config.real
 	$(INSTALL_BIN) ./files/pkg-config $(STAGING_DIR_HOST)/bin/pkg-config
 endef
 
-define Host/Clean
-	-$(MAKE) -C $(HOST_BUILD_DIR) uninstall
-	$(call Host/Clean/Default)
+define Build/Clean
+	-$(MAKE) -C $(PKG_BUILD_DIR) uninstall
+	$(call Build/Clean/Default)
 endef
 
 $(eval $(call HostBuild))

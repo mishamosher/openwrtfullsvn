@@ -570,7 +570,7 @@
   * which probes HW values.  Must have same relative layout as HW
 --- a/include/linux/pci_ids.h
 +++ b/include/linux/pci_ids.h
-@@ -1765,6 +1765,7 @@
+@@ -1756,6 +1756,7 @@
  #define PCI_DEVICE_ID_TIGON3_5901_2	0x170e
  #define PCI_DEVICE_ID_BCM4401		0x4401
  #define PCI_DEVICE_ID_BCM4401B0		0x4402

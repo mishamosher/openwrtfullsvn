@@ -4,7 +4,7 @@ append DRIVERS "atheros"
 scan_atheros() {
 	local device="$1"
 	local wds
-	local adhoc ahdemo sta ap monitor
+	local adhoc sta ap
 	
 	config_get vifs "$device" vifs
 	for vif in $vifs; do
@@ -84,48 +84,6 @@ enable_atheros() {
 
 	[ auto = "$channel" ] && channel=0
 
-	config_get_bool antdiv "$device" diversity
-	config_get antrx "$device" rxantenna
-	config_get anttx "$device" txantenna
-	config_get_bool softled "$device" softled 1
-
-	devname="$(cat /proc/sys/dev/$device/dev_name)"
-	antgpio=
-	case "$devname" in
-		NanoStation2) antgpio=7;;
-		NanoStation5) antgpio=1;;
-	esac
-	if [ -n "$antgpio" ]; then
-		softled=0
-		config_get antenna "$device" antenna
-		case "$antenna" in
-			external) antdiv=0; antrx=1; anttx=1 ;;
-			horizontal) antdiv=0; antrx=1; anttx=1 ;;
-			vertical) antdiv=0; antrx=2; anttx=2 ;;
-			auto) antdiv=1; antrx=0; anttx=0 ;;
-		esac
-			
-		[ -x "$(which gpioctl 2>/dev/null)" ] || antenna=
-		case "$antenna" in
-			horizontal|vertical|auto)
-				gpioctl "dirout" "$antgpio" >/dev/null 2>&1
-				gpioctl "set" "$antgpio" >/dev/null 2>&1
-			;;
-			external)
-				gpioctl "dirout" "$antgpio" >/dev/null 2>&1
-				gpioctl "clear" "$antgpio" >/dev/null 2>&1
-			;;
-		esac
-	fi
-
-	[ -n "$antdiv" ] && sysctl -w dev."$device".diversity="$antdiv" >&-
-	[ -n "$antrx" ] && sysctl -w dev."$device".rxantenna="$antrx" >&-
-	[ -n "$anttx" ] && sysctl -w dev."$device".txantenna="$anttx" >&-
-	[ -n "$softled" ] && sysctl -w dev."$device".softled="$softled" >&-
-
-	config_get distance "$device" distance
-	[ -n "$distance" ] && sysctl -w dev."$device".distance="$distance" >&-
-
 	local first=1
 	for vif in $vifs; do
 		local start_hostapd vif_txpower
@@ -140,6 +98,7 @@ enable_atheros() {
 			adhoc) config_get nosbeacon "$vif" sw_merge;;
 		esac
 		
+		config_get ifname "$vif" ifname
 		ifname=$(wlanconfig "$ifname" create wlandev "$device" wlanmode "$mode" ${nosbeacon:+nosbeacon})
 		[ $? -ne 0 ] && {
 			echo "enable_atheros($device): Failed to set up $mode vif $ifname" >&2
@@ -148,25 +107,25 @@ enable_atheros() {
 		config_set "$vif" ifname "$ifname"
 
 		# only need to change freq band and channel on the first vif
-		[ "$first" = 1 ] && {
 		config_get hwmode "$device" hwmode
 		[ -z "$hwmode" ] && config_get hwmode "$device" mode
 
-			pureg=0
-			case "$hwmode" in
-				*b) hwmode=11b;;
-				*bg) hwmode=11g;;
-				*g) hwmode=11g; pureg=1;;
-				*gdt) hwmode=11gdt;;
-				*a) hwmode=11a;;
-				*adt) hwmode=11adt;;
-				*ast) hwmode=11ast;;
-				*fh) hwmode=fh;;
-				*) hwmode=auto;;
-			esac
-			iwpriv "$ifname" mode "$hwmode"
-			iwpriv "$ifname" pureg "$pureg"
+		pureg=0
+		case "$hwmode" in
+			*b) hwmode=11b;;
+			*bg) hwmode=11g;;
+			*g) hwmode=11g; pureg=1;;
+			*gdt) hwmode=11gdt;;
+			*a) hwmode=11a;;
+			*adt) hwmode=11adt;;
+			*ast) hwmode=11ast;;
+			*fh) hwmode=fh;;
+			*) hwmode=auto;;
+		esac
+		iwpriv "$ifname" pureg "$pureg"
 
+		[ "$first" = 1 ] && {
+			iwpriv "$ifname" mode "$hwmode"
 			iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null 
 		}
 	
@@ -217,9 +176,52 @@ enable_atheros() {
 				}
 			;;
 		esac
+		config_get ssid "$vif" ssid
 
 		config_get_bool bgscan "$vif" bgscan
 		[ -n "$bgscan" ] && iwpriv "$ifname" bgscan "$bgscan"
+
+		config_get_bool antdiv "$device" diversity
+		config_get antrx "$device" rxantenna
+		config_get anttx "$device" txantenna
+		config_get_bool softled "$device" softled 1
+
+		devname="$(cat /proc/sys/dev/$device/dev_name)"
+		antgpio=
+		case "$devname" in
+			NanoStation2) antgpio=7;;
+			NanoStation5) antgpio=1;;
+		esac
+		if [ -n "$antgpio" ]; then
+			softled=0
+			config_get antenna "$device" antenna
+			case "$antenna" in
+				external) antdiv=0; antrx=1; anttx=1 ;;
+				horizontal) antdiv=0; antrx=1; anttx=1 ;;
+				vertical) antdiv=0; antrx=2; anttx=2 ;;
+				auto) antdiv=1; antrx=0; anttx=0 ;;
+			esac
+			
+			[ -x "$(which gpioctl 2>/dev/null)" ] || antenna=
+			case "$antenna" in
+				horizontal|vertical|auto)
+					gpioctl "dirout" "$antgpio" >/dev/null 2>&1
+					gpioctl "set" "$antgpio" >/dev/null 2>&1
+				;;
+				external)
+					gpioctl "dirout" "$antgpio" >/dev/null 2>&1
+					gpioctl "clear" "$antgpio" >/dev/null 2>&1
+				;;
+			esac
+		fi
+
+		[ -n "$antdiv" ] && sysctl -w dev."$device".diversity="$antdiv" >&-
+		[ -n "$antrx" ] && sysctl -w dev."$device".rxantenna="$antrx" >&-
+		[ -n "$anttx" ] && sysctl -w dev."$device".txantenna="$anttx" >&-
+		[ -n "$softled" ] && sysctl -w dev."$device".softled="$softled" >&-
+
+		config_get distance "$device" distance
+		[ -n "$distance" ] && athctrl -i "$device" -d "$distance" >&-
 
 		config_get rate "$vif" rate
 		[ -n "$rate" ] && iwconfig "$ifname" rate "${rate%%.*}"
@@ -295,13 +297,10 @@ enable_atheros() {
 			config_set "$vif" bridge "$bridge"
 			start_net "$ifname" "$net_cfg"
 		}
-
-		config_get ssid "$vif" ssid
 		[ -n "$ssid" ] && {
 			iwconfig "$ifname" essid on
 			iwconfig "$ifname" essid "$ssid"
 		}
-
 		set_wifi_up "$vif" "$ifname"
 
 		# TXPower settings only work if device is up already
@@ -359,7 +358,7 @@ detect_atheros() {
 "
 			;;
 		esac
-		[ "$type" = atheros ] && continue
+		[ "$type" = atheros ] && return
 		cat <<EOF
 config wifi-device  $dev
 	option type     atheros

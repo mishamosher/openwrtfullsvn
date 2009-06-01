@@ -4,17 +4,18 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=busybox
-PKG_VERSION:=1.13.4
-PKG_RELEASE:=1
+PKG_VERSION:=1.11.2
+PKG_RELEASE:=2.1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.busybox.net/downloads \
 		http://distfiles.gentoo.org/distfiles/
-PKG_MD5SUM:=8a5eb7f15d4077d18fa97bda7a4e5412
+PKG_MD5SUM:=63f11148e09fe9844fa726061414e9ac
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -66,8 +67,11 @@ define Build/Compile
 		KBUILD_HAVE_NLS=no \
 		EXTRA_CFLAGS="$(TARGET_CFLAGS)" \
 		ARCH="$(ARCH)" \
+		IPKG_ARCH="$(ARCH)" \
 		all
-	rm -rf $(PKG_INSTALL_DIR)
+endef
+
+define Package/busybox/install
 	$(FIND) $(PKG_BUILD_DIR) -lname "*busybox" -exec rm \{\} \;
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC)" \
@@ -75,13 +79,9 @@ define Build/Compile
 		EXTRA_CFLAGS="$(TARGET_CFLAGS)" \
 		ARCH="$(ARCH)" \
 		IPKG_ARCH="$(ARCH)" \
-		CONFIG_PREFIX="$(PKG_INSTALL_DIR)" \
+		CONFIG_PREFIX="$(1)" \
 		install
-endef
-
-define Package/busybox/install
 	$(INSTALL_DIR) $(1)/etc/init.d
-	$(CP) $(PKG_INSTALL_DIR)/* $(1)/
 	for tmp in $(init-y); do \
 		$(INSTALL_BIN) ./files/$$$$tmp $(1)/etc/init.d/$$$$tmp; \
 	done

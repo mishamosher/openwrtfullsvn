@@ -11,14 +11,13 @@ ifneq ($(HOST_OS),Linux)
 else
   HOST_TAR:=$(TAR)
 endif
-TAR_CMD=$(HOST_TAR) -C $(1)/.. $(TAR_OPTIONS)
-UNZIP_CMD=unzip -d $(1)/.. $(DL_DIR)/$(PKG_SOURCE)
+TAR_CMD:=$(HOST_TAR) -C $(PKG_BUILD_DIR)/.. $(TAR_OPTIONS)
+UNZIP_CMD:=unzip -d $(PKG_BUILD_DIR)/.. $(DL_DIR)/$(PKG_SOURCE)
 
 ifeq ($(PKG_SOURCE),)
   PKG_UNPACK ?= true
-else
-
-ifeq ($(strip $(UNPACK_CMD)),)
+endif
+ifeq ($(strip $(PKG_UNPACK)),)
   ifeq ($(strip $(PKG_CAT)),)
     # try to autodetect file type
     EXT:=$(call ext,$(PKG_SOURCE))
@@ -26,52 +25,40 @@ ifeq ($(strip $(UNPACK_CMD)),)
 
     ifeq ($(filter gz tgz,$(EXT)),$(EXT))
       EXT:=$(call ext,$(PKG_SOURCE:.$(EXT)=))
-      DECOMPRESS_CMD:=gzip -dc $(DL_DIR)/$(PKG_SOURCE) |
-    endif
+      UNPACK:=gzip -dc $(DL_DIR)/$(PKG_SOURCE) |
+    endif	
     ifeq ($(filter bzip2 bz2 bz tbz2 tbz,$(EXT)),$(EXT))
       EXT:=$(call ext,$(PKG_SOURCE:.$(EXT)=))
-      DECOMPRESS_CMD:=bzcat $(DL_DIR)/$(PKG_SOURCE) |
+      UNPACK:=bzcat $(DL_DIR)/$(PKG_SOURCE) |
     endif
     ifeq ($(filter tgz tbz tbz2,$(EXT1)),$(EXT1))
       EXT:=tar
     endif
-    DECOMPRESS_CMD ?= cat $(DL_DIR)/$(PKG_SOURCE) |
+    UNPACK ?= cat $(DL_DIR)/$(PKG_SOURCE) |
     ifeq ($(EXT),tar)
-      UNPACK_CMD=$(DECOMPRESS_CMD) $(TAR_CMD)
+      PKG_UNPACK:=$(UNPACK) $(TAR_CMD)
     endif
     ifeq ($(EXT),cpio)
-      UNPACK_CMD=$(DECOMPRESS_CMD) (cd $(1)/..; cpio -i -d)
+      PKG_UNPACK:=$(UNPACK) (cd $(PKG_BUILD_DIR)/..; cpio -i -d)
     endif
     ifeq ($(EXT),zip)
-      UNPACK_CMD=$(UNZIP_CMD)
+      PKG_UNPACK:=$(UNZIP_CMD)
     endif
   endif
-
+ 
   # compatibility code for packages that set PKG_CAT
-  ifeq ($(strip $(UNPACK_CMD)),)
+  ifeq ($(strip $(PKG_UNPACK)),)
     # use existing PKG_CAT
-    UNPACK_CMD=$(PKG_CAT) $(DL_DIR)/$(PKG_SOURCE) | $(TAR_CMD)
+    PKG_UNPACK:=$(PKG_CAT) $(DL_DIR)/$(PKG_SOURCE) | $(TAR_CMD)
     ifeq ($(PKG_CAT),unzip)
-      UNPACK_CMD=$(UNZIP_CMD)
+      PKG_UNPACK:=$(UNZIP_CMD)
     endif
     # replace zcat with $(ZCAT), because some system don't support it properly
     ifeq ($(PKG_CAT),zcat)
-      UNPACK_CMD=gzip -dc $(DL_DIR)/$(PKG_SOURCE) | $(TAR_CMD)
+      PKG_UNPACK:=gzip -dc $(DL_DIR)/$(PKG_SOURCE) | $(TAR_CMD)
     endif
   endif
   ifneq ($(strip $(CRLF_WORKAROUND)),)
-    CRLF_CMD := && find $(PKG_BUILD_DIR) -type f -print0 | xargs -0 perl -pi -e 's!\r$$$$!!g'
-  else
-    CRLF_CMD :=
+    PKG_UNPACK += && find $(PKG_BUILD_DIR) -type f -print0 | xargs -0 perl -pi -e 's!\r$$$$!!g'
   endif
 endif
-
-ifdef PKG_BUILD_DIR
-  PKG_UNPACK ?= $(call UNPACK_CMD,$(PKG_BUILD_DIR)) $(call CRLF_CMD,$(PKG_BUILD_DIR))
-endif
-ifdef HOST_BUILD_DIR
-  HOST_UNPACK ?= $(call UNPACK_CMD,$(HOST_BUILD_DIR)) $(call CRLF_CMD,$(HOST_BUILD_DIR))
-endif
-
-endif # PKG_SOURCE
-

@@ -26,8 +26,8 @@ static void ar71xx_pci_irq_dispatch(void)
 {
 	u32 pending;
 
-	pending = ar71xx_reset_rr(AR71XX_RESET_REG_PCI_INT_STATUS) &
-	    ar71xx_reset_rr(AR71XX_RESET_REG_PCI_INT_ENABLE);
+	pending = ar71xx_reset_rr(RESET_REG_PCI_INT_STATUS) &
+	    ar71xx_reset_rr(RESET_REG_PCI_INT_ENABLE);
 
 	if (pending & PCI_INT_DEV0)
 		do_IRQ(AR71XX_PCI_IRQ_DEV0);
@@ -45,15 +45,15 @@ static void ar71xx_pci_irq_dispatch(void)
 static void ar71xx_pci_irq_unmask(unsigned int irq)
 {
 	irq -= AR71XX_PCI_IRQ_BASE;
-	ar71xx_reset_wr(AR71XX_RESET_REG_PCI_INT_ENABLE,
-		ar71xx_reset_rr(AR71XX_RESET_REG_PCI_INT_ENABLE) | (1 << irq));
+	ar71xx_reset_wr(RESET_REG_PCI_INT_ENABLE,
+		ar71xx_reset_rr(RESET_REG_PCI_INT_ENABLE) | (1 << irq));
 }
 
 static void ar71xx_pci_irq_mask(unsigned int irq)
 {
 	irq -= AR71XX_PCI_IRQ_BASE;
-	ar71xx_reset_wr(AR71XX_RESET_REG_PCI_INT_ENABLE,
-		ar71xx_reset_rr(AR71XX_RESET_REG_PCI_INT_ENABLE) & ~(1 << irq));
+	ar71xx_reset_wr(RESET_REG_PCI_INT_ENABLE,
+		ar71xx_reset_rr(RESET_REG_PCI_INT_ENABLE) & ~(1 << irq));
 }
 
 static struct irq_chip ar71xx_pci_irq_chip = {
@@ -72,8 +72,8 @@ static void __init ar71xx_pci_irq_init(void)
 {
 	int i;
 
-	ar71xx_reset_wr(AR71XX_RESET_REG_PCI_INT_ENABLE, 0);
-	ar71xx_reset_wr(AR71XX_RESET_REG_PCI_INT_STATUS, 0);
+	ar71xx_reset_wr(RESET_REG_PCI_INT_ENABLE, 0);
+	ar71xx_reset_wr(RESET_REG_PCI_INT_STATUS, 0);
 
 	for (i = AR71XX_PCI_IRQ_BASE;
 	     i < AR71XX_PCI_IRQ_BASE + AR71XX_PCI_IRQ_COUNT; i++) {
@@ -84,6 +84,7 @@ static void __init ar71xx_pci_irq_init(void)
 
 	setup_irq(AR71XX_CPU_IRQ_PCI, &ar71xx_pci_irqaction);
 }
+
 #endif /* CONFIG_PCI */
 
 static void ar71xx_gpio_irq_dispatch(void)
@@ -166,8 +167,8 @@ static void ar71xx_misc_irq_dispatch(void)
 {
 	u32 pending;
 
-	pending = ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_STATUS)
-	    & ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_ENABLE);
+	pending = ar71xx_reset_rr(RESET_REG_MISC_INT_STATUS)
+	    & ar71xx_reset_rr(RESET_REG_MISC_INT_ENABLE);
 
 	if (pending & MISC_INT_UART)
 		do_IRQ(AR71XX_MISC_IRQ_UART);
@@ -200,15 +201,15 @@ static void ar71xx_misc_irq_dispatch(void)
 static void ar71xx_misc_irq_unmask(unsigned int irq)
 {
 	irq -= AR71XX_MISC_IRQ_BASE;
-	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_ENABLE,
-		ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_ENABLE) | (1 << irq));
+	ar71xx_reset_wr(RESET_REG_MISC_INT_ENABLE,
+		ar71xx_reset_rr(RESET_REG_MISC_INT_ENABLE) | (1 << irq));
 }
 
 static void ar71xx_misc_irq_mask(unsigned int irq)
 {
 	irq -= AR71XX_MISC_IRQ_BASE;
-	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_ENABLE,
-		ar71xx_reset_rr(AR71XX_RESET_REG_MISC_INT_ENABLE) & ~(1 << irq));
+	ar71xx_reset_wr(RESET_REG_MISC_INT_ENABLE,
+		ar71xx_reset_rr(RESET_REG_MISC_INT_ENABLE) & ~(1 << irq));
 }
 
 struct irq_chip ar71xx_misc_irq_chip = {
@@ -227,8 +228,8 @@ static void __init ar71xx_misc_irq_init(void)
 {
 	int i;
 
-	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_ENABLE, 0);
-	ar71xx_reset_wr(AR71XX_RESET_REG_MISC_INT_STATUS, 0);
+	ar71xx_reset_wr(RESET_REG_MISC_INT_ENABLE, 0);
+	ar71xx_reset_wr(RESET_REG_MISC_INT_STATUS, 0);
 
 	for (i = AR71XX_MISC_IRQ_BASE;
 	     i < AR71XX_MISC_IRQ_BASE + AR71XX_MISC_IRQ_COUNT; i++) {
@@ -240,13 +241,6 @@ static void __init ar71xx_misc_irq_init(void)
 	setup_irq(AR71XX_CPU_IRQ_MISC, &ar71xx_misc_irqaction);
 }
 
-static void ar913x_wmac_irq_dispatch(void)
-{
-	do_IRQ(AR71XX_CPU_IRQ_WMAC);
-}
-
-static void (* ar71xx_ip2_irq_handler)(void) = spurious_interrupt;
-
 asmlinkage void plat_irq_dispatch(void)
 {
 	unsigned long pending;
@@ -256,8 +250,10 @@ asmlinkage void plat_irq_dispatch(void)
 	if (pending & STATUSF_IP7)
 		do_IRQ(AR71XX_CPU_IRQ_TIMER);
 
+#ifdef CONFIG_PCI
 	else if (pending & STATUSF_IP2)
-		ar71xx_ip2_irq_handler();
+		ar71xx_pci_irq_dispatch();
+#endif
 
 	else if (pending & STATUSF_IP4)
 		do_IRQ(AR71XX_CPU_IRQ_GE0);
@@ -281,22 +277,9 @@ void __init arch_init_irq(void)
 
 	ar71xx_misc_irq_init();
 
-	switch (ar71xx_soc) {
-	case AR71XX_SOC_AR7130:
-	case AR71XX_SOC_AR7141:
-	case AR71XX_SOC_AR7161:
 #ifdef CONFIG_PCI
-		ar71xx_pci_irq_init();
-		ar71xx_ip2_irq_handler = ar71xx_pci_irq_dispatch;
+	ar71xx_pci_irq_init();
 #endif
-		break;
-	case AR71XX_SOC_AR9130:
-	case AR71XX_SOC_AR9132:
-		ar71xx_ip2_irq_handler = ar913x_wmac_irq_dispatch;
-		break;
-	default:
-		BUG();
-	}
 
 	ar71xx_gpio_irq_init();
 }

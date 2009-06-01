@@ -30,8 +30,8 @@ else
     KERNEL_CROSS?=$(TARGET_CROSS)
   endif
 
-  PATCH_DIR ?= ./patches$(if $(wildcard ./patches-$(KERNEL_PATCHVER)),-$(KERNEL_PATCHVER))
-  FILES_DIR ?= $(foreach dir,$(wildcard ./files ./files-$(KERNEL_PATCHVER)),"$(dir)")
+  PATCH_DIR ?= ./patches$(shell [ -d "./patches-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
+  FILES_DIR ?= ./files$(shell [ -d "./files-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
   KERNEL_BUILD_DIR ?= $(BUILD_DIR_BASE)/linux-$(BOARD)$(if $(SUBTARGET),_$(SUBTARGET))$(if $(BUILD_SUFFIX),_$(BUILD_SUFFIX))
   LINUX_DIR ?= $(KERNEL_BUILD_DIR)/linux-$(LINUX_VERSION)
 
@@ -50,10 +50,15 @@ else
 endif
 
 ifneq (,$(findstring uml,$(BOARD)))
-  LINUX_KARCH=um
+  LINUX_KARCH:=um
 else
   ifeq (,$(LINUX_KARCH))
-    LINUX_KARCH=$(strip $(subst i386,x86,$(subst armeb,arm,$(subst mipsel,mips,$(subst mips64,mips,$(subst mips64el,mips,$(subst sh2,sh,$(subst sh3,sh,$(subst sh4,sh,$(ARCH))))))))))
+    LINUX_KARCH:=$(shell echo $(ARCH) | sed -e 's/i[3-9]86/i386/' \
+	  -e 's/mipsel/mips/' \
+	  -e 's/mipseb/mips/' \
+	  -e 's/sh[234]/sh/' \
+	  -e 's/armeb/arm/' \
+    )
   endif
 endif
 
@@ -89,12 +94,6 @@ ifeq ($(DUMP)$(TARGET_BUILD),)
   -include $(LINUX_DIR)/.config
 endif
 
-define KernelPackage/depends
-  $(STAMP_BUILT): $(LINUX_DIR)/.config
-  define KernelPackage/depends
-  endef
-endef
-
 define KernelPackage
   NAME:=$(1)
   $(eval $(call Package/Default))
@@ -127,7 +126,7 @@ $(call KernelPackage/$(1)/config)
     endef
   endif
 
-  $(call KernelPackage/depends)
+  $(STAMP_BUILT): $(LINUX_DIR)/.config
 
   ifneq ($(if $(filter-out %=y %=n %=m,$(KCONFIG)),$(filter m,$(foreach c,$(filter-out %=y %=n %=m,$(KCONFIG)),$($(c)))),.),)
     ifneq ($(strip $(FILES)),)
@@ -154,11 +153,7 @@ define AutoLoad
   add_module $(1) "$(2)";
 endef
 
-ifdef DUMP
-  CompareKernelPatchVer=0
-else
-  define CompareKernelPatchVer
-    $(shell [ $$(echo $(1) | tr . 0) -$(2) $$(echo $(3) | tr . 0) ] && echo 1 || echo 0)
-  endef
-endif
+define CompareKernelPatchVer
+  $(shell [ $$(echo $(1) | tr . 0) -$(2) $$(echo $(3) | tr . 0) ] && echo 1 || echo 0)
+endef
 

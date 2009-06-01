@@ -4,11 +4,12 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
 UCI_VERSION=0.7
-UCI_RELEASE=5
+UCI_RELEASE=3
 
 PKG_NAME:=uci
 PKG_VERSION:=$(UCI_VERSION)$(if $(UCI_RELEASE),.$(UCI_RELEASE))
@@ -16,7 +17,7 @@ PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://downloads.openwrt.org/sources
-PKG_MD5SUM:=ed34c5ef606a90da4aba03ce6d22eeb9
+PKG_MD5SUM:=b8c033e7b08bb39e87ef00bdb779f0ba
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -52,7 +53,7 @@ UCI_MAKEOPTS = \
 		COPTS="$(TARGET_CFLAGS)" \
 		DEBUG="$(DEBUG)" \
 		VERSION="$(UCI_VERSION)" \
-		CPPFLAGS="-I$(PKG_BUILD_DIR) $(TARGET_CPPFLAGS)" \
+		CPPFLAGS="-I$(PKG_BUILD_DIR) -I$(STAGING_DIR)/usr/include" \
 		OS="Linux"
 
 # work around a nasty gcc bug

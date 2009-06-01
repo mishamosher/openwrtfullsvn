@@ -23,17 +23,6 @@ JFFS2OPTS     :=  --pad --big-endian --squash
 SQUASHFS_OPTS :=  -be
 endif
 
-ifneq ($(CONFIG_LINUX_2_6_29)$(CONFIG_LINUX_2_6_30),)
-USE_SQUASHFS4 := y
-endif
-
-ifneq ($(USE_SQUASHFS4),)
-MKSQUASHFS_CMD := $(STAGING_DIR_HOST)/bin/mksquashfs4
-SQUASHFS_OPTS  := -lzma
-else
-MKSQUASHFS_CMD := $(STAGING_DIR_HOST)/bin/mksquashfs-lzma
-endif
-
 JFFS2_BLOCKSIZE ?= 64k 128k
 
 define add_jffs2_mark
@@ -66,7 +55,7 @@ ifneq ($(CONFIG_TARGET_ROOTFS_INITRAMFS),y)
   ifeq ($(CONFIG_TARGET_ROOTFS_SQUASHFS),y)
     define Image/mkfs/squashfs
 		@mkdir -p $(TARGET_DIR)/jffs
-		$(MKSQUASHFS_CMD) $(TARGET_DIR) $(KDIR)/root.squashfs -nopad -noappend -root-owned $(SQUASHFS_OPTS)
+		$(STAGING_DIR_HOST)/bin/mksquashfs-lzma $(TARGET_DIR) $(KDIR)/root.squashfs -nopad -noappend -root-owned $(SQUASHFS_OPTS)
 		$(call Image/Build,squashfs)
     endef
   endif
@@ -101,7 +90,7 @@ ifeq ($(CONFIG_TARGET_ROOTFS_EXT2FS),y)
   E2SIZE=$(shell echo $$(($(CONFIG_TARGET_ROOTFS_FSPART)*1024)))
 
   define Image/mkfs/ext2
-		$(STAGING_DIR_HOST)/bin/genext2fs -U -b $(E2SIZE) -N $(CONFIG_TARGET_ROOTFS_MAXINODE) -d $(TARGET_DIR)/ $(KDIR)/root.ext2
+		$(STAGING_DIR_HOST)/bin/genext2fs -U -b $(E2SIZE) -I $(CONFIG_TARGET_ROOTFS_MAXINODE) -d $(TARGET_DIR)/ $(KDIR)/root.ext2
 		$(call Image/Build,ext2)
   endef
 endif

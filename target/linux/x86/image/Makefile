@@ -16,19 +16,19 @@ ROOTPART=$(strip $(subst ",, $(CONFIG_X86_GRUB_ROOTPART)))
 ifeq ($(CONFIG_X86_GRUB_IMAGES),y)
 ifneq ($(HOST_OS),Darwin)
   define Image/cmdline/squashfs
-    block2mtd.block2mtd=$(ROOTPART),65536,rootfs root=/dev/mtdblock0 rootfstype=squashfs
+    block2mtd.block2mtd=$(ROOTPART),65536,rootfs root=/dev/mtdblock0 rootfstype=squashfs init=/etc/preinit
   endef
 
   define Image/cmdline/jffs2-64k
-    block2mtd.block2mtd=$(ROOTPART),65536,rootfs root=/dev/mtdblock0 rootfstype=jffs2
+    block2mtd.block2mtd=$(ROOTPART),65536,rootfs root=/dev/mtdblock0 rootfstype=jffs2 init=/etc/preinit
   endef
 
   define Image/cmdline/jffs2-128k
-    block2mtd.block2mtd=$(ROOTPART),131072,rootfs root=/dev/mtdblock0 rootfstype=jffs2
+    block2mtd.block2mtd=$(ROOTPART),131072,rootfs root=/dev/mtdblock0 rootfstype=jffs2 init=/etc/preinit
   endef
 
   define Image/cmdline/ext2
-    root=$(ROOTPART) rootfstype=ext2
+    root=$(ROOTPART) rootfstype=ext2 init=/etc/preinit
   endef
   
   define Image/Build/grub
@@ -49,9 +49,9 @@ ifneq ($(HOST_OS),Darwin)
   define Image/Prepare/grub
 	# for the image builder
 	$(CP) \
-		$(STAGING_DIR_HOST)/usr/lib/grub/i386-*/stage1 \
-		$(STAGING_DIR_HOST)/usr/lib/grub/i386-*/stage2 \
-		$(STAGING_DIR_HOST)/usr/lib/grub/i386-*/e2fs_stage1_5 \
+		$(STAGING_DIR_HOST)/usr/lib/grub/i386-pc/stage1 \
+		$(STAGING_DIR_HOST)/usr/lib/grub/i386-pc/stage2 \
+		$(STAGING_DIR_HOST)/usr/lib/grub/i386-pc/e2fs_stage1_5 \
 		$(KDIR)/
   endef
 else
@@ -71,16 +71,6 @@ ifeq ($(CONFIG_X86_VDI_IMAGES),y)
   endef
 endif
 
-ifeq ($(CONFIG_X86_VMDK_IMAGES),y)
-  define Image/Build/vmdk
-    # left here because the image builder doesnt need these
-    ifeq ($(1),ext2)
-		rm $(BIN_DIR)/openwrt-$(BOARD)-ext2.vmdk || true
-		qemu-img convert -f raw $(BIN_DIR)/openwrt-$(BOARD)-ext2.image \
-			-O vmdk $(BIN_DIR)/openwrt-$(BOARD)-ext2.vmdk
-    endif
-  endef
-endif
 
 define Image/Prepare
 	$(CP) $(LINUX_DIR)/arch/x86/boot/bzImage $(KDIR)/bzImage
@@ -92,15 +82,14 @@ define Image/Build/squashfs
 endef
 
 define Image/Build/iso 
-	$(INSTALL_DIR) $(KDIR)/root.grub/boot/grub
 	$(CP) \
-		$(STAGING_DIR_HOST)/usr/lib/grub/i386-openwrt/stage2_eltorito \
+		$(STAGING_DIR_HOST)/usr/lib/grub/i386-pc/stage2_eltorito \
 		$(KDIR)/root.grub/boot/grub/stage2_eltorito 
-	sed \
+	sed -i \
 		-e 's#@CMDLINE@#$(strip $(call Image/cmdline/$(1))) $(BOOTOPTS)#g' \
 		-e 's#@BAUDRATE@#$(CONFIG_X86_GRUB_BAUDRATE)#g' \
 		-e 's#(hd0,0)#(cd)#g' \
-		./menu.lst > $(KDIR)/root.grub/boot/grub/menu.lst
+		 $(KDIR)/root.grub/boot/grub/menu.lst 
 	$(CP) $(KDIR)/bzImage $(KDIR)/root.grub/boot/vmlinuz 
 	mkisofs -R -b boot/grub/stage2_eltorito -no-emul-boot -boot-load-size 4 -boot-info-table \
 		-o $(KDIR)/root.iso $(KDIR)/root.grub 
@@ -112,11 +101,8 @@ endef
 
 define Image/Build
 	$(call Image/Build/$(1))
-ifneq ($(1),iso)
 	$(call Image/Build/grub,$(1))
 	$(call Image/Build/vdi,$(1))
-	$(call Image/Build/vmdk,$(1))
-endif
 	$(CP) $(KDIR)/root.$(1) $(BIN_DIR)/openwrt-$(BOARD)-$(1).fs
 	$(CP) $(KDIR)/bzImage $(BIN_DIR)/openwrt-$(BOARD)-vmlinuz
 endef
@@ -129,8 +115,3 @@ ifeq ($(CONFIG_X86_VDI_IMAGES),y)
   ))
 endif
 
-ifeq ($(CONFIG_X86_VMDK_IMAGES),y)
-   $(eval $(call RequireCommand,qemu-img, \
-	You need qemu-img to generate VMware images. \
-   ))
-endif

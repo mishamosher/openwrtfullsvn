@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 BLOCK_MENU:=Block Devices
 
@@ -33,22 +34,6 @@ define KernelPackage/ata-ahci/description
 endef
 
 $(eval $(call KernelPackage,ata-ahci))
-
-
-define KernelPackage/ata-sil24
-  SUBMENU:=$(BLOCK_MENU)
-  TITLE:=Silicon Image 3124/3132 SATA support
-  DEPENDS:=kmod-ata-core
-  KCONFIG:=CONFIG_SATA_SIL24
-  FILES:=$(LINUX_DIR)/drivers/ata/sata_sil24.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,41,sata_sil24)
-endef
-
-define KernelPackage/ata-sil24/description
- Support for Silicon Image 3124/3132 Serial ATA controllers.
-endef
-
-$(eval $(call KernelPackage,ata-sil24))
 
 
 define KernelPackage/ata-artop
@@ -82,24 +67,6 @@ endef
 
 $(eval $(call KernelPackage,ata-ixp4xx-cf))
 
-define KernelPackage/ata-rb532-cf
-  SUBMENU:=$(BLOCK_MENU)
-  TITLE:=RB532 Compact Flash support
-  DEPENDS:=@TARGET_rb532 kmod-ata-core @BROKEN
-  KCONFIG:= \
-  	CONFIG_PATA_PLATFORM \
-  	CONFIG_PATA_RB532
-  FILES:=\
-  	$(LINUX_DIR)/drivers/ata/pata_platform.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/drivers/ata/pata_rb532_cf.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,41,pata_platform pata_rb532_cf)
-endef
-
-define KernelPackage/ata-rb532-cf/description
-  RB532 Compact Flash support.
-endef
-
-$(eval $(call KernelPackage,ata-rb532-cf))
 
 define KernelPackage/ata-nvidia-sata
   SUBMENU:=$(BLOCK_MENU)
@@ -156,22 +123,12 @@ define KernelPackage/ide-core
 	CONFIG_BLK_DEV_GENERIC \
 	CONFIG_BLK_DEV_IDE \
 	CONFIG_BLK_DEV_IDEDISK \
-	CONFIG_IDE_GD \
-	CONFIG_IDE_GD_ATA=y \
-	CONFIG_IDE_GD_ATAPI=n \
 	CONFIG_BLK_DEV_IDEDMA_PCI=y \
 	CONFIG_BLK_DEV_IDEPCI=y
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.28)),1)
-    FILES:= \
-  	$(LINUX_DIR)/drivers/ide/ide-core.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/drivers/ide/ide-gd_mod.$(LINUX_KMOD_SUFFIX)
-      AUTOLOAD:=$(call AutoLoad,20,ide-core) $(call AutoLoad,40,ide-gd_mod)
-else
-    FILES:= \
-  	$(LINUX_DIR)/drivers/ide/ide-core.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/drivers/ide/ide-disk.$(LINUX_KMOD_SUFFIX)
-      AUTOLOAD:=$(call AutoLoad,20,ide-core) $(call AutoLoad,40,ide-disk)
-endif
+  FILES:= \
+	$(LINUX_DIR)/drivers/ide/ide-core.$(LINUX_KMOD_SUFFIX) \
+	$(LINUX_DIR)/drivers/ide/ide-disk.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,20,ide-core) $(call AutoLoad,40,ide-disk)
 endef
 
 define KernelPackage/ide-core/2.4
@@ -179,7 +136,7 @@ define KernelPackage/ide-core/2.4
   AUTOLOAD+=$(call AutoLoad,30,ide-detect)
 endef
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),eq,2.6.26)),1)
+ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.26)),1)
   define KernelPackage/ide-core/2.6
     FILES+=$(LINUX_DIR)/drivers/ide/pci/ide-pci-generic.$(LINUX_KMOD_SUFFIX)
     AUTOLOAD+=$(call AutoLoad,30,ide-pci-generic)
@@ -196,7 +153,7 @@ define KernelPackage/ide-core/description
  Includes:
  - ide-core
  - ide-detect
- - ide-gd_mod (or ide-disk)
+ - ide-disk
 endef
 
 $(eval $(call KernelPackage,ide-core))
@@ -207,11 +164,7 @@ define KernelPackage/ide-aec62xx
   TITLE:=Acard AEC62xx IDE driver
   DEPENDS:=@PCI_SUPPORT +kmod-ide-core
   KCONFIG:=CONFIG_BLK_DEV_AEC62XX
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.28)),1)
-  FILES:=$(LINUX_DIR)/drivers/ide/aec62xx.$(LINUX_KMOD_SUFFIX)
-else
   FILES:=$(LINUX_DIR)/drivers/ide/pci/aec62xx.$(LINUX_KMOD_SUFFIX)
-endif
   AUTOLOAD:=$(call AutoLoad,30,aec62xx)
 endef
 
@@ -253,26 +206,6 @@ define KernelPackage/ide-pdc202xx/description
 endef
 
 $(eval $(call KernelPackage,ide-pdc202xx))
-
-
-define KernelPackage/ide-it821x
-  SUBMENU:=$(BLOCK_MENU)
-  TITLE:=ITE IT821x IDE driver
-  DEPENDS:=+kmod-ide-core
-  KCONFIG:=CONFIG_BLK_DEV_IT821X
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.28)),1)
-  FILES=$(LINUX_DIR)/drivers/ide/it821x.$(LINUX_KMOD_SUFFIX)
-else
-  FILES=$(LINUX_DIR)/drivers/ide/pci/it821x.$(LINUX_KMOD_SUFFIX)
-endif
-  AUTOLOAD:=$(call AutoLoad,30,it821x)
-endef
-
-define KernelPackage/ide-it821x/description
-  Kernel module for the ITE IDE821x IDE controllers.
-endef
-
-$(eval $(call KernelPackage,ide-it821x))
 
 
 define KernelPackage/scsi-core
@@ -349,33 +282,3 @@ define KernelPackage/pata-rb153-cf/description
 endef
 
 $(eval $(call KernelPackage,pata-rb153-cf))
-
-
-define KernelPackage/aoe
-  SUBMENU:=$(BLOCK_MENU)
-  TITLE:=ATA over Ethernet support
-  KCONFIG:=CONFIG_ATA_OVER_ETH
-  FILES:=$(LINUX_DIR)/drivers/block/aoe/aoe.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,30,aoe)
-endef
-
-define KernelPackage/aoe/description
-  Kernel support for ATA over Ethernet
-endef
-
-$(eval $(call KernelPackage,aoe))
-
-define KernelPackage/ps3vram
-  SUBMENU:=$(BLOCK_MENU)
-  TITLE:=PS3 Video RAM Storage Driver
-  DEPENDS:=@TARGET_ps3||TARGET_ps3chk
-  KCONFIG:=CONFIG_PS3_VRAM
-  FILES:=$(LINUX_DIR)/drivers/block/ps3vram.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,01,ps3vram)
-endef
-
-define KernelPackage/ps3vram/description
-  Kernel support for PS3 Video RAM Storage
-endef
-
-$(eval $(call KernelPackage,ps3vram))

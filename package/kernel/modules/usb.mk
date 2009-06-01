@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 USB_MENU:=USB Support
 
@@ -97,8 +98,7 @@ define KernelPackage/usb-ohci
   TITLE:=Support for OHCI controllers
   KCONFIG:= \
 	CONFIG_USB_OHCI \
-	CONFIG_USB_OHCI_HCD \
-	CONFIG_USB_OHCI_AR71XX=y
+	CONFIG_USB_OHCI_HCD
 endef
 
 define KernelPackage/usb-ohci/2.4
@@ -138,10 +138,9 @@ $(eval $(call KernelPackage,usb-adm5120))
 define KernelPackage/usb2
   $(call usbdep,)
   TITLE:=Support for USB2 controllers
-  KCONFIG:=CONFIG_USB_EHCI_HCD \
-    CONFIG_USB_EHCI_AR71XX=y
+  KCONFIG:=CONFIG_USB_EHCI_HCD
   FILES:=$(LINUX_DIR)/drivers/usb/host/ehci-hcd.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,40,ehci-hcd)
+  AUTOLOAD:=$(call AutoLoad,50,ehci-hcd)
 endef
 
 define KernelPackage/usb2/description
@@ -576,12 +575,16 @@ $(eval $(call KernelPackage,usb-net-asix))
 
 
 define KernelPackage/usb-net-hso
-  $(call usbdep,kmod-usb-net @LINUX_2_6 @!LINUX_2_6_21 @!LINUX_2_6_23 @!LINUX_2_6_24 @!LINUX_2_6_25 +!TARGET_rb532||!TARGET_avr32||!TARGET_brcm47xx||!TARGET_s3c24xx||!TARGET_ifxmips||!TARGET_atheros||!TARGET_adm5120||!TARGET_ar7||!TARGET_ppc40x||!TARGET_ixp4xx||!TARGET_rdc:kmod-rfkill)
+  $(call usbdep,kmod-usb-net @LINUX_2_6_26)
   TITLE:=Kernel module for Option USB High Speed Mobile Devices
-  KCONFIG:=CONFIG_USB_HSO
+  KCONFIG:= \
+	CONFIG_RFKILL \
+	CONFIG_RFKILL_INPUT \
+	CONFIG_USB_HSO
   FILES:= \
+	$(LINUX_DIR)/net/rfkill/rfkill.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/$(USBNET_DIR)/hso.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,61,hso)
+  AUTOLOAD:=$(call AutoLoad,61,rfkill hso)
 endef
 
 define KernelPackage/usb-net-hso/description
@@ -636,22 +639,6 @@ endef
 $(eval $(call KernelPackage,usb-net-cdc-ether))
 
 
-define KernelPackage/usb-net-rndis
-  $(call usbdep,kmod-usb-net @LINUX_2_6)
-  TITLE:=Support for RNDIS connections
-  DEPENDS:=+kmod-usb-net-cdc-ether
-  KCONFIG:=CONFIG_USB_NET_RNDIS_HOST 
-  FILES:= $(LINUX_DIR)/drivers/$(USBNET_DIR)/rndis_host.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,62,rndis_host)
-endef
-
-define KernelPackage/usb-net-rndis/description
- Kernel support for RNDIS connections
-endef
-
-$(eval $(call KernelPackage,usb-net-rndis))
-
-
 define KernelPackage/usb-hid
   $(call usbdep,@LINUX_2_6 +kmod-input-core +kmod-input-evdev +kmod-hid)
   TITLE:=Support for USB Human Input Devices
@@ -682,22 +669,6 @@ endef
 
 $(eval $(call KernelPackage,usb-yealink))
 
-
-define KernelPackage/usb-cm109
-  $(call usbdep,@LINUX_2_6 +kmod-input-core +kmod-input-evdev)
-  TITLE:=Support for CM109 device
-  KCONFIG:=CONFIG_USB_CM109 CONFIG_INPUT_CM109 CONFIG_INPUT=m CONFIG_INPUT_MISC=y
-  FILES:=$(LINUX_DIR)/drivers/$(USBINPUT_DIR)/cm109.ko
-  AUTOLOAD:=$(call AutoLoad,70,cm109)
-endef
-
-define KernelPackage/usb-cm109/description
- Kernel support for CM109 VOIP phone
-endef
-
-$(eval $(call KernelPackage,usb-cm109))
-
-
 define KernelPackage/usb-test
   $(call usbdep,@LINUX_2_6 @DEVEL)
   TITLE:=USB Testing Driver
@@ -710,17 +681,4 @@ define KernelPackage/usb-test/description
 endef
 
 $(eval $(call KernelPackage,usb-test))
-
-define KernelPackage/usb-phidget
-  $(call usbdep,@LINUX_2_6)
-  TITLE:=USB Phidget Driver
-  KCONFIG:=CONFIG_USB_PHIDGET CONFIG_USB_PHIDGETKIT CONFIG_USB_PHIDGETMOTORCONTROL CONFIG_USB_PHIDGETSERVO
-  FILES:=$(LINUX_DIR)/drivers/usb/misc/phidget*.ko
-endef
-
-define KernelPackage/usb-phidget/description
- Kernel support for USB Phidget devices.
-endef
-
-$(eval $(call KernelPackage,usb-phidget))
 

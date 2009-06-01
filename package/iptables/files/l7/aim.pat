@@ -2,7 +2,6 @@
 # Pattern attributes: good slow notsofast
 # Protocol groups: chat proprietary
 # Wiki: http://www.protocolinfo.org/wiki/AIM
-# Copyright (C) 2008 Matthew Strait, Ethan Sommer; See ../LICENSE
 #
 # Usually runs on port 5190
 #

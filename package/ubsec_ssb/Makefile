@@ -4,12 +4,12 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id: $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=ubsec-ssb
-PKG_VERSION:=2009-02-21
 
 CRYPTO_MENU:=OCF Configuration
 
@@ -17,7 +17,7 @@ include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/ocf-ubsec-ssb
   SUBMENU:=$(CRYPTO_MENU)
-  DEPENDS:=@TARGET_brcm47xx +kmod-crypto-ocf
+  DEPENDS:=@TARGET_brcm47xx
   TITLE:=BCM5365P IPSec Core driver
   FILES:=$(PKG_BUILD_DIR)/src/ubsec_ssb.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,09,ubsec_ssb)

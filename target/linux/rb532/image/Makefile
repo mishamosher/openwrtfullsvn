@@ -34,29 +34,28 @@ define Image/BuildKernel
 endef
 
 define Image/cmdline/jffs2-64k
-block2mtd.block2mtd=/dev/sda2,65536 root=/dev/mtdblock0 rootfstype=jffs2
+block2mtd.block2mtd=/dev/cfa2,65536 root=/dev/mtdblock0 rootfstype=jffs2 init=/etc/preinit
 endef
 
 define Image/cmdline/jffs2-128k
-block2mtd.block2mtd=/dev/sda2,131072 root=/dev/mtdblock0 rootfstype=jffs2
+block2mtd.block2mtd=/dev/cfa2,131072 root=/dev/mtdblock0 rootfstype=jffs2 init=/etc/preinit
 endef
 
 define Image/cmdline/ext2
-root=/dev/sda2 rootfstype=ext2
+root=/dev/cfa2 rootfstype=ext2 init=/etc/preinit
 endef
 
 define Image/cmdline/squashfs
-block2mtd.block2mtd=/dev/sda2,65536 root=/dev/mtdblock0 rootfstype=squashfs
+block2mtd.block2mtd=/dev/cfa2,65536 root=/dev/mtdblock0 rootfstype=squashfs init=/etc/preinit
 endef
 
 define Image/cmdline/yaffs2
-root=/dev/mtdblock1 rootfstype=yaffs2
+root=/dev/mtdblock1 rootfstype=yaffs2 init=/etc/preinit
 endef
 
 define Image/Build
-	$(CP) $(KDIR)/vmlinux.elf $(BIN_DIR)/openwrt-$(BOARD)-$(1).kernel
-	$(STAGING_DIR_HOST)/bin/patch-cmdline $(BIN_DIR)/openwrt-$(BOARD)-$(1).kernel '$(strip $(call Image/cmdline/$(1))) '
-	./gen_image.sh $(BIN_DIR)/openwrt-$(BOARD)-$(1).bin 4 $(BIN_DIR)/openwrt-$(BOARD)-$(1).kernel $(CONFIG_TARGET_ROOTFS_FSPART) $(KDIR)/root.$(1)
+	$(STAGING_DIR_HOST)/bin/patch-cmdline $(KDIR)/vmlinux.elf '$(strip $(call Image/cmdline/$(1))) '
+	./gen_image.sh $(BIN_DIR)/openwrt-$(BOARD)-$(1).bin 4 $(KDIR)/vmlinux.elf $(CONFIG_TARGET_ROOTFS_FSPART) $(KDIR)/root.$(1)
 endef
 
 ifneq ($(CONFIG_TARGET_ROOTFS_INITRAMFS),y)

@@ -1,3 +1,4 @@
+/* $Id: $ */
 
 /*
  * Copyright (c) 2008 Daniel Mueller (daniel@danm.de)
@@ -44,6 +45,8 @@
  */
 
 #include <linux/kernel.h>
+#include <linux/byteorder/swab.h>
+#include <linux/byteorder/generic.h>
 #include <linux/module.h>
 #include <linux/moduleparam.h>
 #include <linux/proc_fs.h>
@@ -85,8 +88,8 @@
 
 #define DRV_MODULE_NAME     "ubsec_ssb"
 #define PFX DRV_MODULE_NAME ": "
-#define DRV_MODULE_VERSION  "0.02"
-#define DRV_MODULE_RELDATE  "Feb 21, 2009"
+#define DRV_MODULE_VERSION  "0.01"
+#define DRV_MODULE_RELDATE  "Jan 1, 2008"
 
 #if 1
 #define DPRINTF(a...) \
@@ -493,7 +496,7 @@ __devinit ubsec_ssb_probe(struct ssb_device *sdev,
     err = ssb_bus_powerup(sdev->bus, 0);
     if (err) {
         dev_err(sdev->dev, "Failed to powerup the bus\n");
-	goto err_out;
+        goto err_powerup;
     }
 
     err = request_irq(sdev->irq, (irq_handler_t)ubsec_ssb_isr, 
@@ -507,7 +510,7 @@ __devinit ubsec_ssb_probe(struct ssb_device *sdev,
     if (err) {
         dev_err(sdev->dev,
         "Required 32BIT DMA mask unsupported by the system.\n");
-        goto err_out_free_irq;
+        goto err_out_powerdown;
     }
 
     printk(KERN_INFO "Sentry5(tm) ROBOGateway(tm) IPSec Core at IRQ %u\n",
@@ -519,7 +522,7 @@ __devinit ubsec_ssb_probe(struct ssb_device *sdev,
     ssb_device_enable(sdev, 0);
 
     if (ubsec_attach(sdev, ent, sdev->dev) != 0)
-        goto err_out_disable;
+        goto err_disable_interrupt;
 
 #ifdef UBSEC_DEBUG
     procdebug = create_proc_entry(DRV_MODULE_NAME, S_IRUSR, NULL);
@@ -533,17 +536,15 @@ __devinit ubsec_ssb_probe(struct ssb_device *sdev,
 
     return 0;
 
-err_out_disable:
-    ssb_device_disable(sdev, 0);
-
-err_out_free_irq:
+err_disable_interrupt:
     free_irq(sdev->irq, sdev);
 
 err_out_powerdown:
     ssb_bus_may_powerdown(sdev->bus);
 
-err_out:
-    return err;
+err_powerup:
+    ssb_device_disable(sdev, 0);
+    return err;    
 }
 
 static void __devexit ubsec_ssb_remove(struct ssb_device *sdev) {
@@ -588,8 +589,8 @@ static void __devexit ubsec_ssb_remove(struct ssb_device *sdev) {
         sc->sc_queuea[i] = NULL;
     }
 
-    ssb_device_disable(sdev, 0);
     ssb_bus_may_powerdown(sdev->bus);
+    ssb_device_disable(sdev, 0);
     ssb_set_drvdata(sdev, NULL);
 
 #ifdef UBSEC_DEBUG

@@ -4,23 +4,23 @@ append DRIVERS "mac80211"
 scan_mac80211() {
 	local device="$1"
 	local adhoc sta ap
-
+	
 	config_get vifs "$device" vifs
 	for vif in $vifs; do
-
+	
 		config_get ifname "$vif" ifname
 		config_set "$vif" ifname "${ifname:-$device}"
-
+		
 		config_get mode "$vif" mode
 		case "$mode" in
-			adhoc|sta|ap|monitor|mesh)
+			adhoc|sta|ap|monitor)
 				append $mode "$vif"
 			;;
 			*) echo "$device($vif): Invalid mode, ignored."; continue;;
 		esac
 	done
 
-	config_set "$device" vifs "${ap:+$ap }${adhoc:+$adhoc }${ahdemo:+$ahdemo }${sta:+$sta }${wds:+$wds }${monitor:+$monitor }${mesh:+$mesh}"
+	config_set "$device" vifs "${ap:+$ap }${adhoc:+$adhoc }${ahdemo:+$ahdemo }${sta:+$sta }${wds:+$wds }${monitor:+$monitor}"
 }
 
 
@@ -29,17 +29,17 @@ disable_mac80211() (
 
 	set_wifi_down "$device"
 	# kill all running hostapd and wpa_supplicant processes that
-	# are running on atheros/mac80211 vifs
+	# are running on atheros/mac80211 vifs 
 	for pid in `pidof hostapd wpa_supplicant`; do
 		grep wlan /proc/$pid/cmdline >/dev/null && \
 			kill $pid
 	done
-
+	
 	include /lib/network
 	cd /proc/sys/net
 	for dev in *; do
 		grep "$device" "$dev/%parent" >/dev/null 2>/dev/null && {
-			ifconfig "$dev" down
+			ifconfig "$dev" down 
 			unbridge "$dev"
 		}
 	done
@@ -53,15 +53,13 @@ enable_mac80211() {
 	config_get txpower "$device" txpower
 
 	local first=1
-	local mesh_idx=0
-	wifi_fixup_hwmode "$device" "g"
 	for vif in $vifs; do
 		ifconfig "$ifname" down 2>/dev/null
 		config_get ifname "$vif" ifname
 		config_get enc "$vif" encryption
 		config_get eap_type "$vif" eap_type
 		config_get mode "$vif" mode
-
+		
 		config_get ifname "$vif" ifname
 		[ $? -ne 0 ] && {
 			echo "enable_mac80211($device): Failed to set up $mode vif $ifname" >&2
@@ -77,13 +75,6 @@ enable_mac80211() {
 				sleep 1
 				iwconfig "$ifname" mode ad-hoc >/dev/null 2>/dev/null
 			fi
-			# mesh interface should be created only for the first interface
-			if [ "$mode" = mesh ]; then
-				config_get mesh_id "$vif" mesh_id
-				if [ -n "$mesh_id" ]; then
-					iw dev "$ifname" interface add msh$mesh_idx type mp mesh_id $mesh_id
-				fi
-			fi
 			sleep 1
 			iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null
 		}
@@ -92,7 +83,7 @@ enable_mac80211() {
 		else
 			iwconfig "$ifname" mode $mode >/dev/null 2>/dev/null
 		fi
-
+	
 		wpa=
 		case "$enc" in
 			WEP|wep)
@@ -115,7 +106,7 @@ enable_mac80211() {
 		case "$mode" in
 			adhoc)
 				config_get addr "$vif" bssid
-				[ -z "$addr" ] || {
+				[ -z "$addr" ] || { 
 					iwconfig "$ifname" ap "$addr"
 				}
 			;;
@@ -139,7 +130,7 @@ enable_mac80211() {
 		fi
 
 		ifconfig "$ifname" up
-		iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null
+		iwconfig "$ifname" channel "$channel" >/dev/null 2>/dev/null 
 
 		local net_cfg bridge
 		net_cfg="$(find_net_config "$vif")"
@@ -171,15 +162,8 @@ enable_mac80211() {
 					}
 				fi
 			;;
-			mesh)
-				# special case where physical interface should be down for mesh to work
-				ifconfig "$ifname" down
-				ifconfig "msh$mesh_idx" up
-				iwlist msh$mesh_idx scan 2>/dev/null >/dev/null
-			;;
 		esac
 		first=0
-		mesh_idx=$(expr $mesh_idx + 1)
 	done
 }
 

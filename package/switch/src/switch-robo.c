@@ -41,7 +41,6 @@
 
 #define ROBO_PHY_ADDR		0x1E	/* robo switch phy address */
 #define ROBO_PHY_ADDR_TG3	0x01	/* Tigon3 PHY address */
-#define ROBO_PHY_ADDR_BCM63XX	0x00	/* BCM63XX PHY address */
 
 /* MII registers */
 #define REG_MII_PAGE	0x10	/* MII Page register */
@@ -68,13 +67,9 @@
 #define bool int
 #endif
 
-/* Only available on brcm-2.4/brcm47xx */
-#ifdef BROADCOM
+
 extern char *nvram_get(const char *name);
 #define getvar(str) (nvram_get(str)?:"")
-#else
-#define getvar(str) ""
-#endif
 
 /* Data structure for a Roboswitch device. */
 struct robo_switch {
@@ -328,14 +323,13 @@ static int robo_probe(char *devname)
 		/* got phy address check for robo address */
 		struct mii_ioctl_data *mii = (struct mii_ioctl_data *) &robo.ifr.ifr_data;
 		if ((mii->phy_id != ROBO_PHY_ADDR) &&
-		    (mii->phy_id != ROBO_PHY_ADDR_BCM63XX) &&
 		    (mii->phy_id != ROBO_PHY_ADDR_TG3)) {
 			printk("Invalid phy address (%d)\n", mii->phy_id);
 			return 1;
 		}
 		robo.use_et = 0;
 		/* The robo has a fixed PHY address that is different from the
-		 * Tigon3 and BCM63xx PHY address. */
+		 * Tigon3 PHY address. */
 		robo.phy_addr = ROBO_PHY_ADDR;
 	}
 
@@ -343,7 +337,7 @@ static int robo_probe(char *devname)
 		(mdio_read(robo.phy_addr, 0x3) << 16);
 
 	if (phyid == 0xffffffff || phyid == 0x55210022) {
-		printk("No Robo switch in managed mode found, phy_id = 0x%08x\n", phyid);
+		printk("No Robo switch in managed mode found\n");
 		return 1;
 	}
 

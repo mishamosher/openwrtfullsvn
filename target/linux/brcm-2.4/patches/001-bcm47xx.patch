@@ -580,7 +580,7 @@
  	EV96100_SERIAL_PORT_DEFNS		\
 --- a/init/do_mounts.c
 +++ b/init/do_mounts.c
-@@ -255,7 +255,13 @@ static struct dev_name_struct {
+@@ -254,7 +254,13 @@ static struct dev_name_struct {
  	{ "ftlb", 0x2c08 },
  	{ "ftlc", 0x2c10 },
  	{ "ftld", 0x2c18 },

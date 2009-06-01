@@ -6,8 +6,6 @@ choice
 	default GCC_VERSION_4_2_4 if TARGET_avr32
 	default GCC_VERSION_4_2_4 if TARGET_ppc40x
 	default GCC_VERSION_4_2_4 if TARGET_ppc44x
-	default GCC_VERSION_4_3_3 if TARGET_ps3_petitboot
-	default GCC_VERSION_4_3_3 if TARGET_etrax
 	default GCC_VERSION_4_1_2
 	help
 	  Select the version of gcc you wish to use.
@@ -15,19 +13,13 @@ choice
 	config GCC_VERSION_3_4_6
 		bool "gcc 3.4.6"
 
-if !LINUX_2_4
 	config GCC_VERSION_4_1_2
+		depends !LINUX_2_4
 		bool "gcc 4.1.2"
 
 	config GCC_VERSION_4_2_4
+		depends !LINUX_2_4
 		bool "gcc 4.2.4"
-
-	config GCC_VERSION_4_3_3
-		bool "gcc 4.3.3"
-
-	config GCC_VERSION_4_4_0
-		bool "gcc 4.4.0"
-endif
 
 endchoice
 
@@ -35,8 +27,7 @@ config EABI_SUPPORT
 	bool
 	depends arm||armeb
 	prompt "Enable EABI support" if TOOLCHAINOPTS
-	default n if TARGET_gemini
-	default y
+	default n
 	help
 	  Enable ARM EABI support
 
@@ -49,7 +40,6 @@ config EXTRA_GCC_CONFIG_OPTIONS
 
 config SSP_SUPPORT
 	bool
-	depends !GCC_VERSION_3_4_6
 	prompt "Enable Smash Stacking Protection support" if TOOLCHAINOPTS
 	default n
 	help

@@ -1,16 +1,16 @@
 Don't do broadcast SSID scans, if all configured SSIDs use scan_ssid=1. Improves background scanning in supplicant-managed roaming.
 
---- a/wpa_supplicant/scan.c
-+++ b/wpa_supplicant/scan.c
-@@ -73,6 +73,7 @@ static void wpa_supplicant_scan(void *el
- 	struct wpabuf *wps_ie = NULL;
+Index: wpa_supplicant-0.6.3/wpa_supplicant/scan.c
+===================================================================
+--- wpa_supplicant-0.6.3.orig/wpa_supplicant/scan.c	2008-07-09 18:53:28.000000000 +0200
++++ wpa_supplicant-0.6.3/wpa_supplicant/scan.c	2008-07-09 19:00:55.000000000 +0200
+@@ -48,11 +48,23 @@
+ 	int enabled, scan_req = 0, ret;
  	const u8 *extra_ie = NULL;
  	size_t extra_ie_len = 0;
 +	int scan_ssid_all = 1;
- 	int wps = 0;
- #ifdef CONFIG_WPS
- 	enum wps_request_type req_type = WPS_REQ_ENROLLEE_INFO;
-@@ -82,6 +83,17 @@ static void wpa_supplicant_scan(void *el
+ 
+ 	if (wpa_s->disconnected && !wpa_s->scan_req)
  		return;
  
  	enabled = 0;
@@ -28,7 +28,7 @@ Don't do broadcast SSID scans, if all configured SSIDs use scan_ssid=1. Improves
  	ssid = wpa_s->conf->ssid;
  	while (ssid) {
  		if (!ssid->disabled) {
-@@ -154,6 +166,10 @@ static void wpa_supplicant_scan(void *el
+@@ -125,6 +137,10 @@
  		return;
  	}
  

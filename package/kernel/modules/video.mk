@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 VIDEO_MENU:=Video Support
 
@@ -23,19 +24,6 @@ define KernelPackage/video-core/2.4
   AUTOLOAD:=$(call AutoLoad,60,videodev)
 endef
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.29)),1)
-define KernelPackage/video-core/2.6
-  FILES:= \
-	$(LINUX_DIR)/drivers/media/video/v4l2-common.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/media/video/v4l1-compat.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/drivers/media/video/videodev.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,60, \
-	v4l1-compat \
-	videodev \
-	v4l2-common \
-  )
-endef
-else
 define KernelPackage/video-core/2.6
   FILES:= \
 	$(LINUX_DIR)/drivers/media/video/v4l2-common.$(LINUX_KMOD_SUFFIX) \
@@ -43,13 +31,12 @@ define KernelPackage/video-core/2.6
 	$(LINUX_DIR)/drivers/media/video/compat_ioctl32.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/media/video/videodev.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,60, \
-	v4l1-compat \
-	videodev \
 	v4l2-common \
+	v4l1-compat \
 	compat_ioctl32 \
+	videodev \
   )
 endef
-endif
 
 define KernelPackage/video-core/description
  Kernel modules for Video4Linux support
@@ -144,20 +131,3 @@ endef
 
 $(eval $(call KernelPackage,video-pwc))
 
-define KernelPackage/video-uvc
-  SUBMENU:=$(VIDEO_MENU)
-  TITLE:=USB Video Class (UVC) support
-  DEPENDS:=@LINUX_2_6 @!LINUX_2_6_25 @!LINUX_2_6_24 @!LINUX_2_6_23 @USB_SUPPORT +kmod-usb-core +kmod-video-core
-  KCONFIG:= \
-	CONFIG_USB_VIDEO_CLASS \
-	CONFIG_USB_VIDEO_CLASS_INPUT_EVDEV=y
-  FILES:=$(LINUX_DIR)/drivers/media/video/uvc/uvcvideo.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,90,uvcvideo)
-endef
-
-
-define KernelPackage/video-uvc/description
- Kernel modules for supporting USB Video Class (UVC) devices.
-endef
-
-$(eval $(call KernelPackage,video-uvc))

@@ -1,6 +1,6 @@
 --- a/arch/mips/Kconfig
 +++ b/arch/mips/Kconfig
-@@ -78,6 +78,23 @@ config MIPS_COBALT
+@@ -78,6 +78,21 @@ config MIPS_COBALT
  	select SYS_SUPPORTS_LITTLE_ENDIAN
  	select GENERIC_HARDIRQS_NO__DO_IRQ
  
@@ -11,11 +11,9 @@
 +	select CEVT_R4K
 +	select CSRC_R4K
 +	select SYS_HAS_CPU_MIPS32_R1
-+	select SYS_HAS_CPU_MIPS32_R2
 +	select HAVE_STD_PC_SERIAL_PORT
 +	select SYS_SUPPORTS_BIG_ENDIAN
 +	select SYS_SUPPORTS_32BIT_KERNEL
-+	select SYS_SUPPORTS_MULTITHREADING
 +	select SYS_HAS_EARLY_PRINTK
 +	select HW_HAS_PCI
 +	select GENERIC_GPIO
@@ -24,7 +22,7 @@
  config MACH_DECSTATION
  	bool "DECstations"
  	select BOOT_ELF32
-@@ -697,6 +714,7 @@ source "arch/mips/sibyte/Kconfig"
+@@ -697,6 +712,7 @@ source "arch/mips/sibyte/Kconfig"
  source "arch/mips/tx4927/Kconfig"
  source "arch/mips/tx4938/Kconfig"
  source "arch/mips/vr41xx/Kconfig"
@@ -63,6 +61,16 @@
  #define CL_SIZE			COMMAND_LINE_SIZE
  
  extern char *system_type;
+--- a/arch/mips/kernel/traps.c
++++ b/arch/mips/kernel/traps.c
+@@ -1464,6 +1464,7 @@ void __cpuinit per_cpu_trap_init(void)
+ 	 */
+ 	if (cpu_has_mips_r2) {
+ 		cp0_compare_irq = (read_c0_intctl() >> 29) & 7;
++		cp0_compare_irq = CP0_LEGACY_COMPARE_IRQ;
+ 		cp0_perfcount_irq = (read_c0_intctl() >> 26) & 7;
+ 		if (cp0_perfcount_irq == cp0_compare_irq)
+ 			cp0_perfcount_irq = -1;
 --- a/arch/mips/pci/Makefile
 +++ b/arch/mips/pci/Makefile
 @@ -48,3 +48,4 @@ obj-$(CONFIG_TOSHIBA_RBTX4938)	+= fixup-

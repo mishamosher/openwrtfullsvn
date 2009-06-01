@@ -1,7 +1,7 @@
 /*
  *  Atheros AR71xx SoC specific prom routines
  *
- *  Copyright (C) 2008-2009 Gabor Juhos <juhosg@openwrt.org>
+ *  Copyright (C) 2008 Gabor Juhos <juhosg@openwrt.org>
  *  Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -19,8 +19,7 @@
 #include <asm/fw/myloader/myloader.h>
 
 #include <asm/mach-ar71xx/ar71xx.h>
-
-#include "devices.h"
+#include <asm/mach-ar71xx/platform.h>
 
 struct board_rec {
 	char		*name;
@@ -34,97 +33,29 @@ static char **ar71xx_prom_envp __initdata;
 static struct board_rec boards[] __initdata = {
 	{
 		.name		= "411",
-		.mach_type	= AR71XX_MACH_RB_411,
+		.mach_type	= MACH_AR71XX_RB_411,
 	}, {
 		.name		= "433",
-		.mach_type	= AR71XX_MACH_RB_433,
+		.mach_type	= MACH_AR71XX_RB_433,
 	}, {
 		.name		= "450",
-		.mach_type	= AR71XX_MACH_RB_450,
+		.mach_type	= MACH_AR71XX_RB_450,
 	}, {
 		.name		= "493",
-		.mach_type	= AR71XX_MACH_RB_493,
-	}, {
-		.name		= "AP81",
-		.mach_type	= AR71XX_MACH_AP81,
-	}, {
-		.name		= "AP83",
-		.mach_type	= AR71XX_MACH_AP83,
-	}, {
-		.name		= "AW-NR580",
-		.mach_type	= AR71XX_MACH_AW_NR580,
-	}, {
-		.name		= "TEW-632BRP",
-		.mach_type	= AR71XX_MACH_TEW_632BRP,
-	}, {
-		.name		= "TL-WR941ND",
-		.mach_type	= AR71XX_MACH_TL_WR941ND,
-	}, {
-		.name		= "UBNT-RS",
-		.mach_type	= AR71XX_MACH_UBNT_RS,
-	}, {
-		.name		= "UBNT-RSPRO",
-		.mach_type	= AR71XX_MACH_UBNT_RSPRO,
-	}, {
-		.name		= "Ubiquiti AR71xx-based board",
-		.mach_type	= AR71XX_MACH_UBNT_RS,
-	}, {
-		.name		= "UBNT-LS-SR71",
-		.mach_type	= AR71XX_MACH_UBNT_LSSR71,
-	}, {
-		.name		= "UBNT-LSX",
-		.mach_type	= AR71XX_MACH_UBNT_LSX,
-	}, {
-		.name		= "WNR2000",
-		.mach_type	= AR71XX_MACH_WNR2000,
-	}, {
-		.name		= "WRT160NL",
-		.mach_type	= AR71XX_MACH_WRT160NL,
-	}, {
-		.name		= "WRT400N",
-		.mach_type	= AR71XX_MACH_WRT400N,
-	}, {
-		.name		= "PB42",
-		.mach_type	= AR71XX_MACH_PB42,
-	}, {
-		.name		= "PB44",
-		.mach_type	= AR71XX_MACH_PB44,
-	}, {
-		.name		= "MZK-W300NH",
-		.mach_type	= AR71XX_MACH_MZK_W300NH,
-	}, {
-		.name		= "MZK-W04NU",
-		.mach_type	= AR71XX_MACH_MZK_W04NU,
+		.mach_type	= MACH_AR71XX_RB_493,
 	}
 };
-
-static inline int is_valid_ram_addr(void *addr)
-{
-	if (((u32) addr > KSEG0) &&
-	    ((u32) addr < (KSEG0 + AR71XX_MEM_SIZE_MAX)))
-		return 1;
-
-	if (((u32) addr > KSEG1) &&
-	    ((u32) addr < (KSEG1 + AR71XX_MEM_SIZE_MAX)))
-		return 1;
-
-	return 0;
-}
 
 static __init char *ar71xx_prom_getargv(const char *name)
 {
 	int len = strlen(name);
 	int i;
 
-	if (!is_valid_ram_addr(ar71xx_prom_argv))
+	if (!ar71xx_prom_argv)
 		return NULL;
 
 	for (i = 0; i < ar71xx_prom_argc; i++) {
 		char *argv = ar71xx_prom_argv[i];
-
-		if (!is_valid_ram_addr(argv))
-			continue;
-
 		if (strncmp(name, argv, len) == 0 && (argv)[len] == '=')
 			return argv + len + 1;
 	}
@@ -137,18 +68,12 @@ static __init char *ar71xx_prom_getenv(const char *envname)
 	int len = strlen(envname);
 	char **env;
 
-	if (!is_valid_ram_addr(ar71xx_prom_envp))
+	if (!ar71xx_prom_envp)
 		return NULL;
 
-	for (env = ar71xx_prom_envp; is_valid_ram_addr(*env); env++) {
+	for (env = ar71xx_prom_envp; *env != NULL; env++)
 		if (strncmp(envname, *env, len) == 0 && (*env)[len] == '=')
 			return *env + len + 1;
-
-		/* RedBoot env comes in pointer pairs - key, value */
-		if (strncmp(envname, *env, len) == 0 && (*env)[len] == 0)
-			if (is_valid_ram_addr(*(++env)))
-				return *env;
-	}
 
 	return NULL;
 }
@@ -161,7 +86,7 @@ static __init unsigned long find_board_byname(char *name)
 		if (strcmp(name, boards[i].name) == 0)
 			return boards[i].mach_type;
 
-	return AR71XX_MACH_GENERIC;
+	return MACH_AR71XX_GENERIC;
 }
 
 static int ar71xx_prom_init_myloader(void)
@@ -174,7 +99,7 @@ static int ar71xx_prom_init_myloader(void)
 
 	switch (mylo->did) {
 	case DEVID_COMPEX_WP543:
-		ar71xx_mach_type = AR71XX_MACH_WP543;
+		mips_machtype = MACH_AR71XX_WP543;
 		break;
 	default:
 		printk(KERN_WARNING "prom: unknown device id: %x\n",
@@ -193,11 +118,11 @@ static void ar71xx_prom_init_generic(void)
 	ar71xx_prom_argv = (char **)fw_arg1;
 	ar71xx_prom_envp = (char **)fw_arg2;
 
-	p = ar71xx_prom_getargv("board");
+	p = ar71xx_prom_getenv("board");
 	if (!p)
-		p = ar71xx_prom_getenv("board");
+		p = ar71xx_prom_getargv("board");
 	if (p)
-		ar71xx_mach_type = find_board_byname(p);
+		mips_machtype = find_board_byname(p);
 
 	p = ar71xx_prom_getenv("ethaddr");
 	if (!p)
@@ -213,7 +138,7 @@ void __init prom_init(void)
 			(unsigned int)fw_arg0, (unsigned int)fw_arg1,
 			(unsigned int)fw_arg2, (unsigned int)fw_arg3);
 
-	ar71xx_mach_type = AR71XX_MACH_GENERIC;
+	mips_machtype = MACH_AR71XX_GENERIC;
 
 	if (ar71xx_prom_init_myloader())
 		return;

@@ -7,7 +7,7 @@
 
 define Profile/Broadcom-b43
   NAME:=Broadcom BCM43xx WiFi (default)
-  PACKAGES:=kmod-b43 kmod-b43legacy
+  PACKAGES:=kmod-b43
 endef
 
 define Profile/Broadcom-b43/Description

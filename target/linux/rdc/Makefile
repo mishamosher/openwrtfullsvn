@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,18 +9,17 @@ include $(TOPDIR)/rules.mk
 ARCH:=i386
 BOARD:=rdc
 BOARDNAME:=RDC 321x
-FEATURES:=squashfs jffs2 pci usb
-CFLAGS:=-Os -pipe -march=i486 -funit-at-a-time
+FEATURES:=squashfs jffs2 pci
 
-LINUX_VERSION:=2.6.28.10
+LINUX_VERSION:=2.6.24.7
 
 include $(INCLUDE_DIR)/target.mk
 
-DEFAULT_PACKAGES += hostapd-mini
+DEFAULT_PACKAGES += wpa-supplicant
 
 define Target/Description
         Build firmware images for RDC321x based routers
-        (e.g. Airlink101 AR525W, Linksys WRT54GR, Sitecom WL-153)
+        (e.g. Airlink101 AR525W, Linksys WRT54R, Sitecom WL-153)
 endef
 
 $(eval $(call BuildTarget))

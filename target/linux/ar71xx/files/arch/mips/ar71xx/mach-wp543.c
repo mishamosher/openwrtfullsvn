@@ -1,7 +1,7 @@
 /*
  *  Compex WP543 board support
  *
- *  Copyright (C) 2008-2009 Gabor Juhos <juhosg@openwrt.org>
+ *  Copyright (C) 2008 Gabor Juhos <juhosg@openwrt.org>
  *  Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -19,8 +19,7 @@
 #include <asm/mips_machine.h>
 #include <asm/mach-ar71xx/ar71xx.h>
 #include <asm/mach-ar71xx/pci.h>
-
-#include "devices.h"
+#include <asm/mach-ar71xx/platform.h>
 
 #define WP543_GPIO_SW6		2
 #define WP543_GPIO_LED_1	3
@@ -32,12 +31,39 @@
 
 #define WP543_BUTTONS_POLL_INTERVAL	20
 
+#ifdef CONFIG_MTD_PARTITIONS
+static struct mtd_partition wp543_partitions[] = {
+	{
+		.name	= "myloader",
+		.offset	= 0,
+		.size	= 0x20000,
+		.mask_flags = MTD_WRITEABLE,
+	} , {
+		.name	= "kernel",
+		.offset	= 0x30000,
+		.size	= 0xd0000,
+	} , {
+		.name	= "rootfs",
+		.offset	= 0x100000,
+		.size	= 0x100000,
+	}
+};
+#endif /* CONFIG_MTD_PARTITIONS */
+
+static struct flash_platform_data wp543_flash_data = {
+#ifdef CONFIG_MTD_PARTITIONS
+	.parts		= wp543_partitions,
+	.nr_parts	= ARRAY_SIZE(wp543_partitions),
+#endif
+};
+
 static struct spi_board_info wp543_spi_info[] = {
 	{
 		.bus_num	= 0,
 		.chip_select	= 0,
 		.max_speed_hz	= 25000000,
 		.modalias	= "m25p80",
+		.platform_data	= &wp543_flash_data,
 	}
 };
 
@@ -115,4 +141,4 @@ static void __init wp543_setup(void)
 					wp543_gpio_buttons);
 }
 
-MIPS_MACHINE(AR71XX_MACH_WP543, "Compex WP543", wp543_setup);
+MIPS_MACHINE(MACH_AR71XX_WP543, "Compex WP543", wp543_setup);

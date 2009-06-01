@@ -1,3 +1,3 @@
-#if defined(__linux__) || defined(__CYGWIN__) 
+#ifdef __linux__
 #include_next <byteswap.h>
 #endif

@@ -1,10 +1,11 @@
 --- /dev/null
 +++ b/include/linux/spi/spi_gpio.h
-@@ -0,0 +1,72 @@
+@@ -0,0 +1,73 @@
 +/*
 + * spi_gpio interface to platform code
 + *
 + * Copyright (c) 2008 Piotr Skamruk
++ * Copyright (c) 2008 Michael Buesch
 + *
 + * This program is free software; you can redistribute it and/or modify
 + * it under the terms of the GNU General Public License version 2 as
@@ -75,11 +76,12 @@
 +#endif /* _LINUX_SPI_SPI_GPIO */
 --- /dev/null
 +++ b/drivers/spi/spi_gpio.c
-@@ -0,0 +1,249 @@
+@@ -0,0 +1,251 @@
 +/*
 + * Bitbanging SPI bus driver using GPIO API
 + *
 + * Copyright (c) 2008 Piotr Skamruk
++ * Copyright (c) 2008 Michael Buesch
 + *
 + * based on spi_s3c2410_gpio.c
 + *   Copyright (c) 2006 Ben Dooks
@@ -323,6 +325,7 @@
 +module_exit(spi_gpio_exit);
 +
 +MODULE_AUTHOR("Piot Skamruk <piotr.skamruk at gmail.com>");
++MODULE_AUTHOR("Michael Buesch");
 +MODULE_DESCRIPTION("Platform independent GPIO bitbanging SPI driver");
 +MODULE_LICENSE("GPL v2");
 --- a/drivers/spi/Kconfig
@@ -357,3 +360,17 @@
  obj-$(CONFIG_SPI_IMX)			+= spi_imx.o
  obj-$(CONFIG_SPI_LM70_LLP)		+= spi_lm70llp.o
  obj-$(CONFIG_SPI_PXA2XX)		+= pxa2xx_spi.o
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -3685,6 +3685,11 @@ M:	dbrownell@users.sourceforge.net
+ L:	spi-devel-general@lists.sourceforge.net
+ S:	Maintained
+ 
++SPI GPIO MASTER DRIVER
++P:	Michael Buesch
++M:	mb@bu3sch.de
++S:	Maintained
++
+ STABLE BRANCH:
+ P:	Greg Kroah-Hartman
+ M:	greg@kroah.com

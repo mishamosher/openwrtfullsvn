@@ -1,10 +1,10 @@
-
 #
 # Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 NF_MENU:=Netfilter Extensions
 NF_KMOD:=1
@@ -79,14 +79,14 @@ define KernelPackage/ipt-filter
   KCONFIG:=$(KCONFIG_IPT_FILTER)
   FILES:=$(foreach mod,$(IPT_FILTER-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
   AUTOLOAD:=$(call AutoLoad,45,$(notdir $(IPT_FILTER-m)))
-  DEPENDS:=kmod-ipt-core +LINUX_2_6:kmod-textsearch
+  DEPENDS:= kmod-ipt-core
 endef
 
 define KernelPackage/ipt-filter/description
  Netfilter (IPv4) kernel modules for packet content inspection
  Includes:
+ - ipt_ipp2p
  - ipt_layer7
- - ipt_string
 endef
 
 $(eval $(call KernelPackage,ipt-filter))
@@ -203,7 +203,7 @@ define KernelPackage/ipt-nathelper-extra
   KCONFIG:=$(KCONFIG_IPT_NATHELPER_EXTRA)
   FILES:=$(foreach mod,$(IPT_NATHELPER_EXTRA-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
   AUTOLOAD:=$(call AutoLoad,45,$(notdir $(IPT_NATHELPER_EXTRA-m)))
-  DEPENDS:= kmod-ipt-core +kmod-ipt-nat +kmod-textsearch
+  DEPENDS:= kmod-ipt-core +kmod-ipt-nat
 endef
 
 define KernelPackage/ipt-nathelper-extra/description
@@ -229,7 +229,7 @@ define KernelPackage/ipt-imq
 	CONFIG_IMQ \
 	CONFIG_IMQ_BEHAVIOR_BA=y \
 	CONFIG_IMQ_NUM_DEVS=2 \
-	CONFIG_NETFILTER_XT_TARGET_IMQ
+	CONFIG_IP_NF_TARGET_IMQ
   FILES:= \
 	$(LINUX_DIR)/drivers/net/imq.$(LINUX_KMOD_SUFFIX) \
 	$(foreach mod,$(IPT_IMQ-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
@@ -346,6 +346,9 @@ define KernelPackage/ipt-extra/description
  - ipt_recent
  - iptable_raw
  - xt_NOTRACK
+ - xt_TARPIT
+ - xt_DELUDE
+ - xt_CHAOS
 endef
 
 $(eval $(call KernelPackage,ipt-extra))

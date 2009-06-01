@@ -48,11 +48,9 @@ $(BUILD_DIR)/.prepared: Makefile
 	@mkdir -p $$(dirname $@)
 	@touch $@
 
-prepare: $(target/stamp-compile)
-
 clean: FORCE
+	rm -rf $(BUILD_DIR) $(BIN_DIR)
 	$(_SINGLE)$(SUBMAKE) target/linux/clean
-	rm -rf $(BUILD_DIR) $(BIN_DIR) $(BUILD_LOG_DIR)
 
 dirclean: clean
 	rm -rf $(STAGING_DIR) $(STAGING_DIR_HOST) $(STAGING_DIR_TOOLCHAIN) $(TOOLCHAIN_DIR) $(BUILD_DIR_HOST) $(BUILD_DIR_TOOLCHAIN)
@@ -74,7 +72,7 @@ prereq: $(target/stamp-prereq) tmp/.prereq_packages
 
 prepare: .config $(tools/stamp-install) $(toolchain/stamp-install)
 world: prepare $(target/stamp-compile) $(package/stamp-cleanup) $(package/stamp-compile) $(package/stamp-install) $(package/stamp-rootfs-prepare) $(target/stamp-install) FORCE
-	$(_SINGLE)$(SUBMAKE) -r package/index
+	$(_SINGLE)$(SUBMAKE) package/index
 
 # update all feeds, re-create index files, install symlinks
 package/symlinks:

@@ -1,8 +1,8 @@
 --- a/Documentation/Configure.help
 +++ b/Documentation/Configure.help
-@@ -3231,6 +3231,75 @@ CONFIG_IP_NF_TARGET_CLASSIFY
+@@ -3220,6 +3220,75 @@ CONFIG_IP_NF_TARGET_LOG
    If you want to compile it as a module, say M here and read
-   Documentation/modules.txt.  If unsure, say `N'.
+   <file:Documentation/modules.txt>.  If unsure, say `N'.
  
 +IP set support
 +CONFIG_IP_NF_SET

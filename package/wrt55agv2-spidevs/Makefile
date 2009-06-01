@@ -16,7 +16,7 @@ include $(INCLUDE_DIR)/package.mk
 define KernelPackage/wrt55agv2-spidevs
   SUBMENU:=Other modules
   TITLE:=WRT55AG v2 SPI devices support
-  DEPENDS:=@LINUX_2_6 @TARGET_atheros +kmod-spi-gpio-old +kmod-spi-ks8995
+  DEPENDS:=@LINUX_2_6 @TARGET_atheros +kmod-spi-gpio +kmod-spi-ks8995
   FILES:=$(PKG_BUILD_DIR)/wrt55agv2_spidevs.$(LINUX_KMOD_SUFFIX)
 endef
 
@@ -36,7 +36,7 @@ MAKE_OPTS:= \
 	CROSS_COMPILE="$(TARGET_CROSS)" \
 	SUBDIRS="$(PKG_BUILD_DIR)" \
 	EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
-	LINUXINCLUDE="-I$(LINUX_DIR)/include -I$(LINUX_DIR)/arch/mips/include -include linux/autoconf.h" \
+	LINUXINCLUDE="-I$(LINUX_DIR)/include -include linux/autoconf.h" \
 	$(EXTRA_KCONFIG)
 
 define Build/Prepare

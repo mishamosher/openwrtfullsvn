@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
@@ -57,13 +58,6 @@ define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) $(TARGET_CONFIGURE_OPTS) KERNEL_INCLUDE=$(LINUX_DIR)/include all tc/tc ip/ip
 endef
 
-define Build/InstallDev
-	$(INSTALL_DIR) $(1)/usr/include
-	$(CP) $(PKG_BUILD_DIR)/include/libnetlink.h $(1)/usr/include/
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/lib/libnetlink.a $(1)/usr/lib/
-endef
-
 define Package/ip/install
 	$(INSTALL_DIR) $(1)/usr/sbin
 	$(INSTALL_DIR) $(1)/etc/iproute2
@@ -85,4 +79,6 @@ $(eval $(call BuildPackage,ip))
 $(eval $(call BuildPackage,tc))
 $(eval $(call BuildPackage,genl))
 
-
+$(eval $(call RequireCommand,bison, \
+	$(PKG_NAME) requires GNU bison. \
+))

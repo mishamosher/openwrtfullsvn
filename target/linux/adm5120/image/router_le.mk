@@ -223,7 +223,6 @@ define Image/Build/Profile/NFS101U
 	$(call Image/Build/Template/Cellvision/$(1),dns-120,nfs-101u)
 	$(call Image/Build/Template/Cellvision/$(1),mu-5000fs,nfs-101u)
 	$(call Image/Build/Template/Cellvision/$(1),tn-u100,nfs-101u)
-	$(call Image/Build/Template/Cellvision/$(1),cg-nsadp,nfs-101u)
 endef
 
 define Image/Build/Profile/NFS101WU
@@ -324,24 +323,23 @@ ifeq ($(CONFIG_BROKEN),y)
 	$(call Image/Build/Profile/CAS771W,$(1))
 	$(call Image/Build/Profile/CAS861,$(1))
 	$(call Image/Build/Profile/CAS861W,$(1))
+	$(call Image/Build/Profile/NFS101U,$(1))
+	$(call Image/Build/Profile/NFS101WU,$(1))
+	# Edimax
+	$(call Image/Build/Profile/BR6104K,$(1))
+	$(call Image/Build/Profile/BR6104KP,$(1))
+	$(call Image/Build/Profile/BR6104WG,$(1))
+	$(call Image/Build/Profile/BR6114WG,$(1))
 	# Motorola
 	$(call Image/Build/Profile/PMUGW,$(1))
   endef
 endif
 
 define Image/Build/Profile/Generic
-	# Cellvision
-	$(call Image/Build/Profile/NFS101U,$(1))
-	$(call Image/Build/Profile/NFS101WU,$(1))
 	# Compex
 	$(call Image/Build/Profile/WP54,$(1))
 	$(call Image/Build/Profile/NP27G,$(1))
 	$(call Image/Build/Profile/NP28G,$(1))
-	# Edimax
-	$(call Image/Build/Profile/BR6104K,$(1))
-	$(call Image/Build/Profile/BR6104KP,$(1))
-	$(call Image/Build/Profile/BR6104WG,$(1))
-	$(call Image/Build/Profile/BR6114WG,$(1))
 	# Infineon
 	$(call Image/Build/Profile/EASY83000,$(1))
 	$(call Image/Build/Profile/EASY5120RT,$(1))
@@ -354,7 +352,7 @@ endef
 
 ifeq ($(PROFILE),RouterBoard)
   define Image/cmdline/yaffs2
-	root=/dev/mtdblock3 rootfstype=yaffs2
+	root=/dev/mtdblock3 rootfstype=yaffs2 init=/etc/preinit
   endef
 
   define Image/BuildKernel/RouterBoard

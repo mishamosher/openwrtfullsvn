@@ -1,6 +1,7 @@
---- a/tn7atm.c
-+++ b/tn7atm.c
-@@ -566,7 +566,7 @@ static int turbodsl_check_priority_type(
+diff -urN sangam_atm-D7.03.01.00.orig/tn7atm.c sangam_atm-D7.03.01.00/tn7atm.c
+--- sangam_atm-D7.03.01.00.orig/tn7atm.c	2008-01-05 03:11:23.000000000 +0100
++++ sangam_atm-D7.03.01.00/tn7atm.c	2008-01-05 03:11:34.000000000 +0100
+@@ -566,7 +566,7 @@
   *  Description: tnetd73xx SAR interrupt.
   *
   *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -9,7 +10,7 @@
  {
    struct atm_dev *atmdev;
    Tn7AtmPrivate *priv;
-@@ -593,6 +593,7 @@ static void tn7atm_sar_irq (int irq, voi
+@@ -593,6 +593,7 @@
  #ifdef TIATM_INST_SUPP
    psp_trace_par (ATM_DRV_SAR_ISR_EXIT, retval);
  #endif
@@ -17,7 +18,7 @@
  }
  
  /*~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-@@ -602,7 +603,7 @@ static void tn7atm_sar_irq (int irq, voi
+@@ -602,7 +603,7 @@
   *  Description: tnetd73xx DSL interrupt.
   *
   *~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~*/
@@ -26,7 +27,7 @@
  {
    struct atm_dev *atmdev;
    Tn7AtmPrivate *priv;
-@@ -624,6 +625,8 @@ static void tn7atm_dsl_irq (int irq, voi
+@@ -624,6 +625,8 @@
  #ifdef TIATM_INST_SUPP
    psp_trace_par (ATM_DRV_DSL_ISR_EXIT, retval);
  #endif

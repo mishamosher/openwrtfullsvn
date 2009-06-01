@@ -10,33 +10,19 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=madwifi
 
-ifneq ($(CONFIG_MADWIFI_UPSTREAM),)
-  PKG_VERSION:=0.9.4
-  PKG_RELEASE:=2
+PKG_REV:=3314
+PKG_VERSION:=r$(PKG_REV)
+PKG_RELEASE:=2
 
-  PKG_SOURCE:=madwifi-$(PKG_VERSION).tar.gz
-  PKG_SOURCE_URL:=http://downloads.sourceforge.net/madwifi/
-  PKG_MD5SUM:=399d20de8d855a59f20058857c2178ad
+PKG_SOURCE_PROTO:=svn
+PKG_SOURCE_VERSION:=$(PKG_REV)
+PKG_SOURCE_SUBDIR:=$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
+PKG_SOURCE_URL:=http://svn.madwifi.org/madwifi/$(if $(PKG_BRANCH),branches/$(PKG_BRANCH),trunk)
+PKG_SOURCE:=$(PKG_SOURCE_SUBDIR).tar.gz
 
-  PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/madwifi-$(PKG_VERSION)
+PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
 
-  PATCH_DIR=./patches-upstream
-else
-# PKG_BRANCH:=madwifi-dfs
-  PKG_REV:=3314
-  PKG_VERSION:=r$(PKG_REV)
-  PKG_RELEASE:=2
-
-  PKG_SOURCE_PROTO:=svn
-  PKG_SOURCE_VERSION:=$(PKG_REV)
-  PKG_SOURCE_SUBDIR:=$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
-  PKG_SOURCE_URL:=http://svn.madwifi.org/madwifi/$(if $(PKG_BRANCH),branches/$(PKG_BRANCH),trunk)
-  PKG_SOURCE:=$(PKG_SOURCE_SUBDIR).tar.gz
-
-  PKG_BUILD_DIR:=$(KERNEL_BUILD_DIR)/$(if $(PKG_BRANCH),$(PKG_BRANCH),madwifi-trunk)-$(PKG_VERSION)
-
-  PATCH_DIR=./patches
-endif
+PATCH_DIR=./patches
 
 HAL_VERSION:=20090508
 HAL_FILE:=ath_hal-$(HAL_VERSION).tgz
@@ -97,7 +83,7 @@ endif
 ifeq ($(ARCH),powerpc)
   HAL_TARGET:=powerpc-be-elf
 endif
-ifeq ($(BOARD),gemini)
+ifeq ($(BOARD),storm)
   HAL_TARGET:=armv4-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
 ifneq ($(CONFIG_TARGET_atheros),)

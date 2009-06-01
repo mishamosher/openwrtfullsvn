@@ -4,21 +4,17 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=e2fsprogs
-ifneq ($(findstring "0.9.29",$(CONFIG_UCLIBC_VERSION)),"0.9.29")
-PKG_VERSION:=1.41.5
-PKG_MD5SUM:=e218df6c84fc17c1126d31de9472a76c
-else
 PKG_VERSION:=1.40.11
-PKG_MD5SUM:=004cea70d724fdc7f1a952dffe4c9db8
-endif
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/e2fsprogs
+PKG_MD5SUM:=004cea70d724fdc7f1a952dffe4c9db8
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -31,7 +27,7 @@ $(call Package/e2fsprogs/Default)
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=Ext2/3 filesystem utilities
-  DEPENDS:=+libblkid +libuuid +libext2fs +libpthread
+  DEPENDS:=+libblkid +libuuid +libext2fs
 endef
 
 define Package/e2fsprogs/description
@@ -105,12 +101,6 @@ $(call Package/e2fsprogs)
   DEPENDS:=e2fsprogs
 endef
 
-define Package/blkid
-$(call Package/e2fsprogs)
-  TITLE:=Command-line utility to locate/print block device attributes
-  DEPENDS:=libuuid libblkid
-endef
-
 CONFIGURE_ARGS += \
 	--enable-shared \
 	--enable-static \
@@ -156,9 +146,6 @@ define Package/e2fsprogs/install
 	ln -sf mke2fs $(1)/usr/sbin/mkfs.ext3
 	$(INSTALL_DIR) $(1)/usr/lib
 	$(CP) $(foreach lib,com_err e2p,$(PKG_INSTALL_DIR)/usr/lib/lib$(lib).so.*) $(1)/usr/lib/
-	$(INSTALL_DIR) $(1)/etc/init.d
-	$(INSTALL_BIN) ./files/e2fsck.init $(1)/etc/init.d/e2fsck
-
 endef
 
 define Package/libuuid/install
@@ -178,7 +165,7 @@ endef
 
 define Package/libext2fs/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libext2fs.so* $(1)/usr/lib/
+	$(INSTALL_DATA) $(PKG_INSTALL_DIR)/usr/lib/libext2fs.so* $(1)/usr/lib/
 endef
 
 define Package/tune2fs/install
@@ -196,11 +183,6 @@ define Package/badblocks/install
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/badblocks $(1)/usr/sbin/
 endef
 
-define Package/blkid/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/blkid $(1)/usr/sbin/
-endef
-
 $(eval $(call BuildPackage,e2fsprogs))
 $(eval $(call BuildPackage,libuuid))
 $(eval $(call BuildPackage,uuidgen))
@@ -209,4 +191,3 @@ $(eval $(call BuildPackage,libext2fs))
 $(eval $(call BuildPackage,tune2fs))
 $(eval $(call BuildPackage,resize2fs))
 $(eval $(call BuildPackage,badblocks))
-$(eval $(call BuildPackage,blkid))

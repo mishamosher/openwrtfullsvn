@@ -20,16 +20,6 @@ CUSTOM_CHAINS=1
 DEF_INPUT=DROP
 DEF_OUTPUT=DROP
 DEF_FORWARD=DROP
-CONNTRACK_ZONES=
-NOTRACK_DISABLED=
-
-find_item() {
-	local item="$1"; shift
-	for i in "$@"; do
-		[ "$i" = "$item" ] && return 0
-	done
-	return 1
-}
 
 load_policy() {
 	config_get input $1 input
@@ -61,7 +51,6 @@ create_zone() {
 	$IPTABLES -A output -j zone_$1_$4
 	$IPTABLES -N zone_$1_nat -t nat
 	$IPTABLES -N zone_$1_prerouting -t nat
-	$IPTABLES -t raw -N zone_$1_notrack
 	[ "$6" == "1" ] && $IPTABLES -t nat -A POSTROUTING -j zone_$1_nat
 }
 
@@ -93,7 +82,6 @@ addif() {
 	$IPTABLES -I zone_${zone}_nat 1 -t nat -o "$ifname" -j MASQUERADE 
 	$IPTABLES -I PREROUTING 1 -t nat -i "$ifname" -j zone_${zone}_prerouting 
 	$IPTABLES -A forward -i "$ifname" -j zone_${zone}_forward
-	$IPTABLES -t raw -I PREROUTING 1 -i "$ifname" -j zone_${zone}_notrack
 	uci_set_state firewall core "${network}_ifname" "$ifname"
 	uci_set_state firewall core "${network}_zone" "$zone"
 }
@@ -139,15 +127,6 @@ fw_set_chain_policy() {
 	$IPTABLES -P $chain $target
 }
 
-fw_clear() {
-	$IPTABLES -F
-	$IPTABLES -t nat -F
-	$IPTABLES -t nat -X
-	$IPTABLES -t raw -F
-	$IPTABLES -t raw -X
-	$IPTABLES -X
-}
-
 fw_defaults() {
 	[ -n "$DEFAULTS_APPLIED" ] && {
 		echo "Error: multiple defaults sections detected"
@@ -174,14 +153,17 @@ fw_defaults() {
 	$IPTABLES -P OUTPUT DROP
 	$IPTABLES -P FORWARD DROP
 
-	fw_clear
-	config_get_bool drop_invalid $1 drop_invalid 0
+	$IPTABLES -F
+	$IPTABLES -t nat -F
+	$IPTABLES -t nat -X
+	$IPTABLES -X
+
+	config_get_bool drop_invalid $1 drop_invalid 1
 
 	[ "$drop_invalid" -gt 0 ] && {
 		$IPTABLES -A INPUT -m state --state INVALID -j DROP
 		$IPTABLES -A OUTPUT -m state --state INVALID -j DROP
 		$IPTABLES -A FORWARD -m state --state INVALID -j DROP
-		NOTRACK_DISABLED=1
 	}
 
 	$IPTABLES -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
@@ -223,11 +205,9 @@ fw_zone() {
 
 	config_get name $1 name
 	config_get network $1 network
-	config_get_bool masq $1 masq "0"
-	config_get_bool conntrack $1 conntrack "0"
-
+	config_get masq $1 masq
 	load_policy $1
-	[ "$conntrack" = "1" -o "$masq" = "1" ] && append CONNTRACK_ZONES "$name"
+
 	[ -z "$network" ] && network=$name
 	create_zone "$name" "$network" "$input" "$output" "$forward" "$masq"
 	fw_custom_chains_zone "$name"
@@ -305,10 +285,6 @@ fw_forwarding() {
 	[ -n "$dest" ] && z_dest=zone_${dest}_ACCEPT || z_dest=ACCEPT
 	$IPTABLES -I $z_src 1 -j $z_dest
 	[ "$mtu_fix" -gt 0 -a -n "$dest" ] && $IPTABLES -I $z_src 1 -j zone_${dest}_MSSFIX
-
-	# propagate masq zone flag
-	find_item "$src" $CONNTRACK_ZONES && append CONNTRACK_ZONES $dest
-	find_item "$dest" $CONNTRACK_ZONES && append CONNTRACK_ZONES $src
 }
 
 fw_redirect() {
@@ -418,14 +394,6 @@ fw_custom_chains_zone() {
 	$IPTABLES -I zone_${zone}_prerouting 1 -t nat -j prerouting_${zone}
 }
 
-fw_check_notrack() {
-	local zone="$1"
-	config_get name "$zone" name
-	[ -n "$NOTRACK_DISABLED" ] || \
-		find_item "$name" $CONNTRACK_ZONES || \
-		$IPTABLES -t raw -A zone_${name}_notrack -j NOTRACK
-}
-
 fw_init() {
 	DEFAULTS_APPLIED=
 
@@ -442,16 +410,18 @@ fw_init() {
 	echo "Loading includes"
 	config_foreach fw_include include
 	uci_set_state firewall core loaded 1
-	config_foreach fw_check_notrack zone
 	unset CONFIG_APPEND
 	config_load network
 	config_foreach fw_addif interface
 }
 
 fw_stop() {
-	fw_clear
+	$IPTABLES -F
+	$IPTABLES -t nat -F
+	$IPTABLES -t nat -X
+	$IPTABLES -X
 	$IPTABLES -P INPUT ACCEPT
 	$IPTABLES -P OUTPUT ACCEPT
 	$IPTABLES -P FORWARD ACCEPT
-	uci_revert_state firewall
+	uci_revert_state firewall core
 }

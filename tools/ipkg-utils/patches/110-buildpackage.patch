@@ -1,5 +1,6 @@
---- a/ipkg-buildpackage
-+++ b/ipkg-buildpackage
+diff -ruN ipkg-utils-1.7-old/ipkg-buildpackage ipkg-utils-1.7-new/ipkg-buildpackage
+--- ipkg-utils-1.7-old/ipkg-buildpackage	2001-07-26 17:36:36.000000000 +0200
++++ ipkg-utils-1.7-new/ipkg-buildpackage	2004-07-05 19:46:24.000000000 +0200
 @@ -30,8 +30,9 @@
  
  set -e
@@ -12,7 +13,7 @@
  
  SCRIPTNAME=`basename $0`
  
-@@ -212,7 +213,7 @@ done
+@@ -212,7 +213,7 @@
  # build the ipk package
  owd=`pwd`
  cd ..

@@ -77,18 +77,18 @@ hostapd_setup_vif() {
 	config_get channel "$device" channel
 	config_get hwmode "$device" hwmode
 	case "$hwmode" in
-		bg) hwmode=g;;
+		*a) hwmode=a;;
+		*b) hwmode=b;;
+		*g) hwmode=g;;
+		*)
+			hwmode=
+			[ -n "$channel" ] && {
+				test $channel -gt 14 2>/dev/null && hwmode=a
+			}
+		;;
 	esac
 	config_get country "$device" country
 	[ "$channel" = auto ] && channel=
-	[ -n "$channel" -a -z "$hwmode" ] && wifi_fixup_hwmode "$device"
-	[ -n "$hwmode" ] && {
-		config_get hwmode_11n "$device" hwmode_11n
-		[ -n "$hwmode_11n" ] && {
-			hwmode="$hwmode_11n"
-			config_get ht_capab "$device" ht_capab
-		}
-	}
 	cat > /var/run/hostapd-$ifname.conf <<EOF
 ctrl_interface=/var/run/hostapd-$ifname
 driver=$driver
@@ -101,8 +101,6 @@ debug=0
 wpa=$wpa
 ${crypto:+wpa_pairwise=$crypto}
 ${country:+country_code=$country}
-${hwmode_11n:+ieee80211n=1}
-${ht_capab:+ht_capab=$ht_capab}
 $hostapd_cfg
 EOF
 	hostapd -P /var/run/wifi-$ifname.pid -B /var/run/hostapd-$ifname.conf

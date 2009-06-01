@@ -52,7 +52,6 @@ sub parse_target_metadata() {
 		/^Target-Features:\s*(.+)\s*$/ and $target->{features} = [ split(/\s+/, $1) ];
 		/^Target-Depends:\s*(.+)\s*$/ and $target->{depends} = [ split(/\s+/, $1) ];
 		/^Target-Description:/ and $target->{desc} = get_multiline(*FILE);
-		/^Target-Optimization:\s*(.+)\s*$/ and $target->{cflags} = $1;
 		/^Linux-Version:\s*(.+)\s*$/ and $target->{version} = $1;
 		/^Linux-Release:\s*(.+)\s*$/ and $target->{release} = $1;
 		/^Linux-Kernel-Arch:\s*(.+)\s*$/ and $target->{karch} = $1;
@@ -163,7 +162,6 @@ sub target_config_features(@) {
 		/tgz/ and $ret .= "\tselect USES_TGZ\n";
 		/cpiogz/ and $ret .= "\tselect USES_CPIOGZ\n";
 		/fpu/ and $ret .= "\tselect HAS_FPU\n";
-		/ramdisk/ and $ret .= "\tselect USES_INITRAMFS\n";
 	}
 	return $ret;
 }
@@ -203,20 +201,12 @@ sub print_target($) {
 	}
 
 	my $v = kver($target->{version});
-	if (@{$target->{subtargets}} == 0) {
 	$confstr = <<EOF;
 config TARGET_$target->{conf}
 	bool "$target->{name}"
 	select LINUX_$kernel
 	select LINUX_$v
 EOF
-	}
-	else {
-		$confstr = <<EOF;
-config TARGET_$target->{conf}
-	bool "$target->{name}"
-EOF
-	}
 	if ($target->{subtarget}) {
 		$confstr .= "\tdepends TARGET_$target->{boardconf}\n";
 	}
@@ -303,14 +293,7 @@ EOF
 				print "\tselect DEFAULT_$pkg\n";
 				$defaults{$pkg} = 1;
 			}
-			my $help = $profile->{desc};
-			if ($help =~ /\w+/) {
-				$help =~ s/^\s*/\t  /mg;
-				$help = "\thelp\n$help";
-			} else {
-				undef $help;
-			}
-			print "$help\n";
+			print "\n";
 		}
 	}
 
@@ -327,16 +310,6 @@ EOF
 	foreach my $target (@target) {
 		$target->{subtarget} or	print "\t\tdefault \"".$target->{board}."\" if TARGET_".$target->{conf}."\n";
 	}
-	print <<EOF;
-
-config DEFAULT_TARGET_OPTIMIZATION
-	string
-EOF
-	foreach my $target (@target) {
-		next if @{$target->{subtargets}} > 0;
-		print "\tdefault \"".$target->{cflags}."\" if TARGET_".$target->{conf}."\n";
-	}
-	print "\tdefault \"-Os -pipe -funit-at-a-time\"\n";
 
 	my %kver;
 	foreach my $target (@target) {
@@ -344,10 +317,8 @@ EOF
 		next if $kver{$v};
 		$kver{$v} = 1;
 		print <<EOF;
-
 config LINUX_$v
 	bool
-
 EOF
 	}
 	foreach my $def (sort keys %defaults) {

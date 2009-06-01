@@ -12,6 +12,9 @@ endif
 ifneq (,$(findstring rdc,$(BOARD)))
   KERNELNAME="bzImage"
 endif
+ifneq (,$(findstring ppc,$(BOARD)))
+  KERNELNAME="uImage"
+endif
 ifneq (,$(findstring avr32,$(BOARD)))
   KERNELNAME="uImage"
 endif
@@ -31,31 +34,19 @@ endif
 # defined in quilt.mk
 Kernel/Patch:=$(Kernel/Patch/Default)
 ifeq ($(strip $(CONFIG_EXTERNAL_KERNEL_TREE)),"")
-  ifeq ($(strip $(CONFIG_KERNEL_GIT_CLONE_URI)),"")
-    define Kernel/Prepare/Default
+define Kernel/Prepare/Default
 	bzcat $(DL_DIR)/$(LINUX_SOURCE) | $(TAR) -C $(KERNEL_BUILD_DIR) $(TAR_OPTIONS)
 	$(Kernel/Patch)
 	touch $(LINUX_DIR)/.quilt_used
-    endef
-  else
-    ifeq ($(strip $(CONFIG_KERNEL_GIT_LOCAL_REPOSITORY)),"")
-define Kernel/Prepare/Default
-	git clone $(CONFIG_KERNEL_GIT_CLONE_URI) $(LINUX_DIR)
-    endef
-  else
-    define Kernel/Prepare/Default
-	git clone --reference $(CONFIG_KERNEL_GIT_LOCAL_REPOSITORY) $(CONFIG_KERNEL_GIT_CLONE_URI) $(LINUX_DIR) 
-    endef
-  endif
-endif
+endef
 else
-  define Kernel/Prepare/Default
+define Kernel/Prepare/Default
 	mkdir -p $(KERNEL_BUILD_DIR)
 	if [ -d $(LINUX_DIR) ]; then \
 		rmdir $(LINUX_DIR); \
 	fi
 	ln -s $(CONFIG_EXTERNAL_KERNEL_TREE) $(LINUX_DIR)
-  endef
+endef
 endif
 
 ifeq ($(KERNEL),2.6)
@@ -66,8 +57,6 @@ ifeq ($(KERNEL),2.6)
 		echo 'CONFIG_INITRAMFS_SOURCE="$(strip $(TARGET_DIR) $(INITRAMFS_EXTRA_FILES))"' >> $(LINUX_DIR)/.config
 		echo 'CONFIG_INITRAMFS_ROOT_UID=$(shell id -u)' >> $(LINUX_DIR)/.config
 		echo 'CONFIG_INITRAMFS_ROOT_GID=$(shell id -g)' >> $(LINUX_DIR)/.config
-		echo 'CONFIG_INITRAMFS_COMPRESSION_NONE=y' >> $(LINUX_DIR)/.config
-		echo '# CONFIG_INITRAMFS_COMPRESSION_LZMA is not set' >> $(LINUX_DIR)/.config
     endef
   else
     define Kernel/SetInitramfs
@@ -88,13 +77,6 @@ define Kernel/Configure/2.6
 endef
 define Kernel/Configure/Default
 	$(LINUX_CONFCMD) > $(LINUX_DIR)/.config.target
-	echo "$(if $(CONFIG_KERNEL_KALLSYMS),CONFIG_KALLSYMS=y,# CONFIG_KALLSYMS is not set)" >> $(LINUX_DIR)/.config.target
-	echo "$(if $(CONFIG_KERNEL_PROFILING),CONFIG_PROFILING=y,# CONFIG_PROFILING is not set)" >> $(LINUX_DIR)/.config.target
-	echo "# CONFIG_KALLSYMS_EXTRA_PASS is not set" >> $(LINUX_DIR)/.config.target
-	echo "# CONFIG_KALLSYMS_ALL is not set" >> $(LINUX_DIR)/.config.target
-	echo "# CONFIG_KPROBES is not set" >> $(LINUX_DIR)/.config.target
-	$(SED) 's,.*CONFIG_AEABI.*,$(if $(CONFIG_EABI_SUPPORT),CONFIG_AEABI=y,# CONFIG_AEABI is not set),' $(LINUX_DIR)/.config.target
-	$(if $(CONFIG_EABI_SUPPORT),echo '# CONFIG_OABI_COMPAT is not set' >> $(LINUX_DIR)/.config.target)
 	$(SCRIPT_DIR)/metadata.pl kconfig $(TMP_DIR)/.packageinfo $(TOPDIR)/.config > $(LINUX_DIR)/.config.override
 	$(SCRIPT_DIR)/kconfig.pl 'm+' $(LINUX_DIR)/.config.target $(LINUX_DIR)/.config.override > $(LINUX_DIR)/.config
 	$(call Kernel/SetInitramfs)
@@ -107,7 +89,7 @@ define Kernel/CompileModules/Default
 	+$(MAKE) $(KERNEL_MAKEOPTS) modules
 endef
 
-OBJCOPY_STRIP = -R .reginfo -R .notes -R .note -R .comment -R .mdebug -R .note.gnu.build-id
+OBJCOPY_STRIP = -R .reginfo -R .note -R .comment -R .mdebug -R .note.gnu.build-id
 
 define Kernel/CompileImage/Default
 	$(if $(CONFIG_TARGET_ROOTFS_INITRAMFS),,rm -f $(TARGET_DIR)/init)

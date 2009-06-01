@@ -7,28 +7,28 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
-ifdef CONFIG_PACKAGE_apex
-  define Image/Build/Linksys
+define Image/Build/slug
 	BIN_DIR=$(BIN_DIR) $(TOPDIR)/scripts/slugimage.pl \
-		-L $(BIN_DIR)/apex/apex-$(2)-armeb.bin \
-		-k $(BIN_DIR)/openwrt-$(2)-zImage \
+		-L $(KDIR)/apex-nslu2-armeb.bin \
+		-k $(BIN_DIR)/openwrt-nslu2-zImage \
 		-r rootfs:$(BIN_DIR)/openwrt-$(BOARD)-$(1).img \
-		-p -o $(BIN_DIR)/openwrt-$(2)-$(1).bin
+		-p -o $(BIN_DIR)/openwrt-nslu2-$(1).bin
 	BIN_DIR=$(BIN_DIR) $(TOPDIR)/scripts/slugimage.pl \
-		-F -L $(BIN_DIR)/apex/apex-$(2)-16mb-armeb.bin \
-		-k $(BIN_DIR)/openwrt-$(2)-zImage \
+		-F -L $(KDIR)/apex-nslu2-16mb-armeb.bin \
+		-k $(BIN_DIR)/openwrt-nslu2-zImage \
 		-r rootfs:$(BIN_DIR)/openwrt-$(BOARD)-$(1).img \
-		-p -o $(BIN_DIR)/openwrt-$(2)-$(1)-16mb.bin
-  endef
-endif
+		-p -o $(BIN_DIR)/openwrt-nslu2-$(1)-16mb.bin
+endef
 
-define Image/Build/Freecom
-	$(INSTALL_DIR) $(TARGET_DIR)/boot
-	# TODO: Add special CMDLINE shim for webupgrade image here
-	$(CP) $(BIN_DIR)/openwrt-$(2)-zImage $(TARGET_DIR)/zImage
-	$(TAR) cfj $(BIN_DIR)/openwrt-$(2)-$(1).img --numeric-owner --owner=0 --group=0 -C $(TARGET_DIR)/ .
-	$(STAGING_DIR_HOST)/bin/encode_crc $(BIN_DIR)/openwrt-$(2)-$(1).img $(BIN_DIR)/openwrt-$(2)-$(1)-webupgrade.img
-	rm -f $(TARGET_DIR)/zImage
+define Build/Compile
+	$(MAKE) -C apex \
+		BUILD_DIR="$(KDIR)" \
+		TARGET="$(KDIR)" \
+		compile	
+endef
+
+define Build/Clean
+	$(MAKE) -C apex clean
 endef
 
 define Image/Prepare
@@ -50,15 +50,13 @@ endef
 
 define Image/Build/jffs2-128k
 	dd if=$(KDIR)/root.$(1) of=$(BIN_DIR)/openwrt-$(BOARD)-$(1).img bs=131072 conv=sync
-	$(call Image/Build/Linksys,$(1))
-	$(call Image/Build/Freecom,$(1),fsg3,$(1))
+	$(call Image/Build/slug,$(1))
 endef
 
 define Image/Build/squashfs
-	$(call prepare_generic_squashfs,$(KDIR)/root.squashfs)
+    $(call prepare_generic_squashfs,$(KDIR)/root.squashfs)
 	dd if=$(KDIR)/root.$(1) of=$(BIN_DIR)/openwrt-$(BOARD)-$(1).img bs=131072 conv=sync
-	$(call Image/Build/Linksys,$(1),nslu2,$(1))
-	$(call Image/Build/Freecom,$(1),fsg3,$(1))
+	$(call Image/Build/slug,$(1))
 endef
 
 $(eval $(call BuildImage))

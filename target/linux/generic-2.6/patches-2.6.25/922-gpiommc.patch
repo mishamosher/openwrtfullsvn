@@ -1,10 +1,12 @@
 --- /dev/null
 +++ b/drivers/mmc/host/gpiommc.c
-@@ -0,0 +1,605 @@
+@@ -0,0 +1,608 @@
 +/*
 + * Driver an MMC/SD card on a bitbanging GPIO SPI bus.
 + * This module hooks up the mmc_spi and spi_gpio modules and also
 + * provides a configfs interface.
++ *
++ * Copyright 2008 Michael Buesch <mb@bu3sch.de>
 + *
 + * Licensed under the GNU/GPL. See COPYING for details.
 + */
@@ -30,6 +32,7 @@
 +
 +
 +MODULE_DESCRIPTION("GPIO based MMC driver");
++MODULE_AUTHOR("Michael Buesch");
 +MODULE_LICENSE("GPL");
 +
 +
@@ -646,9 +649,11 @@
 +obj-$(CONFIG_GPIOMMC)		+= gpiommc.o
 --- /dev/null
 +++ b/include/linux/mmc/gpiommc.h
-@@ -0,0 +1,69 @@
+@@ -0,0 +1,71 @@
 +/*
 + * Device driver for MMC/SD cards driven over a GPIO bus.
++ *
++ * Copyright (c) 2008 Michael Buesch
 + *
 + * Licensed under the GNU/GPL version 2.
 + */
@@ -816,3 +821,17 @@
 +(/config/gpiommc/my_mmc in this example).
 +There's no need to first unregister the device before removing it. That will
 +be done automatically.
+--- a/MAINTAINERS
++++ b/MAINTAINERS
+@@ -1736,6 +1736,11 @@ L:	gigaset307x-common@lists.sourceforge.
+ W:	http://gigaset307x.sourceforge.net/
+ S:	Maintained
+ 
++GPIOMMC DRIVER
++P:	Michael Buesch
++M:	mb@bu3sch.de
++S:	Maintained
++
+ HARDWARE MONITORING
+ P:	Mark M. Hoffman
+ M:	mhoffman@lightlink.com

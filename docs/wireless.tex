@@ -5,7 +5,7 @@ commented. This prevents unsecured sharing of the network over the wireless inte
 
 Each wireless driver has its own configuration script in \texttt{/lib/wifi/driver\_name.sh} which handles
 driver specific options and configurations. This script is also calling driver specific binaries like wlc for
-Broadcom, or hostapd and wpa\_supplicant for atheros and mac80211.
+Broadcom, or hostapd and wpa\_supplicant for atheros.
 
 The reason for using such architecture, is that it abstracts the driver configuration. 
 
@@ -98,7 +98,7 @@ config wifi-device    wifi device name
     option country    us, uk, fr, de, etc.
     option channel    1-14
     option maxassoc   1-128 (broadcom only)
-    option distance   1-n (meters)
+    option distance   1-n
     option hwmode     11b, 11g, 11a, 11bg (atheros, mac80211)
     option rxantenna  0,1,2 (atheros, broadcom)
     option txantenna  0,1,2 (atheros, broadcom)
@@ -107,7 +107,7 @@ config wifi-device    wifi device name
 config wifi-iface
     option network  the interface you want wifi to bridge with
     option device   wifi0, wifi1, wifi2, wifiN
-    option mode     ap, sta, adhoc, monitor, mesh, or wds
+    option mode     ap, sta, adhoc, monitor, or wds
     option txpower  (deprecated) transmission power in dBm
     option ssid     ssid name
     option bssid    bssid address
@@ -120,7 +120,7 @@ config wifi-iface
     option server   ip address
     option port     port
     option hidden   0,1
-    option isolate  0,1	(broadcom)
+    option isolate  0,1
 \end{Verbatim}
 
 \paragraph{Options for the \texttt{wifi-device}:}
@@ -136,22 +136,22 @@ config wifi-iface
         The wifi channel (e.g. 1-14, depending on your country setting).
 
     \item \texttt{maxassoc} \\
-        Optional: Maximum number of associated clients. This feature is supported only on the Broadcom chipsets.
+        Optional: Maximum number of associated clients. This feature is supported only on the broadcom chipset.
 
     \item \texttt{distance} \\
-	Optional: Distance between the ap and the furthest client in meters. This feature is supported only on the Atheros chipsets.
+	Optional: Distance between the ap and the furthest client in meters. This feature is supported only on the atheros chipset.
 
 	\item \texttt{mode} \\
-		The frequency band (\texttt{b}, \texttt{g}, \texttt{bg}, \texttt{a}). This feature is only supported on the Atheros chipsets.
+		The frequency band (\texttt{b}, \texttt{g}, \texttt{bg}, \texttt{a}). This feature is only supported on the atheros chipset.
 
     \item \texttt{diversity} \\
-	Optional: Enable diversity for the Wi-Fi device. This feature is supported only on the Atheros chipsets.
+	Optional: Enable diversity for the Wi-Fi device. This feature is supported only on the atheros chipset.
 
     \item \texttt{rxantenna} \\
-	Optional: Antenna identifier (0, 1 or 2) for reception. This feature is supported by Atheros and some Broadcom chipsets.
+	Optional: Antenna identifier (0, 1 or 2) for reception. This feature is supported by atheros and some broadcom chipsets.
 
     \item \texttt{txantenna} \\
-	Optional: Antenna identifier (0, 1 or 2) for emission. This feature is supported by Atheros and some Broadcom chipsets.
+	Optional: Antenna identifier (0, 1 or 2) for emission. This feature is supported by atheros and some broadcom chipsets.
 
     \item \texttt{txpower}
 	Set the transmission power to be used. The amount is specified in dBm.
@@ -183,9 +183,6 @@ config wifi-iface
 
             \item \texttt{monitor} \\
                 Monitor mode
-
-	    \item \texttt{mesh} \\
-		Mesh Point mode (802.11s)
 
             \item \texttt{wds} \\
                 WDS point-to-point link
@@ -231,24 +228,6 @@ config wifi-iface
         0 disables ap isolation (default); 1 enables ap isolation.
 
 \end{itemize}
-
-\paragraph{Mesh Point}
-
-Mesh Point (802.11s) is only supported by some mac80211 drivers. It requires the iw package
-to be installed to setup mesh links. OpenWrt creates mshN mesh point interfaces. A sample
-configuration looks like this:
-
-\begin{Verbatim}
-config wifi-device      "wlan0"
-    option type		"mac80211"
-    option channel      "5"
-
-config wifi-iface
-    option device       "wlan0"
-    option network  	lan
-    option mode         "mesh"
-    option mesh_id     "OpenWrt"
-\end{Verbatim}
 
 \paragraph{Wireless Distribution System}
 
@@ -315,8 +294,8 @@ config wifi-iface
 
 OpenWrt supports both 802.1x client and Access Point
 configurations. 802.1x client is only working with
-drivers supported by wpa-supplicant. Configuration
-only supports EAP types TLS, TTLS or PEAP.
+Atheros or mac80211 drivers. Configuration only
+supports EAP types TLS, TTLS or PEAP.
 
 \subparagraph{EAP-TLS}
 

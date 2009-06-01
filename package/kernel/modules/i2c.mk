@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id $
 
 I2C_MENU:=I2C support
 
@@ -96,9 +97,7 @@ define KernelPackage/i2c-scx200
   SUBMENU:=$(I2C_MENU)
   TITLE:=Geode SCx200 I2C using GPIO pins
   DEPENDS:=@PCI_SUPPORT @TARGET_x86 +kmod-i2c-algo-bit
-  KCONFIG:=CONFIG_SCx200_I2C \
-	CONFIG_SCx200_I2C_SCL=12 \
-	CONFIG_SCx200_I2C_SDA=13
+  KCONFIG:=CONFIG_SCx200_I2C
   FILES:=$(LINUX_DIR)/drivers/i2c/busses/scx200_i2c.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,59,scx200_i2c)
 endef

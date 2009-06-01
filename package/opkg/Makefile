@@ -1,5 +1,5 @@
-#
-# Copyright (C) 2006-2009 OpenWrt.org
+# 
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -7,9 +7,9 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=opkg
-PKG_REV:=4993
+PKG_REV:=4564
 PKG_VERSION:=$(PKG_REV)
-PKG_RELEASE:=4
+PKG_RELEASE:=3.1
 
 PKG_SOURCE_PROTO:=svn
 PKG_SOURCE_VERSION:=$(PKG_REV)
@@ -40,9 +40,9 @@ define Package/opkg/conffiles
 /etc/opkg.conf
 endef
 
-TARGET_CFLAGS += $(FPIC) $(if $(CONFIG_GCC_VERSION_4_3)$(CONFIG_GCC_VERSION_4_4),-Wno-array-bounds)
-EXTRA_CFLAGS += $(TARGET_CPPFLAGS)
-EXTRA_LDFLAGS += $(TARGET_LDFLAGS) -Wl,-rpath-link,$(STAGING_DIR)/usr/lib
+TARGET_CFLAGS += $(FPIC)
+EXTRA_CFLAGS+=-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include -I$(STAGING_DIR)/usr/lib
+EXTRA_LDFLAGS+=-L$(STAGING_DIR)/usr/lib -Wl,-rpath-link,$(STAGING_DIR)/usr/lib
 
 CONFIGURE_ARGS += \
 	--disable-curl \

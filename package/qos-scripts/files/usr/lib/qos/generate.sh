@@ -1,21 +1,12 @@
 #!/bin/sh
 [ -e /etc/functions.sh ] && . /etc/functions.sh || . ./functions.sh
-[ -x /sbin/modprobe ] && {
-	insmod="modprobe"
-	rmmod="$insmod -r"
-} || {
-	insmod="insmod"
-	rmmod="rmmod"
-}
+[ -x /sbin/modprobe ] && insmod="modprobe" || insmod="insmod"
 
 add_insmod() {
 	eval "export isset=\${insmod_$1}"
 	case "$isset" in
 		1) ;;
-		*) {
-			[ "$2" ] && append INSMOD "$rmmod $1 >&- 2>&-" "$N"
-			append INSMOD "$insmod $* >&- 2>&-" "$N"; export insmod_$1=1
-		};;
+		*) append INSMOD "$insmod $* >&- 2>&-" "$N"; export insmod_$1=1;;
 	esac
 }
 
@@ -67,6 +58,14 @@ parse_matching_rule() {
 			;;
 			*:dsthost)
 				append "$var" "-d $value"
+			;;
+			*:ipp2p)
+				add_insmod ipt_ipp2p
+				append "$var" "-m ipp2p"
+				case "$value" in
+					all) append "$var" "--edk --dc --kazaa --gnu --bit";;
+					*) append "$var" "--$value";;
+				esac
 			;;
 			*:layer7)
 				add_insmod ipt_layer7
@@ -281,14 +280,14 @@ start_interface() {
 		return 1 
 	}
 	config_get upload "$iface" upload
-	config_get_bool halfduplex "$iface" halfduplex
+	config_get halfduplex "$iface" halfduplex
 	config_get download "$iface" download
 	config_get classgroup "$iface" classgroup
 	config_get_bool overhead "$iface" overhead 0
 	
 	download="${download:-${halfduplex:+$upload}}"
 	enum_classes "$classgroup"
-	for dir in ${halfduplex:-up} ${download:+down}; do
+	for dir in up${halfduplex} ${download:+down}; do
 		case "$dir" in
 			up)
 				[ "$overhead" = 1 ] && upload=$(($upload * 98 / 100 - (15 * 128 / $upload)))
@@ -298,7 +297,7 @@ start_interface() {
 				prefix="cls"
 			;;
 			down)
-				[ "$(ls -d /proc/sys/net/ipv4/conf/imq* 2>&- | wc -l)" -ne "$num_imq" ] && add_insmod imq numdevs="$num_imq"
+				add_insmod imq numdevs="$num_imq"
 				config_get imqdev "$iface" imqdev
 				[ "$overhead" = 1 ] && download=$(($download * 98 / 100 - (80 * 1024 / $download)))
 				dev="imq$imqdev"
@@ -401,11 +400,11 @@ start_cg() {
 		append up "iptables -t mangle -A OUTPUT -o $device -j ${cg}" "$N"
 		append up "iptables -t mangle -A FORWARD -o $device -j ${cg}" "$N"
 		[ -z "$dl" ] || {
-			append down "iptables -t mangle -A POSTROUTING -o $device -j ${cg}" "$N"
 			[ -z "$halfduplex" ] || {
 				append down "iptables -t mangle -A POSTROUTING -o $device -j IMQ --todev $imqdev" "$N"
 			}
 			append down "iptables -t mangle -A PREROUTING -i $device -j ${cg}" "$N"
+			append down "iptables -t mangle -A POSTROUTING -o $device -j ${cg}" "$N"
 			append down "iptables -t mangle -A PREROUTING -i $device -j IMQ --todev $imqdev" "$N"
 		}
 	done
