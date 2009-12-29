@@ -15,20 +15,20 @@ PKG_MD5SUM:=d33d2442bd34387260b1c1db3e623af0
 
 include $(INCLUDE_DIR)/host-build.mk
 
-define Host/Configure
-	$(call Host/Configure/Default)
-	[ -f $(HOST_BUILD_DIR)/Makefile ]
+define Build/Configure
+	$(call Build/Configure/Default)
+	[ -f $(PKG_BUILD_DIR)/Makefile ]
 endef
 
-define Host/Compile
-	$(MAKE) -C $(HOST_BUILD_DIR) SHELL="$(BASH)" all lib/backup-files
+define Build/Compile
+	$(MAKE) -C $(PKG_BUILD_DIR) SHELL="$(BASH)"
 endef
 
-define Host/Install
-	$(MAKE) -C $(HOST_BUILD_DIR) SHELL="$(BASH)" install
+define Build/Install
+	$(MAKE) -C $(PKG_BUILD_DIR) SHELL="$(BASH)" install
 endef
 
-define Host/Clean
+define Build/Clean
 	rm -f $(STAGING_DIR_HOST)/bin/quilt
 endef
 

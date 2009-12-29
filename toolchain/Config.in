@@ -1,104 +1,18 @@
 #
-
-menuconfig EXTERNAL_TOOLCHAIN
+config NATIVE_TOOLCHAIN
 	bool
-	prompt "Use external toolchain"  if DEVEL
+	prompt "Use host's toolchain" if DEVEL && BROKEN
+	default n
 	help
-	  If enabled, OpenWrt will compile using an existing toolchain instead of compiling one
-
-	config NATIVE_TOOLCHAIN
-		bool
-		prompt "Use host's toolchain"  if DEVEL
-		depends EXTERNAL_TOOLCHAIN
-		select NO_STRIP
-		help
-		  If enabled, OpenWrt will compile using the native toolchain for your host instead of compiling one
-
-	config TARGET_NAME
-		string
-		prompt "Target name"  if DEVEL
-		depends EXTERNAL_TOOLCHAIN && !NATIVE_TOOLCHAIN
-		default "arm-unknown-linux-gnu"      if arm
-		default "armeb-unknown-linux-gnu"    if armeb
-		default "i486-unknown-linux-gnu"     if i386
-		default "mips-unknown-linux-gnu"     if mips
-		default "mipsel-unknown-linux-gnu"   if mipsel
-		default "powerpc-unknown-linux-gnu"  if powerpc
-		default "x86_64-unknown-linux-gnu"   if x86_64
-
-	config TOOLCHAIN_PREFIX
-		string
-		prompt "Toolchain prefix"  if DEVEL
-		depends EXTERNAL_TOOLCHAIN && !NATIVE_TOOLCHAIN
-		default "arm-unknown-linux-gnu-"      if arm
-		default "armeb-unknown-linux-gnu-"    if armeb
-		default "i486-unknown-linux-gnu-"     if i386
-		default "mips-unknown-linux-gnu-"     if mips
-		default "mipsel-unknown-linux-gnu-"   if mipsel
-		default "powerpc-unknown-linux-gnu-"  if powerpc
-		default "x86_64-unknown-linux-gnu-"   if x86_64
-
-	config TOOLCHAIN_ROOT
-		string
-		prompt "Toolchain root"  if DEVEL
-		depends EXTERNAL_TOOLCHAIN && !NATIVE_TOOLCHAIN
-		default "/opt/cross/arm-unknown-linux-gnu"      if arm
-		default "/opt/cross/armeb-unknown-linux-gnu"    if armeb
-		default "/opt/cross/i486-unknown-linux-gnu"     if i386
-		default "/opt/cross/mips-unknown-linux-gnu"     if mips
-		default "/opt/cross/mipsel-unknown-linux-gnu"   if mipsel
-		default "/opt/cross/powerpc-unknown-linux-gnu"  if powerpc
-		default "/opt/cross/x86_64-unknown-linux-gnu"   if x86_64
-
-	config TOOLCHAIN_BIN_PATH
-		string
-		prompt "Toolchain program path"  if DEVEL
-		depends EXTERNAL_TOOLCHAIN && !NATIVE_TOOLCHAIN
-		default "./usr/bin ./bin"
-		help
-		  Specify additional directories searched for toolchain binaries (override PATH)
-		  Use ./DIR for directories relative to the root above
-
-	config TOOLCHAIN_INC_PATH
-		string
-		prompt "Toolchain include path"  if DEVEL
-		depends EXTERNAL_TOOLCHAIN && !NATIVE_TOOLCHAIN
-		default "./usr/include ./include"
-		help
-		  Specify additional directories searched for header files (override CPPFLAGS)
-		  Use ./DIR for directories relative to the root above
-
-	config TOOLCHAIN_LIB_PATH
-		string
-		prompt "Toolchain library path"  if DEVEL
-		depends EXTERNAL_TOOLCHAIN && !NATIVE_TOOLCHAIN
-		default "./usr/lib ./lib"
-		help
-		  Specify additional directories searched for libraries (override LDFLAGS)
-		  Use ./DIR for directories relative to the root above
-
-config NEED_TOOLCHAIN
-	bool
-	depends DEVEL
-	default y if !EXTERNAL_TOOLCHAIN
+		If enabled, OpenWrt will compile using your existing toolchain instead of compiling one
 
 menuconfig TOOLCHAINOPTS
-	bool "Toolchain Options"  if DEVEL
-	depends NEED_TOOLCHAIN
-
-config EABI_SUPPORT
-	bool
-	depends arm||armeb
-	prompt "Enable EABI support" if TOOLCHAINOPTS
-	default n if TARGET_gemini
-	default y
-	help
-	  Enable ARM EABI support
+	bool "Toolchain Options" if DEVEL
+	depends !NATIVE_TOOLCHAIN
 
 menuconfig EXTRA_TARGET_ARCH
 	bool
 	prompt "Enable an extra toolchain target architecture" if TOOLCHAINOPTS
-	default y	if powerpc64
 	default n
 	help
 	  Some builds may require a 'biarch' toolchain. This option
@@ -108,7 +22,6 @@ menuconfig EXTRA_TARGET_ARCH
 
 	config EXTRA_TARGET_ARCH_NAME
 		string
-		default "powerpc64"	if powerpc64
 		prompt "Extra architecture name" if EXTRA_TARGET_ARCH
 		help
 		  Specify the cpu name (eg powerpc64 or x86_64) of the
@@ -116,7 +29,6 @@ menuconfig EXTRA_TARGET_ARCH
 
 	config EXTRA_TARGET_ARCH_OPTS
 		string
-		default "-m64"		if powerpc64
 		prompt "Extra architecture compiler options" if EXTRA_TARGET_ARCH
 		help
 		  If you're specifying an addition target architecture,
@@ -127,44 +39,9 @@ menuconfig EXTRA_TARGET_ARCH
 		  both powerpc and powerpc64 binaries, you'll need to
 		  specify -m64 here.
 
-comment "Binary tools"
-	depends TOOLCHAINOPTS
-
 source "toolchain/binutils/Config.in"
-
-comment "Compiler"
-	depends TOOLCHAINOPTS
-
 source "toolchain/gcc/Config.in"
-
-comment "C Library"
-	depends TOOLCHAINOPTS
-
-choice
-	prompt "C Library implementation" if TOOLCHAINOPTS
-	default USE_UCLIBC
-	help
-	  Select the C library implementation.
-
-	config USE_EGLIBC
-		bool "Use eglibc"
-		depends !avr32
-	
-	config USE_GLIBC
-		bool "Use glibc"
-		depends !avr32
-	
-	config USE_UCLIBC
-		bool "Use uClibc"
-
-endchoice
-
-source "toolchain/eglibc/Config.in"
-source "toolchain/glibc/Config.in"
 source "toolchain/uClibc/Config.in"
-
-comment "Debuggers"
-	depends TOOLCHAINOPTS
 
 config GDB
 	bool
@@ -173,40 +50,46 @@ config GDB
 	help
 		Enable if you want to build the gdb
 
-config INSIGHT
+config LARGEFILE
 	bool
-	prompt "Build insight-gdb" if TOOLCHAINOPTS
-	select GDB
-	default n
+	prompt "Enable large file (files > 2 GB) support?" if TOOLCHAINOPTS
+	default y
 	help
-		Enable if you want to build insight-gdb
+		Enable large file (files > 2 GB) support
 
-config USE_UCLIBC
+config SHADOW_PASSWORDS
 	bool
-	default y if !TOOLCHAINOPTS
+	prompt "Enable shadow password support?" if TOOLCHAINOPTS
+	default y
+	help
+		Enable shadow password support.
+
+config SOFT_FLOAT
+	bool
+	prompt "Use software floating point by default" if TOOLCHAINOPTS
+	default y
+	depends on (arm || armeb || powerpc) && !HAS_FPU
+	help
+	  If your target CPU does not have a Floating Point Unit (FPU) or a
+	  kernel FPU emulator, but you still wish to support floating point
+	  functions, then everything will need to be compiled with soft floating
+	  point support (-msoft-float).
+
+	  Most people will answer N.
+
+config TARGET_OPTIMIZATION
+	string
+	prompt "Target Optimizations" if TOOLCHAINOPTS
+	default "-O2 -pipe -march=i686 -funit-at-a-time" if TARGET_x86_mediacenter
+	default "-O2 -pipe -march=i486 -funit-at-a-time" if TARGET_x86
+	default "-Os -pipe -march=i486 -funit-at-a-time" if TARGET_rdc
+	default "-Os -pipe -mips32r2 -mtune=mips32r2 -funit-at-a-time" if TARGET_ar71xx
+	default "-Os -pipe -mips32 -mtune=mips32 -funit-at-a-time" if mipsel || mips
+	default "-Os -pipe -march=armv5te -mtune=xscale -funit-at-a-time" if TARGET_ixp4xx || TARGET_iop32x || TARGET_pxa || TARGET_orion
+	default "-Os -pipe -march=armv4 -mtune=arm9tdmi -funit-at-a-time" if TARGET_storm
+	default "-Os -pipe -funit-at-a-time"
+	help
+	  Optimizations to use when building for the target host.
 
 source "toolchain/gcc/Config.version"
-
-source "toolchain/eglibc/Config.version"
-source "toolchain/glibc/Config.version"
 source "toolchain/uClibc/Config.version"
-
-config LIBC
-	string
-	default "eglibc"  if USE_EGLIBC
-	default "glibc"   if USE_GLIBC
-	default "uClibc"  if USE_UCLIBC
-
-config LIBC_VERSION
-	string
-	default EGLIBC_VERSION  if USE_EGLIBC
-	default GLIBC_VERSION   if USE_GLIBC
-	default UCLIBC_VERSION  if USE_UCLIBC
-
-config TARGET_SUFFIX
-	string
-	default "gnueabi"         if (USE_EGLIBC || USE_GLIBC) && EABI_SUPPORT
-	default "gnu"             if (USE_EGLIBC || USE_GLIBC) && !EABI_SUPPORT
-	default "uclibcgnueabi"   if USE_UCLIBC && EABI_SUPPORT
-	default "uclibc"          if USE_UCLIBC && !EABI_SUPPORT
-

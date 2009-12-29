@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=swconfig
-PKG_RELEASE:=3
+PKG_RELEASE:=1.2
 
 include $(INCLUDE_DIR)/package.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -16,12 +16,11 @@ include $(INCLUDE_DIR)/kernel.mk
 define Package/swconfig
   SECTION:=base
   CATEGORY:=Base system
-  DEPENDS:=@LINUX_2_6 +libuci +libnl-tiny
+  DEPENDS:=@LINUX_2_6_26 +libuci +libnl-tiny
   TITLE:=Switch configuration utility
 endef
 
 TARGET_CPPFLAGS := \
-	-D_GNU_SOURCE \
 	-I$(STAGING_DIR)/usr/include/libnl-tiny \
 	-I$(LINUX_DIR)/include \
 	-I$(PKG_BUILD_DIR) \

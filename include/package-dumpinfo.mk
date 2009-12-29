@@ -6,77 +6,36 @@
 #
 
 ifneq ($(DUMP),)
+  define Config
+    preconfig_$$(1) += echo "Preconfig: $(1)"; echo "Preconfig-Type: $(2)"; echo "Preconfig-Default: $(3)"; echo "Preconfig-Label: $(4)";
+  endef
 
-dumpinfo: FORCE
-
-define Config/template
-Preconfig: $(1)
-Preconfig-Type: $(2)
-Preconfig-Default: $(3)
-Preconfig-Label: $(4)
-
-endef
-
-define Config
-  Preconfig/$(1) = $$(call Config/template,$(1),$(2),$(3),$(4))
-  preconfig_$$(1) += $(1)
-endef
-
-define Dumpinfo/Package
-$(info Package: $(1)
-$(if $(MENU),Menu: $(MENU)
-)$(if $(SUBMENU),Submenu: $(SUBMENU)
-)$(if $(SUBMENUDEP),Submenu-Depends: $(SUBMENUDEP)
-)$(if $(DEFAULT),Default: $(DEFAULT)
-)$(if $(findstring $(PREREQ_CHECK),1),Prereq-Check: 1
-)Version: $(VERSION)
-Depends: $(DEPENDS)
-Provides: $(PROVIDES)
-$(if $(VARIANT),Build-Variant: $(VARIANT)
-)$(if $(PKG_BUILD_DEPENDS),Build-Depends: $(PKG_BUILD_DEPENDS)
-)$(if $(HOST_BUILD_DEPENDS),Build-Depends/host: $(HOST_BUILD_DEPENDS)
-)$(if $(BUILD_TYPES),Build-Types: $(BUILD_TYPES)
-)Section: $(SECTION)
-Category: $(CATEGORY)
-Title: $(TITLE)
-Maintainer: $(MAINTAINER)
-Source: $(PKG_SOURCE)
-Type: $(if $(Package/$(1)/targets),$(Package/$(1)/targets),$(if $(PKG_TARGETS),$(PKG_TARGETS),ipkg))
-$(if $(KCONFIG),Kernel-Config: $(KCONFIG)
-)$(if $(BUILDONLY),Build-Only: $(BUILDONLY)
-)Description: $(if $(Package/$(1)/description),$(Package/$(1)/description),$(TITLE))
-$(if $(URL),$(URL)
-)@@
-$(if $(Package/$(1)/config),Config:
-$(Package/$(1)/config)
-@@
-)$(foreach pc,$(preconfig_$(1)),
-$(Preconfig/$(pc))))
-endef
-
-define Feature/Default
-  TARGET_NAME:=
-  TARGET_TITLE:=
-  PRIORITY:=
-  NAME:=
-endef
-
-define Feature
-  $(eval $(Feature/Default))
-  $(eval $(Feature/$(1)))
-  $(if $(DUMP),$(call Dumpinfo/Feature,$(1)))
-endef
-
-define Dumpinfo/Feature
-$(info Feature: $(TARGET_NAME)_$(1)
-Target-Name: $(TARGET_NAME)
-Target-Title: $(TARGET_TITLE)
-Feature-Name: $(NAME)
-$(if $(PRIORITY),Feature-Priority: $(PRIORITY)
-)Feature-Description:
-$(Feature/$(1)/description)
-@@
-)
-endef
-
+  define Dumpinfo
+    dumpinfo: dumpinfo-$(1)
+    .SILENT: dumpinfo-$(1)
+    dumpinfo-$(1): FORCE
+	  @echo "Package: $(1)" ; \
+		$(if $(MENU),echo "Menu: $(MENU)";) \
+		$(if $(SUBMENU),echo "Submenu: $(SUBMENU)";) \
+		$(if $(SUBMENUDEP),echo "Submenu-Depends: $(SUBMENUDEP)";) \
+		$(if $(DEFAULT),echo "Default: $(DEFAULT)";)  \
+		if [ "$$$$PREREQ_CHECK" = 1 ]; then echo "Prereq-Check: 1"; fi; \
+		echo "Version: $(VERSION)"; \
+		echo "Depends: $(DEPENDS)"; \
+		echo "Provides: $(PROVIDES)"; \
+		echo "Build-Depends: $(PKG_BUILD_DEPENDS)"; \
+		echo "Section: $(SECTION)"; \
+		echo "Category: $(CATEGORY)"; \
+		echo "Title: $(TITLE)"; \
+		echo "Maintainer: $(MAINTAINER)"; \
+		echo "Type: $(if $(Package/$(1)/targets),$(Package/$(1)/targets),$(if $(PKG_TARGETS),$(PKG_TARGETS),ipkg))"; \
+		$(if $(KCONFIG),echo "Kernel-Config: $(KCONFIG)";) \
+		$(if $(BUILDONLY),echo "Build-Only: $(BUILDONLY)";) \
+		echo -n "Description: "; \
+		getvar $(call shvar,Package/$(1)/description); \
+		$(if $(URL),echo;echo "$(URL)";) \
+		echo "@@" ; \
+		$$(if $$(Package/$(1)/config),echo "Config: "; getvar $(call shvar,Package/$(1)/config); echo "@@"; ) \
+		$$(if $$(preconfig_$(1)),$$(preconfig_$(1)) echo "")
+  endef
 endif

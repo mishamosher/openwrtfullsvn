@@ -9,8 +9,7 @@
 use warnings;
 use strict;
 
-my @arg;
-my $PREFIX = "CONFIG_";
+my @arg = @ARGV;
 
 sub load_config($) {
 	my $file = shift;
@@ -19,16 +18,16 @@ sub load_config($) {
 	open FILE, "$file" or die "can't open file";
 	while (<FILE>) {
 		chomp;
-		/^$PREFIX(.+?)=(.+)/ and do {
+		/^CONFIG_(.+?)=(.+)/ and do {
 			$config{$1} = $2;
 			next;
 		};
-		/^# $PREFIX(.+?) is not set/ and do {
+		/^# CONFIG_(.+?) is not set/ and do {
 			$config{$1} = "#undef";
 			next;
 		};
 		/^#/ and next;
-		/^(.+)$/ and warn "WARNING: can't parse line: $1\n";
+		/^(.+)$/ and print "WARNING: can't parse line: $1\n";
 	}
 	return \%config;
 }
@@ -94,10 +93,10 @@ sub config_sub($$) {
 sub print_cfgline($$) {
 	my $name = shift;
 	my $val = shift;
-	if ($val eq '#undef' or $val eq 'n') {
-		print "# $PREFIX$name is not set\n";
+	if ($val eq '#undef') {
+		print "# CONFIG_$name is not set\n";
 	} else {
-		print "$PREFIX$name=$val\n";
+		print "CONFIG_$name=$val\n";
 	}
 }
 
@@ -143,18 +142,6 @@ sub parse_expr($) {
 		return load_config($arg);
 	}
 }
-
-while (@ARGV > 0 and $ARGV[0] =~ /^-\w+$/) {
-	my $cmd = shift @ARGV;
-	if ($cmd =~ /^-n$/) {
-		$PREFIX = "";
-	} elsif ($cmd =~ /^-p$/) {
-		$PREFIX = shift @ARGV;
-	} else {
-		die "Invalid option: $cmd\n";
-	}
-}
-@arg = @ARGV;
 
 my $pos = 0;
 dump_config(parse_expr(\$pos));

@@ -106,13 +106,6 @@
 #endif
 
 /*
- * OSBRiDGE boards
- */
-#if defined(CONFIG_BOARD_5GXI)
-#  define CONFIG_BOARD_NAME	"OSBRiDGE 5GXi"
-#endif
-
-/*
  * ZyXEL boards
  */
 #if defined(CONFIG_BOARD_P334WT)

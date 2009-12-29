@@ -9,14 +9,11 @@ include $(TOPDIR)/rules.mk
 ARCH:=mips
 BOARD:=ifxmips
 BOARDNAME:=Infineon Mips
-FEATURES:=squashfs jffs2 atm
-
-LINUX_VERSION:=2.6.30.10
-
-CFLAGS=-Os -pipe -mips32r2 -mtune=mips32r2 -funit-at-a-time
+FEATURES:=squashfs jffs2
+LINUX_VERSION:=2.6.26.8
 
 include $(INCLUDE_DIR)/target.mk
-DEFAULT_PACKAGES+=kmod-pppoa ppp-mod-pppoa linux-atm atm-tools br2684ctl ifxmips-dsl-api ifxmips-dsl-control
+DEFAULT_PACKAGES+=uboot-ifxmips hostapd-mini
 
 define Target/Description
 	Build firmware images for Infineon Mips Controllers

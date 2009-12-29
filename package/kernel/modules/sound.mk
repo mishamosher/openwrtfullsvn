@@ -4,13 +4,14 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 SOUND_MENU:=Sound Support
 
 define KernelPackage/sound-core
   SUBMENU:=$(SOUND_MENU)
   TITLE:=Sound support
-  DEPENDS:=@PCI_SUPPORT||USB_SUPPORT||TARGET_uml
+  DEPENDS:=@PCI_SUPPORT||USB_SUPPORT
   KCONFIG:= \
 	CONFIG_SOUND \
 	CONFIG_SND \
@@ -22,10 +23,7 @@ define KernelPackage/sound-core
 	CONFIG_SND_VIRMIDI \
 	CONFIG_SND_SEQ_DUMMY \
 	CONFIG_SND_SEQUENCER_OSS=y \
-	CONFIG_HOSTAUDIO \
-	CONFIG_SND_PCM_OSS \
-	CONFIG_SND_MIXER_OSS \
-	CONFIG_SOUND_OSS_CORE_PRECLAIM=y
+	CONFIG_HOSTAUDIO
 endef
 
 define KernelPackage/sound-core/2.4
@@ -33,20 +31,8 @@ define KernelPackage/sound-core/2.4
   AUTOLOAD:=$(call AutoLoad,30,soundcore)
 endef
 
-# allow 2.6 targets to override the soundcore stuff
-SOUNDCORE_LOAD ?= \
-	soundcore \
-	snd \
-	snd-page-alloc \
-	snd-hwdep \
-	snd-seq-device \
-	snd-rawmidi \
-	snd-timer \
-	snd-pcm \
-	snd-mixer-oss \
-	snd-pcm-oss
-
-SOUNDCORE_FILES ?= \
+define KernelPackage/sound-core/2.6
+  FILES:= \
 	$(LINUX_DIR)/sound/soundcore.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/sound/core/snd.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/sound/core/snd-page-alloc.$(LINUX_KMOD_SUFFIX) \
@@ -55,15 +41,23 @@ SOUNDCORE_FILES ?= \
 	$(LINUX_DIR)/sound/core/snd-rawmidi.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/sound/core/snd-timer.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/sound/core/snd-pcm.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/sound/core/oss/snd-mixer-oss.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/sound/core/oss/snd-pcm-oss.$(LINUX_KMOD_SUFFIX)
-
-define KernelPackage/sound-core/2.6
-  FILES:=$(SOUNDCORE_FILES)
-  AUTOLOAD:=$(call AutoLoad,30,$(SOUNDCORE_LOAD))
+	$(if $(CONFIG_SND_MIXER_OSS),$(LINUX_DIR)/sound/core/oss/snd-mixer-oss.$(LINUX_KMOD_SUFFIX)) \
+	$(if $(CONFIG_SND_PCM_OSS),$(LINUX_DIR)/sound/core/oss/snd-pcm-oss.$(LINUX_KMOD_SUFFIX))
+  AUTOLOAD:=$(call AutoLoad,30, \
+	soundcore \
+	snd \
+	snd-page-alloc \
+	snd-hwdep \
+	snd-seq-device \
+	snd-rawmidi \
+	snd-timer \
+	snd-pcm \
+	$(if $(CONFIG_SND_MIXER_OSS),snd-mixer-oss) \
+	$(if $(CONFIG_SND_PCM_OSS),snd-pcm-oss) \
+  )
 endef
 
-define KernelPackage/sound-core/uml
+define KernelPackage/sound-core/uml-2.6
   FILES:= \
 	$(LINUX_DIR)/sound/soundcore.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/arch/um/drivers/hostaudio.$(LINUX_KMOD_SUFFIX)
@@ -79,7 +73,7 @@ $(eval $(call KernelPackage,sound-core))
 define KernelPackage/sound-i8x0
   SUBMENU:=$(SOUND_MENU)
   TITLE:=Intel/SiS/nVidia/AMD/ALi AC97 Controller
-  DEPENDS:=kmod-sound-core @!TARGET_uml
+  DEPENDS:=kmod-sound-core
   KCONFIG:=CONFIG_SND_INTEL8X0
   FILES:=$(LINUX_DIR)/sound/pci/snd-intel8x0.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,35,snd-i8x0)
@@ -93,27 +87,10 @@ endef
 
 $(eval $(call KernelPackage,sound-i8x0))
 
-define KernelPackage/sound-ps3
-  SUBMENU:=$(SOUND_MENU)
-  TITLE:=PS3 Audio
-  DEPENDS:=kmod-sound-core @TARGET_ps3||@TARGET_ps3chk
-  KCONFIG:=CONFIG_SND_PS3 \
-		CONFIG_SND_PPC=y \
-		CONFIG_SND_PS3_DEFAULT_START_DELAY=2000
-  FILES:=$(LINUX_DIR)/sound/ppc/snd_ps3.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,35, snd_ps3)
-endef
-
-define KernelPackage/sound-ps3/description
- support for the integrated PS3 audio device
-endef
-
-$(eval $(call KernelPackage,sound-ps3))
-
 define KernelPackage/sound-cs5535audio
   SUBMENU:=$(SOUND_MENU)
   TITLE:=CS5535 PCI Controller
-  DEPENDS:=kmod-sound-core @!TARGET_uml
+  DEPENDS:=kmod-sound-core
   KCONFIG:=CONFIG_SND_CS5535AUDIO
   FILES:=$(LINUX_DIR)/sound/pci/cs5535audio/snd-cs5535audio.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/sound/ac97_bus.$(LINUX_KMOD_SUFFIX) \

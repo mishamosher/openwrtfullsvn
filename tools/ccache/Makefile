@@ -18,28 +18,26 @@ PKG_CAT:=zcat
 include $(INCLUDE_DIR)/host-build.mk
 
 ifneq ($(strip $(shell which ccache >/dev/null && echo found)),found)
-  define Host/Compile
-	$(MAKE) CC="$(HOSTCC)" -C $(HOST_BUILD_DIR)
+  define Build/Compile
+	$(MAKE) CC="$(HOSTCC)" -C $(PKG_BUILD_DIR)
   endef
 
-  define Host/Install
-	$(MAKE) -C $(HOST_BUILD_DIR) install
+  define Build/Install
+	$(MAKE) -C $(PKG_BUILD_DIR) install
   endef
 
-  define Host/Clean
-	-$(MAKE) -C $(HOST_BUILD_DIR) uninstall
-	$(call Host/Clean/Default)
+  define Build/Clean
+	-$(MAKE) -C $(PKG_BUILD_DIR) uninstall
+	$(call Build/Clean/Default)
   endef
 else
-  define Host/Prepare
+  define Build/Prepare
   endef
-  define Host/Configure
+  define Build/Configure
   endef
-  define Host/Compile
+  define Build/Compile
   endef
-  define Host/Install
-  endef
-  define Host/Clean
+  define Build/Clean
   endef
 endif
 

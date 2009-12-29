@@ -82,7 +82,7 @@ wprobe_dump_data(struct wprobe_iface *dev)
 	bool first = true;
 
 	if (!simple_mode)
-		fprintf(stdout, "\n");
+		fprintf(stderr, "\n");
 	wprobe_request_data(dev, NULL);
 	list_for_each_entry(attr, &dev->global_attr, list) {
 		if (simple_mode) {
@@ -90,7 +90,7 @@ wprobe_dump_data(struct wprobe_iface *dev)
 				fprintf(stdout, "[global]\n");
 			fprintf(stdout, "%s=%s\n", attr->name, wprobe_dump_value(attr));
 		} else {
-			fprintf(stdout, (first ?
+			fprintf(stderr, (first ?
 				"Global:            %s=%s\n" :
 				"                   %s=%s\n"),
 				attr->name,
@@ -105,7 +105,7 @@ wprobe_dump_data(struct wprobe_iface *dev)
 		wprobe_request_data(dev, link->addr);
 		list_for_each_entry(attr, &dev->link_attr, list) {
 			if (first) {
-				fprintf(stdout,
+				fprintf((simple_mode ? stdout : stderr),
 					(simple_mode ? 
 					 "[%02x:%02x:%02x:%02x:%02x:%02x]\n%s=%s\n" :
 					 "%02x:%02x:%02x:%02x:%02x:%02x: %s=%s\n"),
@@ -115,7 +115,7 @@ wprobe_dump_data(struct wprobe_iface *dev)
 					wprobe_dump_value(attr));
 				first = false;
 			} else {
-				fprintf(stdout,
+				fprintf((simple_mode ? stdout : stderr),
 					(simple_mode ? "%s=%s\n" :
 					 "                   %s=%s\n"),
 					attr->name,
@@ -171,11 +171,11 @@ static void show_attributes(struct wprobe_iface *dev)
 	if (simple_mode)
 		return;
 	list_for_each_entry(attr, &dev->global_attr, list) {
-		fprintf(stdout, "Global attribute: '%s' (%s)\n",
+		fprintf(stderr, "Global attribute: '%s' (%s)\n",
 			attr->name, attr_typestr[attr->type]);
 	}
 	list_for_each_entry(attr, &dev->link_attr, list) {
-		fprintf(stdout, "Link attribute: '%s' (%s)\n",
+		fprintf(stderr, "Link attribute: '%s' (%s)\n",
 			attr->name, attr_typestr[attr->type]);
 	}
 }
@@ -196,9 +196,9 @@ static void show_filter_simple(void *arg, const char *group, struct wprobe_filte
 static void show_filter(void *arg, const char *group, struct wprobe_filter_item *items, int n_items)
 {
 	int i;
-	fprintf(stdout, "Filter group: '%s' (tx/rx)\n", group);
+	fprintf(stderr, "Filter group: '%s' (tx/rx)\n", group);
 	for (i = 0; i < n_items; i++) {
-		fprintf(stdout, " - %s (%lld/%lld)\n",
+		fprintf(stderr, " - %s (%lld/%lld)\n",
 			items[i].name, items[i].tx, items[i].rx);
 	}
 }
@@ -415,7 +415,7 @@ int main(int argc, char **argv)
 	if (!dev || (list_empty(&dev->global_attr) &&
 		list_empty(&dev->link_attr))) {
 		if (err)
-			fprintf(stdout, "%s\n", err);
+			fprintf(stderr, "%s\n", err);
 		else
 			fprintf(stderr, "Interface '%s' not found\n", ifname);
 		return 1;

@@ -1,10 +1,10 @@
-
 #
 # Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 NF_MENU:=Netfilter Extensions
 NF_KMOD:=1
@@ -79,14 +79,14 @@ define KernelPackage/ipt-filter
   KCONFIG:=$(KCONFIG_IPT_FILTER)
   FILES:=$(foreach mod,$(IPT_FILTER-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
   AUTOLOAD:=$(call AutoLoad,45,$(notdir $(IPT_FILTER-m)))
-  DEPENDS:=kmod-ipt-core +LINUX_2_6:kmod-textsearch
+  DEPENDS:= kmod-ipt-core
 endef
 
 define KernelPackage/ipt-filter/description
  Netfilter (IPv4) kernel modules for packet content inspection
  Includes:
+ - ipt_ipp2p
  - ipt_layer7
- - ipt_string
 endef
 
 $(eval $(call KernelPackage,ipt-filter))
@@ -203,7 +203,7 @@ define KernelPackage/ipt-nathelper-extra
   KCONFIG:=$(KCONFIG_IPT_NATHELPER_EXTRA)
   FILES:=$(foreach mod,$(IPT_NATHELPER_EXTRA-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
   AUTOLOAD:=$(call AutoLoad,45,$(notdir $(IPT_NATHELPER_EXTRA-m)))
-  DEPENDS:= kmod-ipt-core +kmod-ipt-nat +LINUX_2_6:kmod-textsearch
+  DEPENDS:= kmod-ipt-core +kmod-ipt-nat
 endef
 
 define KernelPackage/ipt-nathelper-extra/description
@@ -229,7 +229,7 @@ define KernelPackage/ipt-imq
 	CONFIG_IMQ \
 	CONFIG_IMQ_BEHAVIOR_BA=y \
 	CONFIG_IMQ_NUM_DEVS=2 \
-	CONFIG_NETFILTER_XT_TARGET_IMQ
+	CONFIG_IP_NF_TARGET_IMQ
   FILES:= \
 	$(LINUX_DIR)/drivers/net/imq.$(LINUX_KMOD_SUFFIX) \
 	$(foreach mod,$(IPT_IMQ-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
@@ -286,7 +286,6 @@ $(eval $(call KernelPackage,ipt-ulog))
 define KernelPackage/ipt-iprange
   SUBMENU:=$(NF_MENU)
   TITLE:=Module for matching ip ranges
-  KCONFIG:=$(KCONFIG_IPT_IPRANGE)
   FILES:=$(foreach mod,$(IPT_IPRANGE-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
   AUTOLOAD:=$(call AutoLoad,45,$(notdir $(IPT_IPRANGE-m)))
   DEPENDS:= kmod-ipt-core
@@ -299,6 +298,34 @@ define KernelPackage/ipt-iprange/description
 endef
 
 $(eval $(call KernelPackage,ipt-iprange))
+
+
+define KernelPackage/ipt-ipset
+  SUBMENU:=$(NF_MENU)
+  TITLE:=IPSET Modules
+  KCONFIG:=$(KCONFIG_IPT_IPSET)
+  FILES:=$(foreach mod,$(IPT_IPSET-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
+  AUTOLOAD:=$(call AutoLoad,45,$(notdir $(IPT_IPSET-m)))
+  DEPENDS:= kmod-ipt-core
+endef
+
+define KernelPackage/ipt-ipset/description
+ Netfilter kernel modules for ipset
+ Includes:
+ - ip_set
+ - ip_set_iphash
+ - ip_set_ipmap
+ - ip_set_ipporthash
+ - ip_set_iptree
+ - ip_set_iptreemap
+ - ip_set_macipmap
+ - ip_set_nethash
+ - ip_set_portmap
+ - ipt_set
+ - ipt_SET
+endef
+
+$(eval $(call KernelPackage,ipt-ipset))
 
 
 define KernelPackage/ipt-extra
@@ -319,6 +346,9 @@ define KernelPackage/ipt-extra/description
  - ipt_recent
  - iptable_raw
  - xt_NOTRACK
+ - xt_TARPIT
+ - xt_DELUDE
+ - xt_CHAOS
 endef
 
 $(eval $(call KernelPackage,ipt-extra))
@@ -328,7 +358,7 @@ define KernelPackage/ip6tables
   SUBMENU:=$(NF_MENU)
   TITLE:=IPv6 modules
   DEPENDS:=+kmod-ipv6
-  KCONFIG:=$(KCONFIG_IPT_IPV6)
+  KCONFIG:=CONFIG_IP6_NF_IPTABLES
   FILES:=$(foreach mod,$(IPT_IPV6-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
   AUTOLOAD:=$(call AutoLoad,49,$(notdir $(IPT_IPV6-m)))
 endef
@@ -344,9 +374,7 @@ define KernelPackage/arptables
   SUBMENU:=$(NF_MENU)
   TITLE:=ARP firewalling modules
   FILES:=$(LINUX_DIR)/net/ipv4/netfilter/arp*.$(LINUX_KMOD_SUFFIX)
-  KCONFIG:=CONFIG_IP_NF_ARPTABLES \
-    CONFIG_IP_NF_ARPFILTER \
-    CONFIG_IP_NF_ARP_MANGLE
+  KCONFIG:=CONFIG_IP_NF_ARPTABLES
   AUTOLOAD:=$(call AutoLoad,49,$(notdir $(patsubst %.$(LINUX_KMOD_SUFFIX),%,$(wildcard $(LINUX_DIR)/net/ipv4/netfilter/arp*.$(LINUX_KMOD_SUFFIX)))))
 endef
 
@@ -360,67 +388,18 @@ define KernelPackage/ebtables
   SUBMENU:=$(NF_MENU)
   TITLE:=Bridge firewalling modules
   DEPENDS:=@LINUX_2_6
-  FILES:=$(foreach mod,$(EBTABLES-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
+  FILES:=$(LINUX_DIR)/net/bridge/netfilter/*.$(LINUX_KMOD_SUFFIX)
   KCONFIG:=CONFIG_BRIDGE_NETFILTER=y \
-	$(KCONFIG_EBTABLES)
-  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(EBTABLES-m)))
+  	CONFIG_BRIDGE_NF_EBTABLES
+  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(patsubst %.$(LINUX_KMOD_SUFFIX),%,ebtables.$(LINUX_KMOD_SUFFIX) $(wildcard $(LINUX_DIR)/net/bridge/netfilter/ebtable_*.$(LINUX_KMOD_SUFFIX)) $(wildcard $(LINUX_DIR)/net/bridge/netfilter/ebt_*.$(LINUX_KMOD_SUFFIX)))))
 endef
 
 define KernelPackage/ebtables/description
-  ebtables is a general, extensible frame/packet identification
-  framework. It provides you to do Ethernet
-  filtering/NAT/brouting on the Ethernet bridge.
+ Kernel modules for Ethernet Bridge firewalling
 endef
 
 $(eval $(call KernelPackage,ebtables))
 
-define KernelPackage/ebtables-ipv4
-  SUBMENU:=$(NF_MENU)
-  TITLE:=ebtables: IPv4 support
-  DEPENDS:= kmod-ebtables
-  FILES:=$(foreach mod,$(EBTABLES_IP4-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
-  KCONFIG:=$(KCONFIG_EBTABLES_IP4)
-  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(EBTABLES_IP4-m)))
-endef
-
-define KernelPackage/ebtables-ipv4/description
- This option adds the IPv4 support to ebtables, which allows basic
- IPv4 header field filtering, ARP filtering as well as SNAT, DNAT targets.
-endef
-
-$(eval $(call KernelPackage,ebtables-ipv4))
-
-define KernelPackage/ebtables-ipv6
-  SUBMENU:=$(NF_MENU)
-  TITLE:=ebtables: IPv6 support
-  DEPENDS:= kmod-ebtables
-  FILES:=$(foreach mod,$(EBTABLES_IP6-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
-  KCONFIG:=$(KCONFIG_EBTABLES_IP6)
-  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(EBTABLES_IP6-m)))
-endef
-
-define KernelPackage/ebtables-ipv6/description
- This option adds the IPv6 support to ebtables, which allows basic
- IPv6 header field filtering and target support.
-endef
-
-$(eval $(call KernelPackage,ebtables-ipv6))
-
-define KernelPackage/ebtables-watchers
-  SUBMENU:=$(NF_MENU)
-  TITLE:=ebtables: watchers support
-  DEPENDS:= kmod-ebtables
-  FILES:=$(foreach mod,$(EBTABLES_WATCHERS-m),$(LINUX_DIR)/net/$(mod).$(LINUX_KMOD_SUFFIX))
-  KCONFIG:=$(KCONFIG_EBTABLES_WATCHERS)
-  AUTOLOAD:=$(call AutoLoad,49,$(notdir $(EBTABLES_WATCHERS-m)))
-endef
-
-define KernelPackage/ebtables-watchers/description
- This option adds the log watchers, that you can use in any rule
- in any ebtables table.
-endef
-
-$(eval $(call KernelPackage,ebtables-watchers))
 
 define KernelPackage/nfnetlink
   SUBMENU:=$(NF_MENU)

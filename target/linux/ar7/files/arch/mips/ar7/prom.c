@@ -25,6 +25,7 @@
 #include <linux/string.h>
 #include <linux/io.h>
 #include <asm/bootinfo.h>
+#include <asm/gdb-stub.h>
 
 #include <asm/ar7/ar7.h>
 #include <asm/ar7/prom.h>

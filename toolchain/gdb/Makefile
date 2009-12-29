@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -7,48 +7,48 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gdb
-PKG_VERSION:=6.8
+PKG_VERSION:=6.3
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_MD5SUM:=c9da266b884fb8fa54df786dfaadbc7a
-PKG_SOURCE_URL:=@GNU/gdb
+PKG_MD5SUM:=05b928f41fa5b482e49ca2c24762a0ae
+PKG_SOURCE_URL:=http://ftp.gnu.org/gnu/gdb
+PKG_CAT:=bzcat
 
-include $(INCLUDE_DIR)/toolchain-build.mk
+STAGING_DIR_HOST:=$(TOOLCHAIN_DIR)
+BUILD_DIR_HOST:=$(BUILD_DIR_TOOLCHAIN)
 
-define Host/Configure
-	(cd $(HOST_BUILD_DIR); \
+include $(INCLUDE_DIR)/host-build.mk
+
+define Build/Configure
+	(cd $(PKG_BUILD_DIR); \
 		gdb_cv_func_sigsetjmp=yes \
-		CFLAGS="-O2" \
-		$(HOST_BUILD_DIR)/configure \
-		--prefix=$(TOOLCHAIN_DIR)/usr \
+		$(PKG_BUILD_DIR)/configure \
+		--prefix=$(TOOLCHAIN_DIR) \
 		--build=$(GNU_HOST_NAME) \
 		--host=$(GNU_HOST_NAME) \
 		--target=$(REAL_GNU_TARGET_NAME) \
-		--disable-werror \
 		$(DISABLE_NLS) \
-		--without-uiout \
+		--without-uiout --disable-gdbmi \
 		--disable-tui --disable-gdbtk --without-x \
 		--without-included-gettext \
 		--enable-threads \
 	);
 endef
 
-define Host/Compile
-	$(MAKE) -C $(HOST_BUILD_DIR)
+define Build/Compile
+	$(MAKE) -C $(PKG_BUILD_DIR)
+	strip $(PKG_BUILD_DIR)/gdb/gdb
 endef
 
-define Host/Install
-	mkdir -p $(TOOLCHAIN_DIR)/usr/bin
-	$(INSTALL_BIN) $(HOST_BUILD_DIR)/gdb/gdb $(TOOLCHAIN_DIR)/usr/bin/$(TARGET_CROSS)gdb
-	ln -fs $(TARGET_CROSS)gdb $(TOOLCHAIN_DIR)/usr/bin/$(GNU_TARGET_NAME)-gdb
-	strip $(TOOLCHAIN_DIR)/usr/bin/$(TARGET_CROSS)gdb
+define Build/Install
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/gdb/gdb $(TOOLCHAIN_DIR)/bin/$(TARGET_CROSS)gdb
+	ln -fs $(TARGET_CROSS)gdb $(TOOLCHAIN_DIR)/bin/$(GNU_TARGET_NAME)-gdb
 endef
 
-define Host/Clean
-	rm -rf \
-		$(HOST_BUILD_DIR) \
-		$(TOOLCHAIN_DIR)/usr/bin/$(TARGET_CROSS)gdb \
-		$(TOOLCHAIN_DIR)/usr/bin/$(GNU_TARGET_NAME)-gdb
+define Build/Clean
+	rm -rf $(PKG_BUILD_DIR)
+	rm -f $(TOOLCHAIN_DIR)/bin/$(TARGET_CROSS)gdb
+	rm -f $(TOOLCHAIN_DIR)/bin/$(GNU_TARGET_NAME)-gdb
 endef
 
 $(eval $(call HostBuild))

@@ -15,15 +15,12 @@
 #include <linux/spi/spi.h>
 #include <linux/spi/flash.h>
 #include <linux/spi/mmc_spi.h>
+#include <linux/input.h>
 
+#include <asm/mips_machine.h>
 #include <asm/mach-ar71xx/ar71xx.h>
 #include <asm/mach-ar71xx/pci.h>
-
-#include "machtype.h"
-#include "devices.h"
-#include "dev-gpio-buttons.h"
-#include "dev-leds-gpio.h"
-#include "dev-usb.h"
+#include <asm/mach-ar71xx/platform.h>
 
 #define RB4XX_GPIO_USER_LED	4
 #define RB4XX_GPIO_RESET_SWITCH	7
@@ -153,10 +150,78 @@ static inline void rb4xx_add_device_spi(void) {}
 static inline void rb433_add_device_spi(void) {}
 #endif
 
-static void __init rb4xx_generic_setup(void)
+static void __init rb411_setup(void)
 {
-	ar71xx_gpio_function_enable(AR71XX_GPIO_FUNC_SPI_CS1_EN |
-				    AR71XX_GPIO_FUNC_SPI_CS2_EN);
+	rb4xx_add_device_spi();
+
+	ar71xx_add_device_mdio(0xfffffffe);
+
+	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
+	ar71xx_eth0_data.phy_mask = 0x00000001;
+
+	ar71xx_add_device_eth(0);
+
+	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(rb4xx_leds_gpio),
+					rb4xx_leds_gpio);
+
+	ar71xx_add_device_gpio_buttons(-1, RB4XX_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(rb4xx_gpio_buttons),
+					rb4xx_gpio_buttons);
+
+	platform_device_register(&rb4xx_nand_device);
+
+	ar71xx_pci_init(ARRAY_SIZE(rb4xx_pci_irqs), rb4xx_pci_irqs);
+}
+
+MIPS_MACHINE(MACH_AR71XX_RB_411, "MikroTik RouterBOARD 411/A/AH", rb411_setup);
+
+static void __init rb433_setup(void)
+{
+	rb433_add_device_spi();
+
+	ar71xx_add_device_mdio(0xffffffec);
+
+	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
+	ar71xx_eth0_data.phy_mask = 0x00000003;
+	ar71xx_eth0_data.speed = SPEED_100;
+	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+
+	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth1_data.phy_mask = 0x00000010;
+
+	ar71xx_add_device_eth(1);
+	ar71xx_add_device_eth(0);
+
+	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(rb4xx_leds_gpio),
+					rb4xx_leds_gpio);
+
+	ar71xx_add_device_gpio_buttons(-1, RB4XX_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(rb4xx_gpio_buttons),
+					rb4xx_gpio_buttons);
+
+	platform_device_register(&rb4xx_nand_device);
+
+	ar71xx_pci_init(ARRAY_SIZE(rb4xx_pci_irqs), rb4xx_pci_irqs);
+}
+
+MIPS_MACHINE(MACH_AR71XX_RB_433, "MikroTik RouterBOARD 433/AH", rb433_setup);
+
+static void __init rb450_setup(void)
+{
+	rb4xx_add_device_spi();
+
+	ar71xx_add_device_mdio(0xffffffe0);
+
+	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
+	ar71xx_eth0_data.phy_mask = 0x0000000f;
+	ar71xx_eth0_data.speed = SPEED_100;
+	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+
+	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth1_data.phy_mask = 0x00000010;
+
+	ar71xx_add_device_eth(1);
+	ar71xx_add_device_eth(0);
 
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(rb4xx_leds_gpio),
 					rb4xx_leds_gpio);
@@ -168,107 +233,10 @@ static void __init rb4xx_generic_setup(void)
 	platform_device_register(&rb4xx_nand_device);
 }
 
-static void __init rb411_setup(void)
-{
-	rb4xx_generic_setup();
-	rb4xx_add_device_spi();
-
-	ar71xx_add_device_mdio(0xfffffffe);
-
-	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
-	ar71xx_eth0_data.phy_mask = 0x00000001;
-
-	ar71xx_add_device_eth(0);
-
-	ar71xx_pci_init(ARRAY_SIZE(rb4xx_pci_irqs), rb4xx_pci_irqs);
-}
-
-MIPS_MACHINE(AR71XX_MACH_RB_411, "MikroTik RouterBOARD 411/A/AH", rb411_setup);
-
-static void __init rb411u_setup(void)
-{
-	rb4xx_generic_setup();
-	rb4xx_add_device_spi();
-
-	ar71xx_add_device_mdio(0xfffffffd);
-
-	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
-	ar71xx_eth0_data.phy_mask = 0x00000002;
-	ar71xx_add_device_eth(0);
-
-	ar71xx_pci_init(ARRAY_SIZE(rb4xx_pci_irqs), rb4xx_pci_irqs);
-	ar71xx_add_device_usb();
-}
-
-MIPS_MACHINE(AR71XX_MACH_RB_411U, "MikroTik RouterBOARD 411U", rb411u_setup);
-
-static void __init rb433_setup(void)
-{
-	rb4xx_generic_setup();
-	rb433_add_device_spi();
-
-	ar71xx_add_device_mdio(0xffffffe9);
-
-	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
-	ar71xx_eth0_data.phy_mask = 0x00000006;
-	ar71xx_eth0_data.speed = SPEED_100;
-	ar71xx_eth0_data.duplex = DUPLEX_FULL;
-
-	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
-	ar71xx_eth1_data.phy_mask = 0x00000010;
-
-	ar71xx_add_device_eth(1);
-	ar71xx_add_device_eth(0);
-
-	ar71xx_pci_init(ARRAY_SIZE(rb4xx_pci_irqs), rb4xx_pci_irqs);
-}
-
-MIPS_MACHINE(AR71XX_MACH_RB_433, "MikroTik RouterBOARD 433/AH", rb433_setup);
-
-static void __init rb433u_setup(void)
-{
-	rb433_setup();
-	ar71xx_add_device_usb();
-}
-
-MIPS_MACHINE(AR71XX_MACH_RB_433U, "MikroTik RouterBOARD 433UAH", rb433u_setup);
-
-static void __init rb450_generic_setup(int gige)
-{
-	rb4xx_generic_setup();
-	rb4xx_add_device_spi();
-
-	ar71xx_add_device_mdio(0xffffffe0);
-
-	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
-	ar71xx_eth0_data.phy_mask = 0x0000000f;
-	ar71xx_eth0_data.speed = (gige) ? SPEED_1000 : SPEED_100;
-	ar71xx_eth0_data.duplex = DUPLEX_FULL;
-
-	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
-	ar71xx_eth1_data.phy_mask = 0x00000010;
-
-	ar71xx_add_device_eth(1);
-	ar71xx_add_device_eth(0);
-}
-
-static void __init rb450_setup(void)
-{
-	rb450_generic_setup(0);
-}
-
-MIPS_MACHINE(AR71XX_MACH_RB_450, "MikroTik RouterBOARD 450", rb450_setup);
-
-static void __init rb450g_setup(void)
-{
-	rb450_generic_setup(1);
-}
-
-MIPS_MACHINE(AR71XX_MACH_RB_450G, "MikroTik RouterBOARD 450G", rb450g_setup);
+MIPS_MACHINE(MACH_AR71XX_RB_450, "MikroTik RouterBOARD 450", rb450_setup);
 
 static void __init rb493_setup(void)
 {
-	rb4xx_generic_setup();
 	rb4xx_add_device_spi();
 
 	ar71xx_add_device_mdio(0x3fffff00);
@@ -284,7 +252,17 @@ static void __init rb493_setup(void)
 	ar71xx_add_device_eth(0);
 	ar71xx_add_device_eth(1);
 
+	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(rb4xx_leds_gpio),
+					rb4xx_leds_gpio);
+
+	ar71xx_add_device_gpio_buttons(-1, RB4XX_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(rb4xx_gpio_buttons),
+					rb4xx_gpio_buttons);
+
+	platform_device_register(&rb4xx_nand_device);
+
 	ar71xx_pci_init(ARRAY_SIZE(rb4xx_pci_irqs), rb4xx_pci_irqs);
 }
 
-MIPS_MACHINE(AR71XX_MACH_RB_493, "MikroTik RouterBOARD 493/AH", rb493_setup);
+MIPS_MACHINE(MACH_AR71XX_RB_493, "MikroTik RouterBOARD 493/AH", rb493_setup);
+

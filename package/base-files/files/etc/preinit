@@ -8,11 +8,10 @@ failsafe_ip() {
 }
 
 failsafe() {
-	set_state failsafe
 	[ -n "$ifname" ] && grep "$ifname" /proc/net/dev >/dev/null && {
 		failsafe_ip
 		netmsg 192.168.1.255 "Entering Failsafe!"
-		telnetd -l /bin/login.sh <> /dev/null 2>&1
+		telnetd -l /bin/login <> /dev/null 2>&1
 	}
 	lock /tmp/.failsafe
 	ash --login
@@ -33,27 +32,23 @@ if grep devfs /proc/filesystems > /dev/null; then
 elif [ -x /sbin/hotplug2 ]; then
 	mount -t tmpfs tmpfs /dev -o size=512K
 	mknod /dev/console c 5 1
-	/sbin/hotplug2 --set-worker /lib/hotplug2/worker_fork.so --set-rules-file /etc/hotplug2-init.rules --no-persistent --set-coldplug-cmd /sbin/udevtrigger
-	/sbin/hotplug2 --set-worker /lib/hotplug2/worker_fork.so --set-rules-file /etc/hotplug2-init.rules --persistent &
+	/sbin/hotplug2 --coldplug --set-rules-file /etc/hotplug2-init.rules
+	/sbin/hotplug2 --no-coldplug --persistent --set-rules-file /etc/hotplug2-init.rules &
 	M0=/dev/ptmx
 	M1=/dev/ptmx
 	HOTPLUG=
 
 elif [ -x /sbin/udevd ]; then
 	mount -n -t tmpfs -o mode=0755 udev /dev
-	[ -d /lib/udev/devices ] && cp -af /lib/udev/devices/* /dev/
-	[ -c /dev/console ] || mknod -m 0600 /dev/console c 5 1
-	[ -c /dev/null ] || mknod -m 0666 /dev/null c 1 3
-	/sbin/udevd --daemon --resolve-names=never
-	/sbin/udevadm trigger
-	/sbin/udevadm settle
+	/sbin/udevd --daemon
+	/sbin/udevtrigger
+	/sbin/udevsettle
 	M0=/dev/pty/ptmx
 	M1=/dev/pty/ptmx
 	HOTPLUG=
 fi
 
-[ -d /dev/pts ] || mkdir -p /dev/pts
-[ -d /dev/shm ] || mkdir -p /dev/shm
+mkdir -p /dev/pts /dev/shm
 mount devpts /dev/pts -t devpts
 
 # the shell really doesn't like having stdin/out closed
@@ -67,7 +62,6 @@ dd if=/dev/console of=/dev/null bs=1 count=0 >/dev/null 2>/dev/null && {
 exec <$M0 >$M1 2>&0
 
 echo "- preinit -"
-set_state preinit
 echo "Press CTRL-C for failsafe"
 trap 'FAILSAFE=true' INT
 trap 'FAILSAFE=true' USR1
@@ -76,6 +70,7 @@ if [ -e /etc/preinit.arch ]; then
 else
 	sleep 2
 fi
+set_state preinit
 echo "$HOTPLUG" > /proc/sys/kernel/hotplug
 export FAILSAFE
 eval ${FAILSAFE:+failsafe}
@@ -93,6 +88,6 @@ if [ -z "$INITRAMFS" ]; then
 	}
 
 	echo "- init -"
-
+	
 	exec /sbin/init
 fi

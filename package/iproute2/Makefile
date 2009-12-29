@@ -4,16 +4,17 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=iproute2
-PKG_VERSION:=2.6.29-1
+PKG_VERSION:=2.6.25
 PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://devresources.linux-foundation.org/dev/iproute2/download/
-PKG_MD5SUM:=c1bc258a6c345905e79935ac7a3cc582
+PKG_MD5SUM:=5737bade2f5e03fad0e2c81da91e551e
 
 PKG_BUILD_DIR:=$(BUILD_DIR)/iproute2-$(PKG_VERSION)
 
@@ -41,6 +42,7 @@ $(call Package/iproute2/Default)
 endef
 
 define Build/Configure
+	$(SED) "s:-O2:${TARGET_CFLAGS}:g" $(PKG_BUILD_DIR)/Makefile
 	$(SED) "s,-I/usr/include/db3,," $(PKG_BUILD_DIR)/Makefile
 	$(SED) "s,^KERNEL_INCLUDE.*,KERNEL_INCLUDE=$(LINUX_DIR)/include," \
 		$(PKG_BUILD_DIR)/Makefile
@@ -51,22 +53,9 @@ define Build/Configure
 	$(SED) "s, misc,," $(PKG_BUILD_DIR)/Makefile
 endef
 
-MAKE_FLAGS += \
-	EXTRA_CCOPTS="$(TARGET_CFLAGS)" \
-	KERNEL_INCLUDE="$(LINUX_DIR)/include" \
-	FPIC="$(FPIC)" \
-	all tc/tc ip/ip
-
 define Build/Compile
-	$(MAKE) -C $(PKG_BUILD_DIR)/netem HOSTCC="$(HOSTCC)" EXTRA_CCOPTS="$(TARGET_CFLAGS)" CFLAGS="-D_GNU_SOURCE -O2 -Wstrict-prototypes -Wall -I ../include -DRESOLVE_HOSTNAMES"
-	$(Build/Compile/Default)
-endef
-
-define Build/InstallDev
-	$(INSTALL_DIR) $(1)/usr/include
-	$(CP) $(PKG_BUILD_DIR)/include/libnetlink.h $(1)/usr/include/
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/lib/libnetlink.a $(1)/usr/lib/
+	$(MAKE) -C $(PKG_BUILD_DIR)/netem HOSTCC="$(HOSTCC)" CFLAGS="-D_GNU_SOURCE -O2 -Wstrict-prototypes -Wall -I ../include -DRESOLVE_HOSTNAMES"
+	$(MAKE) -C $(PKG_BUILD_DIR) $(TARGET_CONFIGURE_OPTS) KERNEL_INCLUDE=$(LINUX_DIR)/include all tc/tc ip/ip
 endef
 
 define Package/ip/install
@@ -89,5 +78,4 @@ endef
 $(eval $(call BuildPackage,ip))
 $(eval $(call BuildPackage,tc))
 $(eval $(call BuildPackage,genl))
-
 

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2007-2009 OpenWrt.org
+# Copyright (C) 2007,2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -40,24 +40,6 @@ define Image/Build/Edimax
 		-x $(call imgname,$(1),$(2)).trx:0x10000 \
 		-x $(JFFS2MARK):0x10000 \
 		$(call imgname,$(1),$(2))-xmodem.bin
-	rm -f $(call imgname,$(1),$(2)).trx
-endef
-
-define Image/Build/Osbridge
-	$(call Image/Build/Loader,$(2),gz,0x80500000,0x6D8,y,$(2))
-	$(call Image/Build/TRXEdimax,$(call imgname,$(1),$(2)).trx,$(1))
-	$(STAGING_DIR_HOST)/bin/mkcsysimg -B $(2) -d \
-		-r $(KDIR)/loader-$(2).gz::0x1000 \
-		-x $(call imgname,$(1),$(2)).trx:0x10000 \
-		-x $(JFFS2MARK):0x10000 \
-		$(call imgname,$(1),$(2))-firmware.bin
-	$(STAGING_DIR_HOST)/bin/osbridge-crc \
-		-i $(call imgname,$(1),$(2))-firmware.bin \
-		-o $(call imgname,$(1),$(2))-temp.bin
-	$(STAGING_DIR_HOST)/bin/pc1crypt \
-		-i $(call imgname,$(1),$(2))-temp.bin \
-		-o $(call imgname,$(1),$(2))-webui.bin
-	rm -f $(call imgname,$(1),$(2))-temp.bin
 	rm -f $(call imgname,$(1),$(2)).trx
 endef
 
@@ -217,21 +199,6 @@ define Image/Build/Template/Mikrotik/Initramfs
 endef
 
 #
-# OSBRiDGE 5GXi/5XLi
-#
-define Image/Build/Template/Osbridge
-	$(call Image/Build/Osbridge,$(1),$(2))
-endef
-
-define Image/Build/Template/Osbridge/squashfs
-	$(call Image/Build/Template/Osbridge,squashfs,$(1))
-endef
-
-define Image/Build/Template/Osbridge/Initramfs
-	$(call Image/Build/LZMAKernel/Admboot,$(1),gz)
-endef
-
-#
 # Profiles
 #
 define Image/Build/Profile/CAS630
@@ -256,7 +223,6 @@ define Image/Build/Profile/NFS101U
 	$(call Image/Build/Template/Cellvision/$(1),dns-120,nfs-101u)
 	$(call Image/Build/Template/Cellvision/$(1),mu-5000fs,nfs-101u)
 	$(call Image/Build/Template/Cellvision/$(1),tn-u100,nfs-101u)
-	$(call Image/Build/Template/Cellvision/$(1),cg-nsadp,nfs-101u)
 endef
 
 define Image/Build/Profile/NFS101WU
@@ -340,10 +306,6 @@ define Image/Build/Profile/PMUGW
 	$(call Image/Build/Template/Infineon/$(1),powerline-mugw)
 endef
 
-define Image/Build/Profile/5GXI
-	$(call Image/Build/Template/Osbridge/$(1),5gxi)
-endef
-
 define Image/Build/Profile/RouterBoard
 	$(call Image/Build/Template/Mikrotik/$(1))
 endef
@@ -361,26 +323,23 @@ ifeq ($(CONFIG_BROKEN),y)
 	$(call Image/Build/Profile/CAS771W,$(1))
 	$(call Image/Build/Profile/CAS861,$(1))
 	$(call Image/Build/Profile/CAS861W,$(1))
-	# Motorola
-	$(call Image/Build/Profile/PMUGW,$(1))
-	# OSBRiDGE
-	$(call Image/Build/Profile/5GXI,$(1))
-  endef
-endif
-
-define Image/Build/Profile/Generic
-	# Cellvision
 	$(call Image/Build/Profile/NFS101U,$(1))
 	$(call Image/Build/Profile/NFS101WU,$(1))
-	# Compex
-	$(call Image/Build/Profile/WP54,$(1))
-	$(call Image/Build/Profile/NP27G,$(1))
-	$(call Image/Build/Profile/NP28G,$(1))
 	# Edimax
 	$(call Image/Build/Profile/BR6104K,$(1))
 	$(call Image/Build/Profile/BR6104KP,$(1))
 	$(call Image/Build/Profile/BR6104WG,$(1))
 	$(call Image/Build/Profile/BR6114WG,$(1))
+	# Motorola
+	$(call Image/Build/Profile/PMUGW,$(1))
+  endef
+endif
+
+define Image/Build/Profile/Generic
+	# Compex
+	$(call Image/Build/Profile/WP54,$(1))
+	$(call Image/Build/Profile/NP27G,$(1))
+	$(call Image/Build/Profile/NP28G,$(1))
 	# Infineon
 	$(call Image/Build/Profile/EASY83000,$(1))
 	$(call Image/Build/Profile/EASY5120RT,$(1))
@@ -393,7 +352,7 @@ endef
 
 ifeq ($(PROFILE),RouterBoard)
   define Image/cmdline/yaffs2
-	root=/dev/mtdblock3 rootfstype=yaffs2
+	root=/dev/mtdblock3 rootfstype=yaffs2 init=/etc/preinit
   endef
 
   define Image/BuildKernel/RouterBoard

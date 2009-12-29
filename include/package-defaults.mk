@@ -13,7 +13,7 @@ define Package/Default
   PROVIDES:=
   EXTRA_DEPENDS:=
   MAINTAINER:=OpenWrt Developers Team <openwrt-devel@openwrt.org>
-  SOURCE:=$(patsubst $(TOPDIR)/%,%,$(CURDIR))
+  SOURCE:=$(patsubst $(TOPDIR)/%,%,${shell pwd})
   ifneq ($(PKG_VERSION),)
     ifneq ($(PKG_RELEASE),)
       VERSION:=$(PKG_VERSION)-$(PKG_RELEASE)
@@ -23,11 +23,7 @@ define Package/Default
   else
     VERSION:=$(PKG_RELEASE)
   endif
-  ifneq ($(CONFIG_TARGET_adm5120),y)
-    PKGARCH:=$(BOARD)
-  else
-    PKGARCH:=$(BOARD)_$(ARCH)
-  endif
+  PKGARCH:=$(ARCH)
   PRIORITY:=optional
   DEFAULT:=
   MENU:=
@@ -36,8 +32,6 @@ define Package/Default
   TITLE:=
   KCONFIG:=
   BUILDONLY:=
-  URL:=
-  VARIANT:=
 endef
 
 Build/Patch:=$(Build/Patch/Default)
@@ -45,8 +39,12 @@ ifneq ($(strip $(PKG_UNPACK)),)
   define Build/Prepare/Default
   	$(PKG_UNPACK)
 	$(Build/Patch)
+	$(if $(QUILT),touch $(PKG_BUILD_DIR)/.quilt_used)
   endef
 endif
+
+export PKG_CONFIG_PATH=$(STAGING_DIR)/usr/lib/pkgconfig:$(STAGING_DIR_HOST)/usr/lib/pkgconfig
+export PKG_CONFIG_LIBDIR=$(STAGING_DIR)/usr/lib/pkgconfig
 
 CONFIGURE_PREFIX:=/usr
 CONFIGURE_ARGS = \
@@ -65,9 +63,7 @@ CONFIGURE_ARGS = \
 		--localstatedir=/var \
 		--mandir=$(CONFIGURE_PREFIX)/man \
 		--infodir=$(CONFIGURE_PREFIX)/info \
-		$(DISABLE_NLS) \
-		$(DISABLE_LARGEFILE) \
-		$(DISABLE_IPV6)
+		$(DISABLE_NLS)
 
 CONFIGURE_VARS = \
 		$(TARGET_CONFIGURE_OPTS) \
@@ -75,6 +71,8 @@ CONFIGURE_VARS = \
 		CXXFLAGS="$(TARGET_CFLAGS) $(EXTRA_CFLAGS)" \
 		CPPFLAGS="$(TARGET_CPPFLAGS) $(EXTRA_CPPFLAGS)" \
 		LDFLAGS="$(TARGET_LDFLAGS) $(EXTRA_LDFLAGS)" \
+		PKG_CONFIG_PATH="$(PKG_CONFIG_PATH)" \
+		PKG_CONFIG_LIBDIR="$(PKG_CONFIG_LIBDIR)"
 
 CONFIGURE_PATH = .
 CONFIGURE_CMD = ./configure
@@ -123,12 +121,4 @@ define Build/Install/Default
 	$(MAKE) -C $(PKG_BUILD_DIR)/$(MAKE_PATH) \
 		$(MAKE_INSTALL_FLAGS) \
 		$(1) install;
-endef
-
-define Build/Dist/Default
-	$(call Build/Compile/Default, DESTDIR="$(PKG_BUILD_DIR)/tmp" CC="$(TARGET_CC)" dist)
-endef
-
-define Build/DistCheck/Default
-	$(call Build/Compile/Default, DESTDIR="$(PKG_BUILD_DIR)/tmp" CC="$(TARGET_CC)" distcheck)
 endef

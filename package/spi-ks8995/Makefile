@@ -14,7 +14,7 @@ PKG_RELEASE:=1
 include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/spi-ks8995
-  SUBMENU:=SPI Support
+  SUBMENU:=Other modules
   TITLE:=Micrel/Kendin KS8995 Ethernet switch control
   DEPENDS:=@LINUX_2_6
   FILES:=$(PKG_BUILD_DIR)/spi_ks8995.$(LINUX_KMOD_SUFFIX)
@@ -39,6 +39,7 @@ MAKE_OPTS:= \
 	CROSS_COMPILE="$(TARGET_CROSS)" \
 	SUBDIRS="$(PKG_BUILD_DIR)" \
 	EXTRA_CFLAGS="$(EXTRA_CFLAGS)" \
+	LINUXINCLUDE="-I$(LINUX_DIR)/include -include linux/autoconf.h" \
 	$(EXTRA_KCONFIG)
 
 define Build/Prepare

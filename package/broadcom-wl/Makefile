@@ -10,8 +10,8 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=broadcom-wl
 PKG_VERSION:=4.150.10.5.3
-PKG_RELEASE:=6
-WLC_VERSION:=0.2
+PKG_RELEASE:=3.2
+WLC_VERSION:=0.1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://downloads.openwrt.org/sources
@@ -100,6 +100,7 @@ endef
 
 define Package/wl
 $(call Package/broadcom-wl/Default)
+  DEPENDS+= +nvram
   TITLE:=Proprietary Broadcom wl driver config utility
 endef
 
@@ -110,6 +111,7 @@ endef
 
 define Package/nas
 $(call Package/broadcom-wl/Default)
+  DEPENDS+= +nvram 
   TITLE:=Proprietary Broadcom WPA/WPA2 authenticator
 endef
 
@@ -148,25 +150,17 @@ define Build/Compile
 		$(if $(WL_WEXT),WL_WEXT=1) \
 		modules
 
-	# NVRAM stub
-	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $(PKG_BUILD_DIR)/nvram/nvram_stub.o $(PKG_BUILD_DIR)/nvram/nvram_stub.c
-
 	# Compile wlc
 	$(MAKE) -C $(PKG_BUILD_DIR)/wlc \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS)" \
 		all
-
 	# Compile libshared
 	$(MAKE) -C $(PKG_BUILD_DIR)/router/shared \
 		$(TARGET_CONFIGURE_OPTS) \
 		CFLAGS="$(TARGET_CFLAGS) -I. -I$(PKG_BUILD_DIR)/include -Dlinux=1" \
 		all
-	$(TARGET_CC) -o $(PKG_BUILD_DIR)/nas \
-		$(PKG_BUILD_DIR)/nas_exe.o \
-		$(PKG_BUILD_DIR)/nvram/nvram_stub.o \
-		$(TARGET_LDFLAGS) \
-		$(PKG_BUILD_DIR)/router/shared/libshared.a
+	$(TARGET_CC) -o $(PKG_BUILD_DIR)/nas $(PKG_BUILD_DIR)/nas_exe.o -L$(STAGING_DIR)/usr/lib -lnvram $(PKG_BUILD_DIR)/router/shared/libshared.a
 	$(TARGET_CC) -o $(PKG_BUILD_DIR)/wl $(PKG_BUILD_DIR)/wl_exe.o
 endef
 

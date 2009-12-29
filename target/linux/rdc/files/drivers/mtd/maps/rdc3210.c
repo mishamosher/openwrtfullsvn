@@ -15,7 +15,7 @@
 #include <linux/mtd/partitions.h>
 #include <linux/autoconf.h>
 #include <linux/sched.h>
-#include <linux/magic.h>
+#include <linux/squashfs_fs.h>
 
 static struct mtd_info		*rdc3210_mtd;
 
@@ -197,7 +197,7 @@ static int erase_write (struct mtd_info *mtd, unsigned long pos,
 static int __init init_rdc3210_map(void)
 {
 	rdc3210_map.phys = -rdc3210_map.size;
-       	printk(KERN_NOTICE "flash device: %lx at %x\n", rdc3210_map.size, rdc3210_map.phys);
+       	printk(KERN_NOTICE "flash device: %x at %x\n", rdc3210_map.size, rdc3210_map.phys);
 
 #if CONFIG_MTD_RDC3210_SIZE == 0x800000
 	simple_map_init(&rdc3210_map);

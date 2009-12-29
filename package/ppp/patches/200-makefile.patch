@@ -1,6 +1,8 @@
---- a/pppd/Makefile.linux
-+++ b/pppd/Makefile.linux
-@@ -48,21 +48,21 @@ MPPE=y
+Index: ppp-2.4.3/pppd/Makefile.linux
+===================================================================
+--- ppp-2.4.3.orig/pppd/Makefile.linux	2007-06-04 13:22:08.197609056 +0200
++++ ppp-2.4.3/pppd/Makefile.linux	2007-06-04 13:22:11.837055776 +0200
+@@ -48,21 +48,21 @@
  # Uncomment the next line to include support for PPP packet filtering.
  # This requires that the libpcap library and headers be installed
  # and that the kernel driver support PPP packet filtering.
@@ -27,22 +29,26 @@
  
  # Enable plugins
  PLUGIN=y
-@@ -77,7 +77,7 @@ MAXOCTETS=y
+@@ -77,7 +77,7 @@
  
  INCLUDE_DIRS= -I../include
  
 -COMPILE_FLAGS= -DHAVE_PATHS_H -DIPX_CHANGE -DHAVE_MMAP
 +COMPILE_FLAGS= -DHAVE_PATHS_H -DHAVE_MMAP
  
- CFLAGS= $(COPTS) $(COMPILE_FLAGS) $(INCLUDE_DIRS) '-DDESTDIR="@DESTDIR@"'
+ CFLAGS= $(COPTS) $(COMPILE_FLAGS) $(INCLUDE_DIRS)
  
-@@ -117,10 +117,10 @@ CFLAGS   += -DHAS_SHADOW
+@@ -117,12 +117,12 @@
  #LIBS     += -lshadow $(LIBS)
  endif
  
 -ifneq ($(wildcard /usr/include/crypt.h),)
 +#ifneq ($(wildcard /usr/include/crypt.h),)
- CFLAGS  += -DHAVE_CRYPT_H=1
+ CFLAGS   += -DHAVE_CRYPT_H=1
+-endif
+-ifneq ($(wildcard /usr/lib/libcrypt.*),)
++#endif
++#ifneq ($(wildcard /usr/lib/libcrypt.*),)
  LIBS	+= -lcrypt
 -endif
 +#endif

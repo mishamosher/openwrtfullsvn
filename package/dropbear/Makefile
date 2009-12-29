@@ -1,21 +1,22 @@
 #
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dropbear
-PKG_VERSION:=0.52
-PKG_RELEASE:=3
+PKG_VERSION:=0.51
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:= \
-	http://matt.ucc.asn.au/dropbear/releases/ \
-	http://www.mirrors.wiretapped.net/security/cryptography/apps/ssh/dropbear/
-PKG_MD5SUM:=1c69ec674481d7745452f68f2ea5597e
+	http://www.mirrors.wiretapped.net/security/cryptography/apps/ssh/dropbear/ \
+	http://matt.ucc.asn.au/dropbear/releases/
+PKG_MD5SUM:=1045df60c2bdbd39c707238305a1e9e5
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -32,12 +33,6 @@ endef
 
 define Package/dropbear/description
  A small SSH2 server/client designed for small memory environments.
-endef
-
-define Package/dropbear/conffiles
-/etc/dropbear/dropbear_rsa_host_key
-/etc/dropbear/dropbear_dss_host_key 
-/etc/config/dropbear 
 endef
 
 define Package/dropbearconvert
@@ -94,9 +89,8 @@ define Package/dropbear/install
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/dropbear.init $(1)/etc/init.d/dropbear
 	$(INSTALL_DIR) $(1)/usr/lib/opkg/info
-	$(INSTALL_DIR) $(1)/etc/dropbear
-	touch $(1)/etc/dropbear/dropbear_rsa_host_key
-	touch $(1)/etc/dropbear/dropbear_dss_host_key
+	echo /etc/dropbear/dropbear_rsa_host_key > $(1)/usr/lib/opkg/info/dropbear.conffiles
+	echo /etc/dropbear/dropbear_dss_host_key >> $(1)/usr/lib/opkg/info/dropbear.conffiles
 endef
 
 define Package/dropbearconvert/install

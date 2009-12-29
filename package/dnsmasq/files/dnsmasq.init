@@ -3,7 +3,6 @@
 
 START=60
 DNS_SERVERS=""
-DOMAIN=""
 
 dhcp_calc() {
 	local ip="$1"
@@ -45,10 +44,6 @@ append_interface() {
 	append args "-i $1"
 }
 
-append_notinterface() {
-	append args "-I $1"
-}
-
 append_addnhosts() {
 	append args "-H $1"
 }
@@ -81,21 +76,15 @@ dnsmasq() {
 	append_parm "$cfg" "local" "-S"
 	config_list_foreach "$cfg" "server" append_server
 	config_list_foreach "$cfg" "interface" append_interface
-	config_list_foreach "$cfg" "notinterface" append_notinterface
 	config_list_foreach "$cfg" "addnhosts" append_addnhosts
 	append_parm "$cfg" "leasefile" "-l"
 	append_parm "$cfg" "resolvfile" "-r"
 	append_parm "$cfg" "tftp_root" "--tftp-root"
 	append_parm "$cfg" "dhcp_boot" "--dhcp-boot"
 
-	config_get DOMAIN "$cfg" domain
-
 	config_get leasefile $cfg leasefile
 	[ -e "$leasefile" ] || touch "$leasefile"
 	config_get_bool cachelocal "$cfg" cachelocal 1
-
-	config_get hostsfile "$cfg" dhcphostsfile
-	[ -e "$hostsfile" ] && append args "--dhcp-hostsfile=$hostsfile"
 }
 
 dhcp_subscrid_add() {
@@ -172,7 +161,7 @@ dhcp_host_add() {
 	local cfg="$1"
 
 	config_get name "$cfg" name
-	[ -n "$name" ] && dhcp_option_add "$cfg" "$name"
+	[ -n "$name" ] || return 0
 
 	config_get mac "$cfg" mac
 	[ -n "$mac" ] || return 0
@@ -180,7 +169,9 @@ dhcp_host_add() {
 	config_get ip "$cfg" ip
 	[ -n "$ip" ] || return 0
 
-	append args "--dhcp-host=$mac,${name:+net:$name,}$ip"
+	append args "--dhcp-host=$mac,$ip"
+
+	dhcp_option_add "$cfg" "$name"
 }
 
 dhcp_mac_add() {
@@ -275,20 +266,6 @@ dhcp_option_add() {
 
 }
 
-dhcp_domain_add() {
-	local cfg="$1"
-
-	config_get name "$cfg" name
-	[ -n "$name" ] || return 0
-
-	config_get ip "$cfg" ip
-	[ -n "$ip" ] || return 0
-
-	local oIFS="$IFS"; IFS="."; set -- $ip; IFS="$oIFS"
-	append args "-A /$name${DOMAIN:+.$DOMAIN}/$ip"
-	append args "--ptr-record=$4.$3.$2.$1.in-addr.arpa,$name${DOMAIN:+.$DOMAIN}"
-}
-
 start() {
 	include /lib/network
 	scan_interfaces
@@ -304,7 +281,6 @@ start() {
 	config_foreach dhcp_circuitid_add circuitid
 	config_foreach dhcp_remoteid_add remoteid
 	config_foreach dhcp_subscrid_add subscrid
-	config_foreach dhcp_domain_add domain
 	config_foreach dhcp_add dhcp
 
 	/usr/sbin/dnsmasq $args && {

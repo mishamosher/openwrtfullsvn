@@ -6,15 +6,16 @@
 #
 include $(TOPDIR)/rules.mk
 
-ARCH:=i386
+ARCH=i386
 BOARD:=x86
 BOARDNAME:=x86
-FEATURES:=squashfs jffs2 ext2 vdi vmdk pcmcia tgz
-SUBTARGETS=generic olpc
+FEATURES:=squashfs jffs2 ext2 vdi vmdk
+SUBTARGETS=generic
 
-LINUX_VERSION:=2.6.31.7
+LINUX_VERSION:=2.6.25.20
 
 include $(INCLUDE_DIR)/target.mk
+DEFAULT_PACKAGES += kmod-natsemi kmod-ne2k-pci
 
 $(eval $(call BuildTarget))
 

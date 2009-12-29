@@ -4,25 +4,22 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=wpa_supplicant
-PKG_VERSION:=0.6.9
-PKG_RELEASE:=2
-PKG_MD5SUM:=0efb8fcedf0a8acf6f423dfdb0658fdd
+PKG_VERSION:=0.6.3
+PKG_RELEASE:=1.1
+PKG_MD5SUM:=b51b2975f21006f85f7297f3fb1acde1
 
 PKG_SOURCE_URL:=http://hostap.epitest.fi/releases
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 
-PKG_BUILD_DEPENDS:= \
-	PACKAGE_kmod-madwifi:madwifi \
-
-PKG_CONFIG_DEPENDS:= \
-	CONFIG_PACKAGE_kmod-madwifi \
-	CONFIG_WPA_SUPPLICANT_NO_TIMESTAMP_CHECK \
+PKG_BUILD_DEPENDS:=PACKAGE_kmod-madwifi:madwifi
 
 include $(INCLUDE_DIR)/package.mk
+STAMP_CONFIGURED:=$(STAMP_CONFIGURED)_$(call confvar,CONFIG_PACKAGE_kmod-madwifi CONFIG_WPA_SUPPLICANT_NO_TIMESTAMP_CHECK)
 
 define Package/wpa-supplicant
   SECTION:=net
@@ -48,7 +45,7 @@ define Package/wpa-cli
 endef
 
 define Package/wpa-cli/Description
- WPA Supplicant control utility
+ WPA Supplicant control utility 
 endef
 
 CONFIG=$(firstword $(wildcard ./files/config.$(BOARD) ./files/config.$(ARCH) ./config))
@@ -56,10 +53,7 @@ TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include/madwifi $(if $(CONFIG_WPA_SUPPLICA
 
 define Build/Configure
 	cp $(CONFIG) $(PKG_BUILD_DIR)/wpa_supplicant/.config
-	[ -f $(STAMP_CONFIGURED) ] || $(MAKE) -C $(PKG_BUILD_DIR)/wpa_supplicant clean
-	rm -f $(PKG_BUILD_DIR)/.configured*
 	$(if $(CONFIG_PACKAGE_kmod-madwifi),,$(SED) 's,^CONFIG_DRIVER_MADWIFI,#CONFIG_DRIVER_MADWIFI,g' $(PKG_BUILD_DIR)/wpa_supplicant/.config)
-	$(if $(CONFIG_PACKAGE_kmod-hostap),,$(SED) 's,^CONFIG_DRIVER_HOSTAP,#CONFIG_DRIVER_HOSTAP,g' $(PKG_BUILD_DIR)/wpa_supplicant/.config)
 	$(if $(CONFIG_WPA_SUPPLICANT_OPENSSL),$(SED) 's|^CONFIG_TLS.*|CONFIG_TLS=openssl|g' $(PKG_BUILD_DIR)/wpa_supplicant/.config)
 endef
 

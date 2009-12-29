@@ -22,12 +22,7 @@ of interfaces and add:
 \end{Verbatim}
 
 It is possible to use VLAN tagging on an interface simply by adding the VLAN IDs
-to it, e.g. \texttt{eth0.1}. These can be nested as well. See the switch section for
-this.
-
-\begin{Verbatim}
-config inter
-\end{Verbatim}
+to it, e.g. \texttt{eth0.1}. These can be nested as well.
 
 This sets up a simple static configuration for \texttt{eth0}. \texttt{proto} specifies the
 protocol used for the interface. The default image usually provides \texttt{'none'}
@@ -36,26 +31,10 @@ packages.
 
 When using the \texttt{'static'} method like in the example, the  options \texttt{ipaddr} and
 \texttt{netmask} are mandatory, while \texttt{gateway} and \texttt{dns} are optional.
-You can specify more than one DNS server, separated with spaces:
-
-\begin{Verbatim}
-config interface     "lan"
-    option ifname    "eth0"
-    option proto     "static"
-    ...
-    option dns       "192.168.1.254 192.168.1.253" (optional)
-\end{Verbatim}
+You can specify more than one DNS server, separated with spaces.
 
 DHCP currently only accepts \texttt{ipaddr} (IP address to request from the server)
 and \texttt{hostname} (client hostname identify as) - both are optional.
-
-\begin{Verbatim}
-config interface     "lan"
-    option ifname    "eth0"
-    option proto     "dhcp"
-    option ipaddr    "192.168.1.1" (optional)
-    option hostname  "openwrt"	(optional)
-\end{Verbatim}
 
 PPP based protocols (\texttt{pppoe}, \texttt{pptp}, ...) accept these options:
 \begin{itemize}
@@ -76,16 +55,6 @@ PPP based protocols (\texttt{pppoe}, \texttt{pptp}, ...) accept these options:
 \end{itemize}
 
 For all protocol types, you can also specify the MTU by using the \texttt{mtu} option.
-A sample PPPoE config would look like this:
-
-\begin{Verbatim}
-config interface     "lan"
-    option ifname    "eth0"
-    option proto     "pppoe"
-    option username  "username"
-    option password  "openwrt"
-    option mtu	     1492 (optional)
-\end{Verbatim}
 
 \subsubsection{Setting up static routes}
 
@@ -169,6 +138,7 @@ config 6tunnel
         option remoteip4        '1.0.0.1'
         option localip4         '1.0.0.2'
         option localip6         '2001::DEAD::BEEF::1'
+        option prefix           '/64'
 \end{Verbatim}
 
 \begin{itemize}
@@ -183,6 +153,8 @@ config 6tunnel
     \item{\texttt{'localip6'}:}
 	IPv6 address to setup on your tunnel side
 	This address is given by the tunnel broker
+    \item{\texttt{'prefix'}:}
+	IPv6 prefix to setup on the LAN.
 \end{itemize}
 
 Using the same package you can also setup an IPv6 bridged connection :
@@ -194,8 +166,6 @@ config 6bridge
 
 By default the script bridges the WAN interface with the LAN interface
 and uses ebtables to filter anything that is not IPv6 on the bridge.
-This configuration is particularly useful if your router is not
-IPv6 ND proxy capable (see: http://www.rfc-archive.org/getrfc.php?rfc=4389).
 
 
 IPv6 static addressing is also supported using a similar setup as

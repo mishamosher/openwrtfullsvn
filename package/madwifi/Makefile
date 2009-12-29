@@ -12,7 +12,7 @@ PKG_NAME:=madwifi
 
 PKG_REV:=3314
 PKG_VERSION:=r$(PKG_REV)
-PKG_RELEASE:=4
+PKG_RELEASE:=2.3
 
 PKG_SOURCE_PROTO:=svn
 PKG_SOURCE_VERSION:=$(PKG_REV)
@@ -79,16 +79,13 @@ endif
 ifeq ($(BOARD),iop32x)
   HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
-ifeq ($(BOARD),kirkwood)
-  HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
-endif
 ifeq ($(BOARD),orion)
   HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
 ifeq ($(ARCH),powerpc)
   HAL_TARGET:=powerpc-be-elf
 endif
-ifeq ($(BOARD),gemini)
+ifeq ($(BOARD),storm)
   HAL_TARGET:=armv4-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
 ifneq ($(CONFIG_TARGET_atheros),)
@@ -161,7 +158,7 @@ define KernelPackage/madwifi
   SUBMENU:=Wireless Drivers
   TITLE:=Driver for Atheros wireless chipsets
   URL:=http://madwifi-project.org/
-  DEPENDS:=+wireless-tools @PCI_SUPPORT||TARGET_atheros @!TARGET_avr32 @!TARGET_etrax @!TARGET_sibyte @!TARGET_cobalt @!TARGET_octeon @LINUX_2_6 @(!(TARGET_ep93xx||TARGET_pxcab)||BROKEN)
+  DEPENDS:=+wireless-tools @PCI_SUPPORT||TARGET_atheros @!TARGET_avr32 @!TARGET_etrax @LINUX_2_6
   FILES:=$(MADWIFI_FILES)
   AUTOLOAD:=$(call AutoLoad,50,$(MADWIFI_AUTOLOAD))
 endef
@@ -219,7 +216,6 @@ define Build/Prepare
 	$(SED) 's, -E[LB],,' \
 		-e 's, -mips2,,' \
 		-e 's, -mapcs-32,,' \
-		-e 's, -mlong-calls,,' \
 		$(PKG_BUILD_DIR)/hal/public/*.inc
 	$(SED) 's,march=armv4,march=armv5te,' \
 		$(PKG_BUILD_DIR)/hal/public/xscale*.inc

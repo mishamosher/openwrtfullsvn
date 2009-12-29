@@ -11,15 +11,7 @@
 #ifdef BROADCOM
 #include "gpio-bcm947xx.h"
 #else
-#warning "Unsupported configuration."
-
-#define gpio_in()			(-1U)
-#define gpio_out(mask, value)		(-1U)
-#define gpio_outen(mask, value)		(-1U)
-#define gpio_control(mask, value)	(-1U)
-#define gpio_intmask(mask, value)	(-1U)
-#define gpio_intpolarity(mask, value)	(-1U)
-
+#error "Unsupported configuration."
 #endif
 
 #endif /* __GPIO_H */

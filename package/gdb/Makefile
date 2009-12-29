@@ -8,7 +8,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gdb
 PKG_VERSION:=6.8
-PKG_RELEASE:=1
+PKG_RELEASE:=1.2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=@GNU/gdb
@@ -16,25 +16,21 @@ PKG_MD5SUM:=c9da266b884fb8fa54df786dfaadbc7a
 
 include $(INCLUDE_DIR)/package.mk
 
-define Package/gdb/Default
+define Package/gdb
   SECTION:=utils
   CATEGORY:=Utilities
-  DEPENDS:= @!(avr32||cris)
+  DEPENDS:=+libreadline +libncurses
+  TITLE:=GNU Debugger
 endef
 
-define Package/gdb
-$(call Package/gdb/Default)
-  TITLE:=GNU Debugger
-  DEPENDS+= +libreadline +libncurses
+define Package/gdbserver
+  SECTION:=utils
+  CATEGORY:=Utilities
+  TITLE:=Remote server for GNU Debugger
 endef
 
 define Package/gdb/description
  GNU debugger
-endef
-
-define Package/gdbserver
-$(call Package/gdb/Default)
-  TITLE:=Remote server for GNU Debugger
 endef
 
 define Package/gdbserver/description
@@ -42,10 +38,8 @@ define Package/gdbserver/description
  than the one which is running the program being debugged.
 endef
 
-# XXX: add --disable-werror to prevent build failure with arm
 CONFIGURE_ARGS+= \
-	--with-system-readline \
-	--disable-werror \
+	--with-system-readline
 
 CONFIGURE_VARS+= \
 	ac_cv_search_tgetent="$(TARGET_LDFLAGS) -lncurses -lreadline"

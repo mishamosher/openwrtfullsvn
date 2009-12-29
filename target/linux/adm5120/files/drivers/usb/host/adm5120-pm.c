@@ -432,17 +432,13 @@ static inline int admhc_rh_resume(struct admhcd *ahcd)
 static int admhc_root_hub_state_changes(struct admhcd *ahcd, int changed,
 		int any_connected)
 {
-	/* If INSM is enabled, don't poll */
+	int	poll_rh = 1;
+
+	/* keep on polling until RHSC is enabled */
 	if (admhc_readl(ahcd, &ahcd->regs->int_enable) & ADMHC_INTR_INSM)
-		return 0;
+		poll_rh = 0;
 
-	/* If no status changes are pending, enable status-change interrupts */
-	if (!changed) {
-		admhc_intr_enable(ahcd, ADMHC_INTR_INSM);
-		return 0;
-	}
-
-	return 1;
+	return poll_rh;
 }
 
 #endif	/* CONFIG_PM */

@@ -8,19 +8,18 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=mmc-over-gpio
-PKG_RELEASE:=4
+PKG_RELEASE:=2
 
 include $(INCLUDE_DIR)/package.mk
 
 
 define KernelPackage/mmc-over-gpio
   SUBMENU:=Other modules
-  DEPENDS:=@GPIO_SUPPORT +kmod-mmc-spi +kmod-spi-gpio-old
-  KCONFIG:=CONFIG_GPIOMMC \
-	CONFIG_CONFIGFS_FS=y
+  DEPENDS:=@GPIO_SUPPORT +kmod-mmc-spi +kmod-spi-gpio
+  KCONFIG:=CONFIG_GPIOMMC CONFIG_CONFIGFS_FS=y
   TITLE:=MMC/SD card over GPIO support
   FILES:=$(LINUX_DIR)/drivers/mmc/host/gpiommc.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,93,gpiommc)
+  AUTOLOAD:=$(call AutoLoad,93,spi_gpio gpiommc)
 endef
 
 define KernelPackage/mmc-over-gpio/description
@@ -35,8 +34,6 @@ define Build/Compile
 endef
 
 define KernelPackage/mmc-over-gpio/install
-	$(INSTALL_DIR) $(1)/etc/config
-	$(INSTALL_DATA) ./files/mmc_over_gpio.config $(1)/etc/config/mmc_over_gpio
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/mmc_over_gpio.init $(1)/etc/init.d/mmc_over_gpio
 endef

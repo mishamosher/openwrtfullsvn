@@ -4,41 +4,7 @@
 START=05
 
 start() {
-	[ -e /etc/config/network ] && {
-		local batch
-
-		config_cb() {
-			case "$1" in
-			switch)
-				option_cb() {
-					case "$1" in
-					vlan[0-9]|vlan1[0-5])
-						local id="${1#vlan}"
-						append batch "delete network.eth0.${1}${N}"
-						append batch "set network.eth0_${id}=switch_vlan${N}"
-						append batch "set network.eth0_${id}.device=eth0${N}"
-						append batch "set network.eth0_${id}.vlan=${id}${N}"
-						append batch "set network.eth0_${id}.ports='${2}'${N}"
-					;;
-					esac
-				}
-			;;
-			switch_vlan)
-				option_cb() { :; }
-				batch=""
-			;;
-			esac
-		}
-
-		config_load network
-
-		[ -n "$batch" ] && {
-			logger -t netconfig "migrating switch config to new format ..."
-			echo "$batch${N}commit network" | uci batch
-		}
-
-		exit 0
-	}
+	[ -e /etc/config/network ] && exit 0
 
 	mkdir -p /etc/config
 
@@ -52,16 +18,6 @@ start() {
 	) | awk '
 	function p(cfgname, name) {
 		if (c[name] != "") print "	option " cfgname "	\"" c[name] "\""
-	}
-
-	function vlan(id, name) {
-		if (c[name] != "") {
-			print "config switch_vlan eth0_" id
-			print "	option device   \"eth0\""
-			print "	option vlan     " id
-			print "	option ports    \"" c[name] "\""
-			print ""
-		}
 	}
 
 	function macinc(mac, maca, i, result) {
@@ -157,17 +113,8 @@ start() {
 				}
 			}
 		}
-		# Buffalo WBR-B11 and Buffalo WBR-G54
-		if (nvram["boardtype"] == "bcm94710ap") {
-			c["vlan0ports"] = "0 1 2 3 4 5u"
-			c["vlan1ports"] = ""
-			c["lan_ifname"] = "eth0"
-			c["wan_ifname"] = "eth1"
-		}
-		# generic broadcom 4705/4785 processor with 5397 switch?
-		#  EXCEPT Linksys WRT300N V1.1
-		if ((nvram["boardtype"] == "0x478") && \
-		    (model != "Linksys WRT300N V1.1")) {
+		if (nvram["boardtype"] == "0x478") {
+			# generic broadcom 4785 processor with 5397 switch?
 			c["vlan0ports"] = "1 2 3 4 8*"
 			c["vlan1ports"] = "0 8"
 		}
@@ -211,10 +158,10 @@ start() {
 		if (c["vlan0ports"] || c["vlan1ports"]) {
 			print "#### VLAN configuration "
 			print "config switch eth0"
-			print "	option enable   1"
-			print ""		
-			vlan(0, "vlan0ports")
-			vlan(1, "vlan1ports")
+			p("vlan0", "vlan0ports")
+			p("vlan1", "vlan1ports")
+			print ""
+			print ""
 		}
 		print "#### Loopback configuration"
 		print "config interface loopback"

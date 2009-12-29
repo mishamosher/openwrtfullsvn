@@ -1,18 +1,31 @@
 #
-# Copyright (C) 2006-2009 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=iptables
-PKG_VERSION:=1.4.4
-PKG_RELEASE:=3
 
-PKG_MD5SUM:=08cd9196881657ea0615d926334cb7e9
+ifeq ($(CONFIG_LINUX_2_4),y)
+  PKG_VERSION:=1.3.8
+  PKG_RELEASE:=4.1
+  PKG_MD5SUM:=0a9209f928002e5eee9cdff8fef4d4b3
+  MAKE_TARGETS:=experimental install-experimental
+endif
+
+ifeq ($(CONFIG_LINUX_2_6),y)
+  PKG_VERSION:=1.4.0
+  PKG_RELEASE:=1
+  PKG_MD5SUM:=90cfa8a554a29b0b859a625e701af2a7
+endif
+
+PKG_VERSION?=<IPTABLES_VERSION>
+
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.netfilter.org/projects/iptables/files \
 	ftp://ftp.be.netfilter.org/pub/netfilter/iptables/ \
@@ -21,8 +34,6 @@ PKG_SOURCE_URL:=http://www.netfilter.org/projects/iptables/files \
 
 PATCH_DIR:=./patches/$(PKG_VERSION)
 
-PKG_FIXUP = libtool
-
 include $(INCLUDE_DIR)/package.mk
 ifeq ($(DUMP),)
   -include $(LINUX_DIR)/.config
@@ -30,10 +41,9 @@ ifeq ($(DUMP),)
   STAMP_CONFIGURED:=$(strip $(STAMP_CONFIGURED))_$(shell grep 'NETFILTER' $(LINUX_DIR)/.config | md5s)
 endif
 
-
 define Package/iptables/Default
   SECTION:=net
-  CATEGORY:=Network
+  CATEGORY:=Base system
   URL:=http://netfilter.org/
 endef
 
@@ -46,13 +56,12 @@ define Package/iptables
 $(call Package/iptables/Default)
   TITLE:=IPv4 firewall administration tool
   MENU:=1
-  DEPENDS+= +kmod-ipt-core +libiptc +libxtables
+  DEPENDS+= +kmod-ipt-core
 endef
 
 define Package/iptables/description
  IPv4 firewall administration tool.
  Includes support for:
- - comment
  - limit
  - LOG
  - mac
@@ -93,7 +102,7 @@ endef
 define Package/iptables-mod-filter/description
  iptables extensions for packet content inspection.
  Includes:
- - libipt_string
+ - libipt_ipp2p
  - libipt_layer7
 endef
 
@@ -140,18 +149,6 @@ define Package/iptables-mod-ipsec/description
  - libipt_ah
  - libipt_esp
  - libipt_policy
-endef
-
-define Package/iptables-mod-ipset
-$(call Package/iptables/Module, @LINUX_2_6)
-  TITLE:=IPset iptables extensions
-endef
-
-define Package/iptables-mod-ipset/description
- IPset iptables extensions.
- Includes:
- - libipt_set
- - libipt_SET
 endef
 
 define Package/iptables-mod-nat
@@ -214,6 +211,14 @@ define Package/iptables-mod-extra/description
  - libipt_recent
  - iptable_raw
  - libipt_NOTRACK
+ - libipt_TARPIT
+ - libipt_DELUDE
+ - libipt_CHAOS
+endef
+
+define Package/iptables-mod-ipset
+$(call Package/iptables/Module, +kmod-ipt-ipset)
+  TITLE:=IPset extension
 endef
 
 define Package/iptables-utils
@@ -230,41 +235,28 @@ $(call Package/iptables/Default)
 endef
 
 define Package/ip6tables-utils
-$(call Package/iptables/Default)
-  DEPENDS:=ip6tables
-  CATEGORY:=IPv6
-  TITLE:=ip6tables save and restore utilities
-endef
-
-define Package/libiptc
-$(call Package/iptables/Default)
-  SECTION:=libs
-  CATEGORY:=Libraries
-  TITLE:=IPv4/IPv6 firewall - shared libiptc library
-endef
-
-define Package/libxtables
  $(call Package/iptables/Default)
- SECTION:=libs
- CATEGORY:=Libraries
- TITLE:=IPv4/IPv6 firewall - shared xtables library
+ DEPENDS:=ip6tables
+ CATEGORY:=IPv6
+ TITLE:=ip6tables save and restore utilities
 endef
 
+define Build/Prepare
+	$(call Build/Prepare/Default)
+endef
 
-TARGET_CPPFLAGS := \
-	-I$(PKG_BUILD_DIR)/include \
-	-I$(LINUX_DIR)/arch/$(LINUX_KARCH)/include \
-	$(TARGET_CPPFLAGS)
+define Build/Configure
+	chmod a+x $(PKG_BUILD_DIR)/extensions/.*-test*
+	rm -f $(PKG_BUILD_DIR)/.configured*
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		clean
+endef
 
-CONFIGURE_ARGS += \
-	--enable-shared \
-	--enable-static \
-	--enable-devel \
-	--enable-ipv6 \
-	--with-kernel="$(LINUX_DIR)" \
-	--with-xtlibdir=/usr/lib/iptables
+TARGET_CFLAGS += $(FPIC)
 
-IPTABLES_MAKEOPTS = \
+define Build/Compile
+	mkdir -p $(PKG_INSTALL_DIR)
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
 		COPT_FLAGS="$(TARGET_CFLAGS)" \
 		LDFLAGS="-rdynamic -static-libgcc" \
@@ -272,34 +264,18 @@ IPTABLES_MAKEOPTS = \
 		KBUILD_OUTPUT="$(LINUX_DIR)" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		all install $(MAKE_TARGETS)
-
-define Build/Compile
-	mkdir -p $(PKG_INSTALL_DIR)
-	$(MAKE) -C $(PKG_BUILD_DIR) $(IPTABLES_MAKEOPTS)
-	$(MAKE) -C $(PKG_BUILD_DIR)/libipq $(IPTABLES_MAKEOPTS)
 endef
 
 define Build/InstallDev
-	mkdir -p $(1)/usr/include
-	mkdir -p $(1)/usr/include/iptables
-	mkdir -p $(1)/usr/include/net/netfilter
-
-	# XXX: iptables header fixup, some headers are not installed by iptables anymore
-	$(CP) $(PKG_BUILD_DIR)/include/net/netfilter/*.h $(1)/usr/include/net/netfilter/
-	$(CP) $(PKG_BUILD_DIR)/include/iptables/*.h $(1)/usr/include/iptables/
-	$(CP) $(PKG_BUILD_DIR)/include/iptables.h $(1)/usr/include/
-	$(CP) $(PKG_BUILD_DIR)/include/libipq/libipq.h $(1)/usr/include/
-	$(CP) $(PKG_BUILD_DIR)/include/libipulog $(1)/usr/include/
-	$(CP) $(PKG_BUILD_DIR)/include/libiptc $(1)/usr/include/
-
-	$(CP) $(PKG_INSTALL_DIR)/usr/include/* $(1)/usr/include/
-	mkdir -p $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libxtables.{a,so*} $(1)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libiptc.{a,so*} $(1)/usr/lib/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libipq.a $(1)/usr/lib/
-	mkdir -p $(1)/usr/lib/pkgconfig
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/xtables.pc $(1)/usr/lib/pkgconfig/
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/pkgconfig/libiptc.pc $(1)/usr/lib/pkgconfig/
+	$(MAKE) -C $(PKG_BUILD_DIR) \
+		$(TARGET_CONFIGURE_OPTS) \
+		COPT_FLAGS="$(TARGET_CFLAGS)" \
+		KERNEL_DIR="$(LINUX_DIR)" PREFIX=/usr \
+		KBUILD_OUTPUT="$(LINUX_DIR)" \
+		DESTDIR="$(1)" \
+		install-devel
+	$(CP) $(PKG_BUILD_DIR)/include $(1)/usr
+	$(CP) $(PKG_BUILD_DIR)/libiptc/libiptc.a $(1)/usr/lib
 endef
 
 define Package/iptables/install
@@ -334,16 +310,6 @@ define Package/ip6tables-utils/install
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/sbin/ip6tables-{save,restore} $(1)/usr/sbin/
 endef
 
-define Package/libiptc/install
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libiptc.so* $(1)/usr/lib/
-endef
-
-define Package/libxtables/install
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libxtables.so* $(1)/usr/lib/
-endef
-
 define BuildPlugin
   define Package/$(1)/install
 	$(INSTALL_DIR) $$(1)/usr/lib/iptables
@@ -362,22 +328,19 @@ L7_INSTALL:=\
 	$(INSTALL_DIR) $$(1)/etc/l7-protocols; \
 	$(CP) files/l7/*.pat $$(1)/etc/l7-protocols/
 
-
 $(eval $(call BuildPackage,iptables))
 $(eval $(call BuildPackage,iptables-utils))
 $(eval $(call BuildPlugin,iptables-mod-conntrack,$(IPT_CONNTRACK-m)))
 $(eval $(call BuildPlugin,iptables-mod-conntrack-extra,$(IPT_CONNTRACK_EXTRA-m)))
 $(eval $(call BuildPlugin,iptables-mod-extra,$(IPT_EXTRA-m)))
+$(eval $(call BuildPlugin,iptables-mod-ipset,$(IPT_IPSET-m)))
 $(eval $(call BuildPlugin,iptables-mod-filter,$(IPT_FILTER-m),$(L7_INSTALL)))
 $(eval $(call BuildPlugin,iptables-mod-imq,$(IPT_IMQ-m)))
 $(eval $(call BuildPlugin,iptables-mod-ipopt,$(IPT_IPOPT-m)))
 $(eval $(call BuildPlugin,iptables-mod-ipsec,$(IPT_IPSEC-m)))
-$(eval $(call BuildPlugin,iptables-mod-ipset,ipt_set ipt_SET))
 $(eval $(call BuildPlugin,iptables-mod-nat,$(IPT_NAT-m)))
 $(eval $(call BuildPlugin,iptables-mod-nat-extra,$(IPT_NAT_EXTRA-m)))
 $(eval $(call BuildPlugin,iptables-mod-iprange,$(IPT_IPRANGE-m)))
 $(eval $(call BuildPlugin,iptables-mod-ulog,$(IPT_ULOG-m)))
 $(eval $(call BuildPackage,ip6tables))
 $(eval $(call BuildPackage,ip6tables-utils))
-$(eval $(call BuildPackage,libiptc))
-$(eval $(call BuildPackage,libxtables))

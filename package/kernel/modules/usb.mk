@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 USB_MENU:=USB Support
 
@@ -30,7 +31,7 @@ endef
 define KernelPackage/usb-core
   SUBMENU:=$(USB_MENU)
   TITLE:=Support for USB
-  DEPENDS:=@USB_SUPPORT +LINUX_2_6_31:kmod-nls-base
+  DEPENDS:=@USB_SUPPORT
   KCONFIG:=CONFIG_USB
   AUTOLOAD:=$(call AutoLoad,20,usbcore)
 endef
@@ -97,8 +98,7 @@ define KernelPackage/usb-ohci
   TITLE:=Support for OHCI controllers
   KCONFIG:= \
 	CONFIG_USB_OHCI \
-	CONFIG_USB_OHCI_HCD \
-	CONFIG_USB_OHCI_AR71XX=y
+	CONFIG_USB_OHCI_HCD
 endef
 
 define KernelPackage/usb-ohci/2.4
@@ -134,43 +134,13 @@ endef
 
 $(eval $(call KernelPackage,usb-adm5120))
 
-define KernelPackage/usb-etrax
-  $(call usbdep,@TARGET_etrax)
-  TITLE:=Support for the ETRAX USB host controller
-  KCONFIG:=CONFIG_ETRAX_USB_HOST \
-	CONFIG_ETRAX_USB_HOST_PORT1=y CONFIG_ETRAX_USB_HOST_PORT2=y
-  FILES:=$(LINUX_DIR)/drivers/usb/host/hc-crisv10.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,hc-crisv10)
-endef
-
-define KernelPackage/usb-etrax/description
- Kernel support for the ETRAX USB host controller
-endef
-
-$(eval $(call KernelPackage,usb-etrax))
-
-define KernelPackage/usb-octeon
-  $(call usbdep,@TARGET_octeon)
-  TITLE:=Support for the Octeon USB OTG controller
-  KCONFIG:=CONFIG_USB_DWC_OTG
-  FILES:=$(LINUX_DIR)/drivers/usb/host/dwc_otg/dwc_otg.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,dwc_otg)
-endef
-
-define KernelPackage/usb-octeon/description
-  Kernel support for the Octeon USB host controller
-endef
-
-$(eval $(call KernelPackage,usb-octeon))
-
 
 define KernelPackage/usb2
   $(call usbdep,)
   TITLE:=Support for USB2 controllers
-  KCONFIG:=CONFIG_USB_EHCI_HCD \
-    CONFIG_USB_EHCI_AR71XX=y
+  KCONFIG:=CONFIG_USB_EHCI_HCD
   FILES:=$(LINUX_DIR)/drivers/usb/host/ehci-hcd.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,40,ehci-hcd)
+  AUTOLOAD:=$(call AutoLoad,50,ehci-hcd)
 endef
 
 define KernelPackage/usb2/description
@@ -301,7 +271,7 @@ $(eval $(call KernelPackage,usb-serial-belkin))
 
 
 define KernelPackage/usb-serial-ch341
-  $(call usbdep,kmod-usb-serial @LINUX_2_6)
+  $(call usbdep,kmod-usb-serial @LINUX_2_6&&@!LINUX_2_6_23)
   TITLE:=Support for CH341 devices
   KCONFIG:=CONFIG_USB_SERIAL_CH341
   FILES:=$(LINUX_DIR)/drivers/usb/serial/ch341.$(LINUX_KMOD_SUFFIX)
@@ -418,22 +388,6 @@ define KernelPackage/usb-serial-sierrawireless/description
 endef
 
 $(eval $(call KernelPackage,usb-serial-sierrawireless))
-
-
-define KernelPackage/usb-serial-motorola-phone
-  $(call usbdep,kmod-usb-serial)
-  TITLE:=Support for Motorola usb phone
-  KCONFIG:=CONFIG_USB_SERIAL_MOTOROLA
-  FILES:=$(LINUX_DIR)/drivers/usb/serial/moto_modem.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,65,moto_modem)
-endef
-
-define KernelPackage/usb-serial-motorola-phone/description
- Kernel support for Motorola usb phone
-endef
-
-$(eval $(call KernelPackage,usb-serial-motorola-phone))
-
 
 
 define KernelPackage/usb-serial-visor
@@ -621,12 +575,16 @@ $(eval $(call KernelPackage,usb-net-asix))
 
 
 define KernelPackage/usb-net-hso
-  $(call usbdep,kmod-usb-net @LINUX_2_6 @!LINUX_2_6_21 @!LINUX_2_6_25 +!TARGET_rb532||!TARGET_avr32||!TARGET_brcm47xx||!TARGET_s3c24xx||!TARGET_ifxmips||!TARGET_atheros||!TARGET_adm5120||!TARGET_ar7||!TARGET_ppc40x||!TARGET_ixp4xx||!TARGET_rdc:kmod-rfkill)
+  $(call usbdep,kmod-usb-net @LINUX_2_6_26)
   TITLE:=Kernel module for Option USB High Speed Mobile Devices
-  KCONFIG:=CONFIG_USB_HSO
+  KCONFIG:= \
+	CONFIG_RFKILL \
+	CONFIG_RFKILL_INPUT \
+	CONFIG_USB_HSO
   FILES:= \
+	$(LINUX_DIR)/net/rfkill/rfkill.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/$(USBNET_DIR)/hso.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,61,hso)
+  AUTOLOAD:=$(call AutoLoad,61,rfkill hso)
 endef
 
 define KernelPackage/usb-net-hso/description
@@ -666,34 +624,6 @@ endef
 $(eval $(call KernelPackage,usb-net-pegasus))
 
 
-define KernelPackage/usb-net-mcs7830
-  $(call usbdep,kmod-usb-net @LINUX_2_6)
-  TITLE:=Kernel module for USB-to-Ethernet MCS7830 convertors
-  KCONFIG:=CONFIG_USB_NET_MCS7830
-  FILES:=$(LINUX_DIR)/drivers/$(USBNET_DIR)/mcs7830.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,61,mcs7830)
-endef
-
-define KernelPackage/usb-net-mcs7830/description
- Kernel module for USB-to-Ethernet MCS7830 convertors
-endef
-
-$(eval $(call KernelPackage,usb-net-mcs7830))
-
-define KernelPackage/usb-net-dm9601-ether
-  $(call usbdep,kmod-usb-net @LINUX_2_6)
-  TITLE:=Support for DM9601 ethernet connections
-  KCONFIG:=CONFIG_USB_NET_DM9601
-  FILES:=$(LINUX_DIR)/drivers/$(USBNET_DIR)/dm9601.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,61,dm9601)
-endef
-
-define KernelPackage/usb-net-dm9601-ether/description
-  Kernel support for USB DM9601 devices
-endef
-
-$(eval $(call KernelPackage,usb-net-dm9601-ether))
-
 define KernelPackage/usb-net-cdc-ether
   $(call usbdep,kmod-usb-net @LINUX_2_6)
   TITLE:=Support for cdc ethernet connections
@@ -707,22 +637,6 @@ define KernelPackage/usb-net-cdc-ether/description
 endef
 
 $(eval $(call KernelPackage,usb-net-cdc-ether))
-
-
-define KernelPackage/usb-net-rndis
-  $(call usbdep,kmod-usb-net @LINUX_2_6)
-  TITLE:=Support for RNDIS connections
-  DEPENDS:=+kmod-usb-net-cdc-ether
-  KCONFIG:=CONFIG_USB_NET_RNDIS_HOST 
-  FILES:= $(LINUX_DIR)/drivers/$(USBNET_DIR)/rndis_host.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,62,rndis_host)
-endef
-
-define KernelPackage/usb-net-rndis/description
- Kernel support for RNDIS connections
-endef
-
-$(eval $(call KernelPackage,usb-net-rndis))
 
 
 define KernelPackage/usb-hid
@@ -755,22 +669,6 @@ endef
 
 $(eval $(call KernelPackage,usb-yealink))
 
-
-define KernelPackage/usb-cm109
-  $(call usbdep,@LINUX_2_6 +kmod-input-core +kmod-input-evdev)
-  TITLE:=Support for CM109 device
-  KCONFIG:=CONFIG_USB_CM109 CONFIG_INPUT_CM109 CONFIG_INPUT=m CONFIG_INPUT_MISC=y
-  FILES:=$(LINUX_DIR)/drivers/$(USBINPUT_DIR)/cm109.ko
-  AUTOLOAD:=$(call AutoLoad,70,cm109)
-endef
-
-define KernelPackage/usb-cm109/description
- Kernel support for CM109 VOIP phone
-endef
-
-$(eval $(call KernelPackage,usb-cm109))
-
-
 define KernelPackage/usb-test
   $(call usbdep,@LINUX_2_6 @DEVEL)
   TITLE:=USB Testing Driver
@@ -783,17 +681,4 @@ define KernelPackage/usb-test/description
 endef
 
 $(eval $(call KernelPackage,usb-test))
-
-define KernelPackage/usb-phidget
-  $(call usbdep,@LINUX_2_6)
-  TITLE:=USB Phidget Driver
-  KCONFIG:=CONFIG_USB_PHIDGET CONFIG_USB_PHIDGETKIT CONFIG_USB_PHIDGETMOTORCONTROL CONFIG_USB_PHIDGETSERVO
-  FILES:=$(LINUX_DIR)/drivers/usb/misc/phidget*.ko
-endef
-
-define KernelPackage/usb-phidget/description
- Kernel support for USB Phidget devices.
-endef
-
-$(eval $(call KernelPackage,usb-phidget))
 

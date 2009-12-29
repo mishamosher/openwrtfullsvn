@@ -8,10 +8,10 @@ include $(TOPDIR)/rules.mk
 
 ARCH:=mips
 BOARD:=atheros
-BOARDNAME:=Atheros AR231x/AR5312
+BOARDNAME:=Atheros 231x/5312
 FEATURES:=squashfs jffs2
 
-LINUX_VERSION:=2.6.30.10
+LINUX_VERSION:=2.6.26.8
 
 include $(INCLUDE_DIR)/target.mk
 

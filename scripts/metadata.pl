@@ -52,7 +52,6 @@ sub parse_target_metadata() {
 		/^Target-Features:\s*(.+)\s*$/ and $target->{features} = [ split(/\s+/, $1) ];
 		/^Target-Depends:\s*(.+)\s*$/ and $target->{depends} = [ split(/\s+/, $1) ];
 		/^Target-Description:/ and $target->{desc} = get_multiline(*FILE);
-		/^Target-Optimization:\s*(.+)\s*$/ and $target->{cflags} = $1;
 		/^Linux-Version:\s*(.+)\s*$/ and $target->{version} = $1;
 		/^Linux-Release:\s*(.+)\s*$/ and $target->{release} = $1;
 		/^Linux-Kernel-Arch:\s*(.+)\s*$/ and $target->{karch} = $1;
@@ -155,7 +154,6 @@ sub target_config_features(@) {
 		/display/ and $ret .= "\tselect DISPLAY_SUPPORT\n";
 		/gpio/ and $ret .= "\tselect GPIO_SUPPORT\n";
 		/pci/ and $ret .= "\tselect PCI_SUPPORT\n";
-		/pcie/ and $ret .= "\tselect PCIE_SUPPORT\n";
 		/usb/ and $ret .= "\tselect USB_SUPPORT\n";
 		/pcmcia/ and $ret .= "\tselect PCMCIA_SUPPORT\n";
 		/squashfs/ and $ret .= "\tselect USES_SQUASHFS\n";
@@ -164,9 +162,6 @@ sub target_config_features(@) {
 		/tgz/ and $ret .= "\tselect USES_TGZ\n";
 		/cpiogz/ and $ret .= "\tselect USES_CPIOGZ\n";
 		/fpu/ and $ret .= "\tselect HAS_FPU\n";
-		/ramdisk/ and $ret .= "\tselect USES_INITRAMFS\n";
-		/powerpc64/ and $ret .= "\tselect powerpc64\n";
-		/nommu/ and $ret .= "\tselect NOMMU\n";
 	}
 	return $ret;
 }
@@ -206,45 +201,36 @@ sub print_target($) {
 	}
 
 	my $v = kver($target->{version});
-	if (@{$target->{subtargets}} == 0) {
 	$confstr = <<EOF;
 config TARGET_$target->{conf}
 	bool "$target->{name}"
 	select LINUX_$kernel
 	select LINUX_$v
 EOF
-	}
-	else {
-		$confstr = <<EOF;
-config TARGET_$target->{conf}
-	bool "$target->{name}"
-EOF
-	}
 	if ($target->{subtarget}) {
 		$confstr .= "\tdepends TARGET_$target->{boardconf}\n";
 	}
 	if (@{$target->{subtargets}} > 0) {
 		$confstr .= "\tselect HAS_SUBTARGETS\n";
-	}
-
-	if ($target->{arch} =~ /\w/) {
+	} else {
 		$confstr .= "\tselect $target->{arch}\n";
-	}
-	foreach my $dep (@{$target->{depends}}) {
-		my $mode = "depends";
-		my $flags;
-		my $name;
+		foreach my $dep (@{$target->{depends}}) {
+			my $mode = "depends";
+			my $flags;
+			my $name;
 
-		$dep =~ /^([@\+\-]+)(.+)$/;
-		$flags = $1;
-		$name = $2;
+			$dep =~ /^([@\+\-]+)(.+)$/;
+			$flags = $1;
+			$name = $2;
 
-		next if $name =~ /:/;
-		$flags =~ /-/ and $mode = "deselect";
-		$flags =~ /\+/ and $mode = "select";
-		$flags =~ /@/ and $confstr .= "\t$mode $name\n";
+			next if $name =~ /:/;
+			$flags =~ /-/ and $mode = "deselect";
+			$flags =~ /\+/ and $mode = "select";
+			$flags =~ /@/ and $confstr .= "\t$mode $name\n";
+		}
+		$confstr .= $features;
 	}
-	$confstr .= $features;
+
 	$confstr .= "$help\n\n";
 	print $confstr;
 }
@@ -307,14 +293,7 @@ EOF
 				print "\tselect DEFAULT_$pkg\n";
 				$defaults{$pkg} = 1;
 			}
-			my $help = $profile->{desc};
-			if ($help =~ /\w+/) {
-				$help =~ s/^\s*/\t  /mg;
-				$help = "\thelp\n$help";
-			} else {
-				undef $help;
-			}
-			print "$help\n";
+			print "\n";
 		}
 	}
 
@@ -331,16 +310,6 @@ EOF
 	foreach my $target (@target) {
 		$target->{subtarget} or	print "\t\tdefault \"".$target->{board}."\" if TARGET_".$target->{conf}."\n";
 	}
-	print <<EOF;
-
-config DEFAULT_TARGET_OPTIMIZATION
-	string
-EOF
-	foreach my $target (@target) {
-		next if @{$target->{subtargets}} > 0;
-		print "\tdefault \"".$target->{cflags}."\" if TARGET_".$target->{conf}."\n";
-	}
-	print "\tdefault \"-Os -pipe -funit-at-a-time\"\n";
 
 	my %kver;
 	foreach my $target (@target) {
@@ -348,10 +317,8 @@ EOF
 		next if $kver{$v};
 		$kver{$v} = 1;
 		print <<EOF;
-
 config LINUX_$v
 	bool
-
 EOF
 	}
 	foreach my $def (sort keys %defaults) {
@@ -534,31 +501,6 @@ sub print_package_config_category($) {
 	undef $category{$cat};
 }
 
-sub print_package_features() {
-	keys %features > 0 or return;
-	print "menu \"Package features\"\n";
-	foreach my $n (keys %features) {
-		my @features = sort { $b->{priority} <=> $a->{priority} or $a->{title} cmp $b->{title} } @{$features{$n}};
-		print <<EOF;
-choice
-	prompt "$features[0]->{target_title}"
-	default FEATURE_$features[0]->{name}
-EOF
-
-		foreach my $feature (@features) {
-			print <<EOF;
-	config FEATURE_$feature->{name}
-		bool "$feature->{title}"
-EOF
-			$feature->{description} =~ /\w/ and do {
-				print "\t\thelp\n".$feature->{description}."\n";
-			};
-		}
-		print "endchoice\n"
-	}
-	print "endmenu\n\n";
-}
-
 sub gen_package_config() {
 	parse_package_metadata($ARGV[0]) or exit 1;
 	print "menuconfig UCI_PRECONFIG\n\tbool \"Image configuration\"\n" if %preconfig;
@@ -575,7 +517,6 @@ sub gen_package_config() {
 EOF
 		}
 	}
-	print_package_features();
 	print_package_config_category 'Base system';
 	foreach my $cat (keys %category) {
 		print_package_config_category $cat;
@@ -621,9 +562,6 @@ sub gen_package_mk() {
 		if ($config) {
 			$pkg->{buildonly} and $config = "";
 			print "package-$config += $pkg->{subdir}$pkg->{src}\n";
-			if ($pkg->{variant}) {
-				print "\$(curdir)/$pkg->{subdir}$pkg->{src}/variants += \$(if $config,$pkg->{variant})\n"
-			}
 			$pkg->{prereq} and print "prereq-$config += $pkg->{subdir}$pkg->{src}\n";
 		}
 

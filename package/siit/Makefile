@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id: Makefile 10203 2008-01-15 03:25:11Z matteo $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -16,7 +17,6 @@ include $(INCLUDE_DIR)/package.mk
 define KernelPackage/siit
   SUBMENU:=Network Devices
   TITLE:=Stateless IP ICMP Translation Algorithm
-  DEPENDS:=@!LINUX_2_6_31 @(!(TARGET_ps3||TARGET_pxcab)||BROKEN)
   FILES:=$(PKG_BUILD_DIR)/siit.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,siit)
 endef

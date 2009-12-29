@@ -39,4 +39,4 @@ static void __init br61x4wg_setup(void)
 					br61x4wg_pci_irqs);
 }
 
-MIPS_MACHINE(MACH_ADM5120_BR61X4WG, "Edimax BR-6104WG/6114WG", br61x4wg_setup);
+ADM5120_BOARD(MACH_ADM5120_BR61X4WG, "Edimax BR-6104WG/6114WG", br61x4wg_setup);

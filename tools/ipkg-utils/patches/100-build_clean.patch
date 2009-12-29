@@ -1,6 +1,7 @@
---- a/ipkg-build
-+++ b/ipkg-build
-@@ -47,6 +47,19 @@ pkg_appears_sane() {
+diff -ruN ipkg-utils-1.7-old/ipkg-build ipkg-utils-1.7-new/ipkg-build
+--- ipkg-utils-1.7-old/ipkg-build	2004-08-24 04:56:12.000000000 +0200
++++ ipkg-utils-1.7-new/ipkg-build	2004-08-24 04:55:49.000000000 +0200
+@@ -47,6 +47,19 @@
  
  	PKG_ERROR=0
  
@@ -20,7 +21,7 @@
  	tilde_files=`find . -name '*~'`
  	if [ -n "$tilde_files" ]; then
  	    if [ "$noclean" = "1" ]; then
-@@ -134,8 +147,12 @@ You probably want to chown these to a sy
+@@ -134,8 +147,12 @@
  
  	for script in $CONTROL/preinst $CONTROL/postinst $CONTROL/prerm $CONTROL/postrm; do
  		if [ -f $script -a ! -x $script ]; then

@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -45,9 +46,8 @@ endef
 define KernelPackage/hostap
 $(call KernelPackage/hostap/Default)
   TITLE:=Host AP support for Prism2/2.5/3
-  DEPENDS:=@PCI_SUPPORT||PCMCIA_SUPPORT +!(LINUX_2_6_30||LINUX_2_6_31||LINUX_2_6_32):kmod-ieee80211 +LINUX_2_6_30||LINUX_2_6_31||LINUX_2_6_32:kmod-lib80211 +wireless-tools
-  KCONFIG:=CONFIG_HOSTAP CONFIG_HOSTAP_FIRMWARE=y CONFIG_HOSTAP_FIRMWARE_NVRAM=y
-  PROVIDES:=kmod-hostap
+  DEPENDS:=@PCI_SUPPORT||PCMCIA_SUPPORT +kmod-ieee80211 +wireless-tools
+  KCONFIG:=CONFIG_HOSTAP
 endef
 
 define KernelPackage/hostap/2.4
@@ -174,7 +174,12 @@ else
   endef
 endif
 
-define KernelPackage/hostap/install
+define KernelPackage/hostap-pci/install
+	$(INSTALL_DIR) $(1)/lib/wifi
+	$(INSTALL_DATA) ./files/lib/wifi/hostap.sh $(1)/lib/wifi
+endef
+
+define KernelPackage/hostap-plx/install
 	$(INSTALL_DIR) $(1)/lib/wifi
 	$(INSTALL_DATA) ./files/lib/wifi/hostap.sh $(1)/lib/wifi
 endef

@@ -28,27 +28,25 @@
 #ifndef __CONFIG_H
 #define __CONFIG_H
 
+#include <configs/ifx_cfg.h>
+
 #define  USE_REFERENCE_BOARD
 //#define   USE_EVALUATION_BOARD
 
-//#define   DANUBE_BOOT_FROM_EBU
+#define   DANUBE_BOOT_FROM_EBU
 #define   DANUBE_USE_DDR_RAM
 
 #ifdef DANUBE_USE_DDR_RAM
 //#define  DANUBE_DDR_RAM_111M
-//#define DANUBE_DDR_RAM_166M
+#define DANUBE_DDR_RAM_166M
 //#define PROMOSDDR400
 //#define DDR_SAMSUNG_166M
-#define DDR_PSC_166M
+//#define DDR_PSC_166M
 //#define DANUBE_DDR_RAM_133M
 #define DANUBE_DDR_RAM_SIZE	32	/* 32M DDR-DRAM for reference board */
 #endif
-
-#define CONFIG_LZMA		1	/* use LZMA for compression */
-
 #define CLK_OUT2_25MHZ
 #define CONFIG_MIPS32		1	/* MIPS 4Kc CPU core	*/
-#define CONFIG_IFX_MIPS		1	/* in an Infineon chip	*/
 #define CONFIG_DANUBE		1	/* on a danube Board	*/
 #define RAM_SIZE                0x2000000 /*32M ram*/
 
@@ -65,7 +63,7 @@
 /* valid baudrates */
 #define CFG_BAUDRATE_TABLE	{ 300, 9600, 19200, 38400, 57600, 115200 }
 
-#ifndef CFG_BOOTSTRAP_CODE
+#ifndef CFG_HEAD_CODE
 #define	CONFIG_TIMESTAMP		/* Print image info with timestamp */
 #endif
 
@@ -80,24 +78,15 @@
 	"ethaddr=11:22:33:44:55:66\0" \
 	"serverip=192.168.45.100\0" \
 	"ipaddr=192.168.45.108\0"  \
-	"ram_addr=0x80500000\0" \
-	"kernel_addr=0xb0030000\0" \
-	"flashargs=setenv bootargs rootfstype=squashfs,jffs2 init=/etc/preinit\0" \
-	"nfsargs=setenv bootargs root=/dev/nfs rw nfsroot=${serverip}:${rootpath} init=/etc/preinit\0" \
-	"addip=setenv bootargs ${bootargs} ip=${ipaddr}:${serverip}:${gatewayip}:${netmask}:${hostname}:${netdev}:off\0" \
-	"addmisc=setenv bootargs ${bootargs} console=ttyS1,115200 ethaddr=${ethaddr} ${mtdparts}\0" \
-	"flash_flash=run flashargs addip addmisc;bootm ${kernel_addr}\0" \
-	"flash_nfs=run nfsargs addip addmisc;bootm ${kernel_addr}\0" \
-	"net_flash=run load_kernel flashargs addip addmisc;bootm ${ram_addr}\0" \
-	"net_nfs=run load_kernel nfsargs addip addmisc;bootm ${ram_addr}\0" \
-	"load_kernel=tftp ${ram_addr} ${tftppath}openwrt-ifxmips-uImage\0" \
 	"update_uboot=tftp 0x80500000 u-boot.ifx;era 1:0-10; cp.b 0x80500000 0xb0000000 0x10000\0" \
-	"update_openwrt=tftp ${ram_addr} ${tftppath}openwrt-ifxmips-squashfs.image; era ${kernel_addr} +${filesize} 0; cp.b ${ram_addr} ${kernel_addr} ${filesize}\0" 
+	"update_openwrt=tftp 0x80500000 openwrt-ifxmips-squashfs.image; era 1:10-120; cp.b 0x80500000 0xb0030000 0x300000\0" \
+	"bootargs=console=ttyS1,115200 rootfstype=squashfs,jffs2 init=/etc/preinit\0"
 
-#define CONFIG_BOOTCOMMAND	"run flash_flash"
+#define CONFIG_BOOTCOMMAND	"bootm 0xb0030000"
 
 #define CONFIG_COMMANDS_YES	(CONFIG_CMD_DFL	| \
 				 CFG_CMD_ASKENV		| \
+				 CFG_CMD_DHRYSTONE	| \
 				 CFG_CMD_NET	)
 
 #define CONFIG_COMMANDS_NO	(CFG_CMD_NFS		| \
@@ -170,8 +159,8 @@
 //#define CFG_ENV_IS_NOWHERE	1
 //#define CFG_ENV_IS_IN_NVRAM	1
 /* Address and size of Primary Environment Sector	*/
-#define CFG_ENV_ADDR		0xB0020000
-#define CFG_ENV_SIZE		0x10000
+#define CFG_ENV_ADDR		IFX_CFG_FLASH_UBOOT_CFG_START_ADDR
+#define CFG_ENV_SIZE		IFX_CFG_FLASH_UBOOT_CFG_SIZE
 
 #define CONFIG_FLASH_16BIT
 

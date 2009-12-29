@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2008 OpenWrt.org
+# Copyright (C) 2008-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -8,7 +8,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=wprobe
-PKG_VERSION:=1
+PKG_VERSION:=1.2
 
 PKG_BUILD_DEPENDS:=PACKAGE_wprobe-export:libipfix
 
@@ -18,17 +18,9 @@ PKG_CONFIG_DEPENDS = \
 
 include $(INCLUDE_DIR)/package.mk
 
-# XXX: build failure on cris
-# wprobe-lib.c:145: error: 'packed' attribute ignored for field of type 'struct <anonymous>'
-# wprobe-lib.c:149: error: 'packed' attribute ignored for field of type 'struct <anonymous>'
-
-define Package/wprobe/Default
-  DEPENDS:=@LINUX_2_6 @(!(TARGET_ps3||TARGET_pxcab||cris)||BROKEN)
-endef
-
 define KernelPackage/wprobe
-$(call Package/wprobe/Default)
   SUBMENU:=Network Support
+  DEPENDS:=@LINUX_2_6
   TITLE:=Wireless driver probe infrastructure
   FILES:= \
   	$(PKG_BUILD_DIR)/kernel/wprobe.$(LINUX_KMOD_SUFFIX)
@@ -40,10 +32,9 @@ define KernelPackage/wprobe/description
 endef
 
 define Package/wprobe-util
-$(call Package/wprobe/Default)
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS+=+kmod-wprobe +libnl-tiny
+  DEPENDS:=+kmod-wprobe +libnl-tiny
   TITLE:=Wireless measurement utility
 endef
 
@@ -53,10 +44,9 @@ define Package/wprobe-util/description
 endef
 
 define Package/wprobe-export
-$(call Package/wprobe/Default)
   SECTION:=net
   CATEGORY:=Network
-  DEPENDS+=+wprobe-util
+  DEPENDS:=+wprobe-util
   TITLE:=Wireless measurement data exporter
 endef
 
@@ -71,14 +61,13 @@ define Build/Prepare
 endef
 
 TARGET_CPPFLAGS := \
-	-D_GNU_SOURCE \
 	-I$(STAGING_DIR)/usr/include/libnl-tiny \
 	$(TARGET_CPPFLAGS)
 
 ifdef CONFIG_PACKAGE_kmod-wprobe
   define Build/Compile/kmod
 	$(MAKE) -C $(LINUX_DIR) \
-		CROSS_COMPILE="$(KERNEL_CROSS)" \
+		CROSS_COMPILE="$(TARGET_CROSS)" \
 		ARCH="$(LINUX_KARCH)" \
 		SUBDIRS="$(PKG_BUILD_DIR)/kernel" \
 		KERNELDIR=$(LINUX_DIR) \

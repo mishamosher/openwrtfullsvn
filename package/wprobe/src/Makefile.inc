@@ -4,7 +4,7 @@ CC=gcc
 AR=ar
 RANLIB=ranlib
 
-WFLAGS = -Wall -Werror -Wno-format
+WFLAGS = -Wall -Werror
 CFLAGS?=-O2
 CPPFLAGS=
 LDFLAGS=

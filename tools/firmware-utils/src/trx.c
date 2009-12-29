@@ -60,7 +60,7 @@ uint32_t crc32buf(char *buf, size_t len);
 
 #define TRX_MAGIC	0x30524448	/* "HDR0" */
 #define TRX_VERSION	1
-#define TRX_MAX_LEN	0x720000
+#define TRX_MAX_LEN	0x5A0000
 #define TRX_NO_HEADER	1		/* Do not write TRX header */	
 
 struct trx_header {
@@ -172,7 +172,6 @@ int main(int argc, char **argv)
 					fprintf(stderr, "realloc failed");
 					return EXIT_FAILURE;
 				}
-				p = (struct trx_header *) buf;
 				break;
 			case 'a':
 				errno = 0;

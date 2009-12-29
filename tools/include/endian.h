@@ -1,7 +1,7 @@
 #ifndef __endian_compat_h
 #define __endian_compat_h
 
-#if defined(__linux__) || defined(__CYGWIN__)
+#if defined(__linux__)
 #include <byteswap.h>
 #include_next <endian.h>
 #elif defined(__APPLE__)

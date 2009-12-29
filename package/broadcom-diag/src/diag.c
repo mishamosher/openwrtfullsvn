@@ -19,6 +19,7 @@
  * along with this program; if not, write to the Free Software
  * Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA  02111-1307, USA.
  *
+ * $Id$
  */
 #include <linux/module.h>
 #include <linux/pci.h>
@@ -60,12 +61,9 @@ enum {
 	WRT54G,
 	WRTSL54GS,
 	WRT54G3G,
-	WRT160N,
-	WRT300NV11,
 	WRT350N,
 	WRT600N,
 	WRT600NV11,
-	WRT610N,
 
 	/* ASUS */
 	WLHDD,
@@ -126,15 +124,11 @@ enum {
 
 	/* D-Link */
 	DIR130,
-	DIR320,
 	DIR330,
 	DWL3150,
 
 	/* Sitecom */
 	WL105B,
-
-	/* Askey */
-	RT210W,
 };
 
 static void __init bcm4780_init(void) {
@@ -247,31 +241,6 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "3g_blink",	.gpio = 1 << 5, .polarity = NORMAL },
 		},
 	},
-	[WRT160N] = {
-		.name		= "Linksys WRT160N",
-		.buttons	= {
-			{ .name = "reset",	.gpio = 1 << 6 },
-			{ .name = "ses",	.gpio = 1 << 4 },
-		},
-		.leds		= {
-			{ .name = "power",	.gpio = 1 << 1, .polarity = NORMAL },
-			{ .name = "ses_blue",	.gpio = 1 << 5, .polarity = REVERSE },
-			{ .name = "ses_orange", .gpio = 1 << 3, .polarity = REVERSE },
-		},
-	},
-	[WRT300NV11] = {
-		.name           = "Linksys WRT300N V1.1",
-		.buttons        = {
-			{ .name = "reset",     .gpio = 1 << 6 }, // "Reset" on back panel
-			{ .name = "ses",       .gpio = 1 << 4 }, // "Reserved" on top panel
-		},
-		.leds           = {
-			{ .name = "power",     .gpio = 1 << 1, .polarity = NORMAL  }, // "Power"
-			{ .name = "ses_amber", .gpio = 1 << 3, .polarity = REVERSE }, // "Security" Amber
-			{ .name = "ses_green", .gpio = 1 << 5, .polarity = REVERSE }, // "Security" Green
-		},
-		.platform_init = bcm57xx_init,
-	},
 	[WRT350N] = {
 		.name		= "Linksys WRT350N",
 		.buttons	= {
@@ -318,19 +287,6 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "wl1_ses_green",      .gpio = 1 << 11, .polarity = REVERSE }, // 5.6Ghz LED Green
 		},
 		.platform_init = bcm57xx_init,
-	},
-	[WRT610N] = {
-		.name           = "Linksys WRT610N",
-		.buttons        = {
-			{ .name = "reset",      .gpio = 1 << 6 },
-			{ .name = "ses",        .gpio = 1 << 8 },
-		},
-		.leds           = {
-			{ .name = "power",      .gpio = 1 << 1,  .polarity = NORMAL }, // Power LED
-			{ .name = "usb",        .gpio = 1 << 0,  .polarity = REVERSE }, // USB LED
-			{ .name = "ses_amber",  .gpio = 1 << 3,  .polarity = REVERSE }, // WiFi protected setup LED amber
-			{ .name = "ses_blue",   .gpio = 1 << 9,  .polarity = REVERSE }, // WiFi protected setup LED blue
-		},
 	},
 	/* Asus */
 	[WLHDD] = {
@@ -763,20 +719,6 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "blue",	.gpio = 1 << 6},
 		},
 	},
-	[DIR320] = {
-		.name	  = "D-Link DIR-320",
-		.buttons	= {
-			{ .name = "reserved",	.gpio = 1 << 6},
-			{ .name = "reset",	.gpio = 1 << 7},
-		},
-		.leds	   = {
-			{ .name = "wlan",	.gpio = 1 << 0, .polarity = NORMAL },
-			{ .name = "diag",	.gpio = 1 << 1, .polarity = NORMAL }, /* "status led */
-			{ .name = "red",	.gpio = 1 << 3, .polarity = REVERSE },
-			{ .name = "blue",	.gpio = 1 << 4, .polarity = REVERSE },
-			{ .name = "usb",	.gpio = 1 << 5, .polarity = NORMAL },
-		},
-	},
 	[DIR330] = {
 		.name	  = "D-Link DIR-330",
 		.buttons	= {
@@ -810,21 +752,6 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "power",	.gpio = 1 << 3},
 		},
 	},
-	/* Askey (and clones) */
-	[RT210W] = {
-		.name		= "Askey RT210W",
-		.buttons	= {
-			/* Power button is hard-wired to hardware reset */
-			/* but is also connected to GPIO 7 (probably for bootloader recovery)  */
-			{ .name = "power",	.gpio = 1 << 7},
-		},
-		.leds		= {
-		 	/* These were verified and named based on Belkin F5D4230-4 v1112 */
-			{ .name = "connected",	.gpio = 1 << 0, .polarity = REVERSE },
-			{ .name = "wlan",	.gpio = 1 << 3, .polarity = REVERSE },
-			{ .name = "power",	.gpio = 1 << 5, .polarity = REVERSE },
-		},
-	},
 };
 
 static struct platform_t __init *platform_detect(void)
@@ -842,12 +769,6 @@ static struct platform_t __init *platform_detect(void)
 			return &platforms[DIR130];
 		if (!strcmp(buf, "DIR-330"))
 			return &platforms[DIR330];
-	}
-
-	/* Based on "wsc_modelname */
-	if ((buf = nvram_get("wsc_modelname"))) {
-		if (!strcmp(buf, "WRT610N"))
-			return &platforms[WRT610N];
 	}
 
 	/* Based on "model_no" */
@@ -872,8 +793,6 @@ static struct platform_t __init *platform_detect(void)
 	if ((buf = nvram_get("ModelId"))) {
 		if (!strcmp(buf, "WR850GP"))
 			return &platforms[WR850GP];
-		if (!strcmp(buf, "WR850G"))
-			return &platforms[WR850GV2V3];
 		if (!strcmp(buf, "WX-5565") && !strcmp(getvar("boardtype"),"bcm94710ap"))
 			return &platforms[TM2300]; /* Dell TrueMobile 2300 */
 		if (startswith(buf,"WE800G")) /* WE800G* */
@@ -918,9 +837,6 @@ static struct platform_t __init *platform_detect(void)
 	if (startswith(getvar("pmon_ver"), "CFE")) {
 		/* CFE based - newer hardware */
 		if (!strcmp(boardnum, "42")) { /* Linksys */
-			if (!strcmp(boardtype, "0x478") && !strcmp(getvar("boot_hw_model"), "WRT300N") && !strcmp(getvar("boot_hw_ver"), "1.1"))
-				return &platforms[WRT300NV11];
-
 			if (!strcmp(boardtype, "0x478") && !strcmp(getvar("cardbus"), "1"))
 				return &platforms[WRT350N];
 
@@ -929,9 +845,6 @@ static struct platform_t __init *platform_detect(void)
 
 			if (!strcmp(getvar("et1phyaddr"),"5") && !strcmp(getvar("et1mdcport"), "1"))
 				return &platforms[WRTSL54GS];
-
-			if (!strcmp(boardtype, "0x0472"))
-				return &platforms[WRT160N];
 
 			/* default to WRT54G */
 			return &platforms[WRT54G];
@@ -960,10 +873,6 @@ static struct platform_t __init *platform_detect(void)
 
 		if (!strcmp(getvar("boardtype"), "0x0101") && !strcmp(getvar("boardrev"), "0x10")) /* SE505V2 With Modified CFE */
 			return &platforms[SE505V2];
-
-		if (!strcmp(boardtype, "0x048e") && !strcmp(getvar("boardrev"),"0x35") &&
-				!strcmp(getvar("boardflags"), "0x750")) /* D-Link DIR-320 */
-			return &platforms[DIR320];
 
 	} else { /* PMON based - old stuff */
 		if ((simple_strtoul(getvar("GemtekPmonVer"), NULL, 0) == 9) &&
@@ -994,18 +903,6 @@ static struct platform_t __init *platform_detect(void)
 		/* unknown asus stuff, probably bcm4702 */
 		if (startswith(boardnum, "asusX"))
 			return &platforms[ASUS_4702];
-
-		/* bcm4702 based Askey RT210W clones, Including:
-		 * Askey RT210W (duh?)
-		 * Siemens SE505v1
-		 * Belkin F5D7230-4 before version v1444 (MiniPCI slot, not integrated)
-		 */
-		if (!strcmp(boardtype,"bcm94710r4")
-		 && !strcmp(boardnum ,"100")
-		 && !strcmp(getvar("pmon_ver"),"v1.03.12.bk")
-		   ){
-			return &platforms[RT210W];
-		}
 	}
 
 	if (buf || !strcmp(boardnum, "00")) {/* probably buffalo */

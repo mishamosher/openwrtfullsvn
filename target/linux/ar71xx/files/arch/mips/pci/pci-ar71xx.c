@@ -1,7 +1,7 @@
 /*
  *  Atheros AR71xx PCI host controller driver
  *
- *  Copyright (C) 2008-2009 Gabor Juhos <juhosg@openwrt.org>
+ *  Copyright (C) 2008 Gabor Juhos <juhosg@openwrt.org>
  *  Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
  *
  *  Parts of this file are based on Atheros' 2.6.15 BSP
@@ -36,9 +36,11 @@
 #define PCI_IDSEL_BASE	0
 #endif
 
+static unsigned ar71xx_pci_nr_irqs;
+static struct ar71xx_pci_irq *ar71xx_pci_irq_map __initdata;
 static void __iomem *ar71xx_pcicfg_base;
+
 static DEFINE_SPINLOCK(ar71xx_pci_lock);
-static int ar71xx_pci_fixup_enable;
 
 static inline void ar71xx_pci_delay(void)
 {
@@ -91,7 +93,7 @@ static inline u32 ar71xx_pci_bus_addr(struct pci_bus *bus, unsigned int devfn,
 	return ret;
 }
 
-int ar71xx_pci_be_handler(int is_fixup)
+static int __ar71xx_pci_be_handler(int is_fixup)
 {
 	u32 pci_err;
 	u32 ahb_err;
@@ -133,7 +135,7 @@ static inline int ar71xx_pci_set_cfgaddr(struct pci_bus *bus,
 	ar71xx_pcicfg_wr(PCI_REG_CFG_CBE,
 			cmd | ar71xx_pci_get_ble(where, size, 0));
 
-	return ar71xx_pci_be_handler(1);
+	return __ar71xx_pci_be_handler(1);
 }
 
 static int ar71xx_pci_read_config(struct pci_bus *bus, unsigned int devfn,
@@ -229,9 +231,6 @@ static void ar71xx_pci_fixup(struct pci_dev *dev)
 {
 	u32 t;
 
-	if (!ar71xx_pci_fixup_enable)
-		return;
-
 	if (dev->bus->number != 0 || dev->devfn != 0)
 		return;
 
@@ -244,10 +243,10 @@ static void ar71xx_pci_fixup(struct pci_dev *dev)
 
 	pci_write_config_word(dev, PCI_COMMAND, t);
 }
+
 DECLARE_PCI_FIXUP_EARLY(PCI_ANY_ID, PCI_ANY_ID, ar71xx_pci_fixup);
 
-int __init ar71xx_pcibios_map_irq(const struct pci_dev *dev, uint8_t slot,
-				  uint8_t pin)
+int __init pcibios_map_irq(const struct pci_dev *dev, uint8_t slot, uint8_t pin)
 {
 	int irq = -1;
 	int i;
@@ -275,6 +274,11 @@ int __init ar71xx_pcibios_map_irq(const struct pci_dev *dev, uint8_t slot,
 	return irq;
 }
 
+int pcibios_plat_dev_init(struct pci_dev *dev)
+{
+	return 0;
+}
+
 static struct pci_ops ar71xx_pci_ops = {
 	.read	= ar71xx_pci_read_config,
 	.write	= ar71xx_pci_write_config,
@@ -300,7 +304,8 @@ static struct pci_controller ar71xx_pci_controller = {
 	.io_resource	= &ar71xx_pci_io_resource,
 };
 
-int __init ar71xx_pcibios_init(void)
+static int __init __ar71xx_pci_bios_init(unsigned nr_irqs,
+					 struct ar71xx_pci_irq *map)
 {
 	ar71xx_device_stop(RESET_MODULE_PCI_BUS | RESET_MODULE_PCI_CORE);
 	ar71xx_pci_delay();
@@ -311,22 +316,32 @@ int __init ar71xx_pcibios_init(void)
 	ar71xx_pcicfg_base = ioremap_nocache(AR71XX_PCI_CFG_BASE,
 						AR71XX_PCI_CFG_SIZE);
 
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN0, PCI_WIN0_OFFS);
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN1, PCI_WIN1_OFFS);
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN2, PCI_WIN2_OFFS);
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN3, PCI_WIN3_OFFS);
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN4, PCI_WIN4_OFFS);
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN5, PCI_WIN5_OFFS);
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN6, PCI_WIN6_OFFS);
-	ar71xx_ddr_wr(AR71XX_DDR_REG_PCI_WIN7, PCI_WIN7_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN0, PCI_WIN0_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN1, PCI_WIN1_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN2, PCI_WIN2_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN3, PCI_WIN3_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN4, PCI_WIN4_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN5, PCI_WIN5_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN6, PCI_WIN6_OFFS);
+	ar71xx_ddr_wr(DDR_REG_PCI_WIN7, PCI_WIN7_OFFS);
 
 	ar71xx_pci_delay();
 
 	/* clear bus errors */
-	(void)ar71xx_pci_be_handler(1);
+	(void)__ar71xx_pci_be_handler(1);
 
-	ar71xx_pci_fixup_enable = 1;
+	ar71xx_pci_nr_irqs = nr_irqs;
+	ar71xx_pci_irq_map = map;
+	ar71xx_pci_be_handler = __ar71xx_pci_be_handler;
+
 	register_pci_controller(&ar71xx_pci_controller);
 
 	return 0;
 }
+
+static int __init __ar71xx_pci_init(void)
+{
+	ar71xx_pci_bios_init = __ar71xx_pci_bios_init;
+	return 0;
+}
+pure_initcall(__ar71xx_pci_init);

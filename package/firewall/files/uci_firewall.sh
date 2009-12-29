@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/sh 
 # Copyright (C) 2008 John Crispin <blogic@openwrt.org>
 
 . /etc/functions.sh
@@ -20,16 +20,6 @@ CUSTOM_CHAINS=1
 DEF_INPUT=DROP
 DEF_OUTPUT=DROP
 DEF_FORWARD=DROP
-CONNTRACK_ZONES=
-NOTRACK_DISABLED=
-
-find_item() {
-	local item="$1"; shift
-	for i in "$@"; do
-		[ "$i" = "$item" ] && return 0
-	done
-	return 1
-}
 
 load_policy() {
 	config_get input $1 input
@@ -43,12 +33,12 @@ load_policy() {
 
 create_zone() {
 	local exists
-
+	
 	[ "$1" == "loopback" ] && return
 
 	config_get exists $ZONE_LIST $1
 	[ -n "$exists" ] && return
-	config_set $ZONE_LIST $1 1
+	config_set $ZONE_LIST $1 1 
 
 	$IPTABLES -N zone_$1
 	$IPTABLES -N zone_$1_MSSFIX
@@ -56,14 +46,14 @@ create_zone() {
 	$IPTABLES -N zone_$1_DROP
 	$IPTABLES -N zone_$1_REJECT
 	$IPTABLES -N zone_$1_forward
-	[ "$4" ] && $IPTABLES -A output -j zone_$1_$4
+	$IPTABLES -A zone_$1_forward -j zone_$1_$5
+	$IPTABLES -A zone_$1 -j zone_$1_$3
+	$IPTABLES -A output -j zone_$1_$4
 	$IPTABLES -N zone_$1_nat -t nat
 	$IPTABLES -N zone_$1_prerouting -t nat
-	$IPTABLES -t raw -N zone_$1_notrack
 	[ "$6" == "1" ] && $IPTABLES -t nat -A POSTROUTING -j zone_$1_nat
 	[ "$7" == "1" ] && $IPTABLES -I FORWARD 1 -j zone_$1_MSSFIX
 }
-
 
 addif() {
 	local network="$1"
@@ -90,10 +80,9 @@ addif() {
 	$IPTABLES -I zone_${zone}_ACCEPT 1 -i "$ifname" -j ACCEPT
 	$IPTABLES -I zone_${zone}_DROP 1 -i "$ifname" -j DROP
 	$IPTABLES -I zone_${zone}_REJECT 1 -i "$ifname" -j reject
-	$IPTABLES -I zone_${zone}_nat 1 -t nat -o "$ifname" -j MASQUERADE
-	$IPTABLES -I PREROUTING 1 -t nat -i "$ifname" -j zone_${zone}_prerouting
+	$IPTABLES -I zone_${zone}_nat 1 -t nat -o "$ifname" -j MASQUERADE 
+	$IPTABLES -I PREROUTING 1 -t nat -i "$ifname" -j zone_${zone}_prerouting 
 	$IPTABLES -A forward -i "$ifname" -j zone_${zone}_forward
-	$IPTABLES -t raw -I PREROUTING 1 -i "$ifname" -j zone_${zone}_notrack
 	uci_set_state firewall core "${network}_ifname" "$ifname"
 	uci_set_state firewall core "${network}_zone" "$zone"
 	ACTION=add ZONE="$zone" INTERFACE="$network" DEVICE="$ifname" /sbin/hotplug-call firewall
@@ -113,8 +102,8 @@ delif() {
 	$IPTABLES -D zone_${zone}_ACCEPT -i "$ifname" -j ACCEPT
 	$IPTABLES -D zone_${zone}_DROP -i "$ifname" -j DROP
 	$IPTABLES -D zone_${zone}_REJECT -i "$ifname" -j reject
-	$IPTABLES -D zone_${zone}_nat -t nat -o "$ifname" -j MASQUERADE
-	$IPTABLES -D PREROUTING -t nat -i "$ifname" -j zone_${zone}_prerouting
+	$IPTABLES -D zone_${zone}_nat -t nat -o "$ifname" -j MASQUERADE 
+	$IPTABLES -D PREROUTING -t nat -i "$ifname" -j zone_${zone}_prerouting 
 	$IPTABLES -D forward -i "$ifname" -j zone_${zone}_forward
 	uci_revert_state firewall core "${network}_ifname"
 	uci_revert_state firewall core "${network}_zone"
@@ -145,8 +134,6 @@ fw_clear() {
 	$IPTABLES -F
 	$IPTABLES -t nat -F
 	$IPTABLES -t nat -X
-	$IPTABLES -t raw -F
-	$IPTABLES -t raw -X
 	$IPTABLES -X
 }
 
@@ -160,30 +147,30 @@ fw_defaults() {
 	load_policy "$1"
 
 	echo 1 > /proc/sys/net/ipv4/tcp_syncookies
-	for f in /proc/sys/net/ipv4/conf/*/accept_redirects
+	for f in /proc/sys/net/ipv4/conf/*/accept_redirects 
 	do
 		echo 0 > $f
 	done
-	for f in /proc/sys/net/ipv4/conf/*/accept_source_route
+	for f in /proc/sys/net/ipv4/conf/*/accept_source_route 
 	do
 		echo 0 > $f
-	done
-
+	done                                                                   
+	
 	uci_revert_state firewall core
-	uci_set_state firewall core "" firewall_state
+	uci_set_state firewall core "" firewall_state 
 
 	$IPTABLES -P INPUT DROP
 	$IPTABLES -P OUTPUT DROP
 	$IPTABLES -P FORWARD DROP
 
 	fw_clear
-	config_get_bool drop_invalid $1 drop_invalid 0
+
+	config_get_bool drop_invalid $1 drop_invalid 1
 
 	[ "$drop_invalid" -gt 0 ] && {
 		$IPTABLES -A INPUT -m state --state INVALID -j DROP
 		$IPTABLES -A OUTPUT -m state --state INVALID -j DROP
 		$IPTABLES -A FORWARD -m state --state INVALID -j DROP
-		NOTRACK_DISABLED=1
 	}
 
 	$IPTABLES -A INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
@@ -197,7 +184,7 @@ fw_defaults() {
 	config_get syn_rate $1 syn_rate
 	config_get syn_burst $1 syn_burst
 	[ "$syn_flood" == "1" ] && load_synflood $syn_rate $syn_burst
-
+	
 	echo "Adding custom chains"
 	fw_custom_chains
 
@@ -218,22 +205,6 @@ fw_defaults() {
 	fw_set_chain_policy FORWARD "$DEF_FORWARD"
 }
 
-fw_zone_defaults() {
-	local name
-	local network
-	local masq
-
-	config_get name $1 name
-	config_get network $1 network
-	config_get_bool masq $1 masq "0"
-	config_get_bool conntrack $1 conntrack "0"
-	config_get_bool mtu_fix $1 mtu_fix 0
-
-	load_policy $1
-	[ "$forward" ] && $IPTABLES -A zone_${name}_forward -j zone_${name}_${forward}
-	[ "$input" ] && $IPTABLES -A zone_${name} -j zone_${name}_${input}
-}
-
 fw_zone() {
 	local name
 	local network
@@ -241,19 +212,18 @@ fw_zone() {
 
 	config_get name $1 name
 	config_get network $1 network
-	config_get_bool masq $1 masq "0"
-	config_get_bool conntrack $1 conntrack "0"
+	config_get masq $1 masq
 	config_get_bool mtu_fix $1 mtu_fix 0
 
 	load_policy $1
-	[ "$conntrack" = "1" -o "$masq" = "1" ] && append CONNTRACK_ZONES "$name"
+
 	[ -z "$network" ] && network=$name
 	create_zone "$name" "$network" "$input" "$output" "$forward" "$masq" "$mtu_fix"
 	fw_custom_chains_zone "$name"
 }
 
 fw_rule() {
-	local src
+	local src 
 	local src_ip
 	local src_mac
 	local src_port
@@ -262,7 +232,6 @@ fw_rule() {
 	local dest_ip
 	local dest_port
 	local proto
-	local icmp_type
 	local target
 	local ruleset
 
@@ -274,7 +243,6 @@ fw_rule() {
 	config_get dest_ip $1 dest_ip
 	config_get dest_port $1 dest_port
 	config_get proto $1 proto
-	config_get icmp_type $1 icmp_type
 	config_get target $1 target
 	config_get ruleset $1 ruleset
 
@@ -287,7 +255,7 @@ fw_rule() {
 	dest_port_last=${dest_port#*-}
 	[ "$dest_port_first" -ne "$dest_port_last" ] && { \
 		dest_port="$dest_port_first:$dest_port_last"; }
-
+	
 	ZONE=input
 	TARGET=$target
 	[ -z "$target" ] && target=DROP
@@ -295,15 +263,14 @@ fw_rule() {
 	[ -n "$src" -a -n "$dest" ] && ZONE=zone_${src}_forward
 	[ -n "$dest" ] && TARGET=zone_${dest}_$target
 	add_rule() {
-		$IPTABLES -A $ZONE \
+		$IPTABLES -I $ZONE 1 \
 			${proto:+-p $proto} \
-			${icmp_type:+--icmp-type $icmp_type} \
 			${src_ip:+-s $src_ip} \
 			${src_port:+--sport $src_port} \
 			${src_mac:+-m mac --mac-source $src_mac} \
 			${dest_ip:+-d $dest_ip} \
 			${dest_port:+--dport $dest_port} \
-			-j $TARGET
+			-j $TARGET 
 	}
 	[ "$proto" == "tcpudp" -o -z "$proto" ] && {
 		proto=tcp
@@ -325,10 +292,6 @@ fw_forwarding() {
 	[ -n "$src" ] && z_src=zone_${src}_forward || z_src=forward
 	[ -n "$dest" ] && z_dest=zone_${dest}_ACCEPT || z_dest=ACCEPT
 	$IPTABLES -I $z_src 1 -j $z_dest
-
-	# propagate masq zone flag
-	find_item "$src" $CONNTRACK_ZONES && append CONNTRACK_ZONES $dest
-	find_item "$dest" $CONNTRACK_ZONES && append CONNTRACK_ZONES $src
 }
 
 fw_redirect() {
@@ -340,7 +303,7 @@ fw_redirect() {
 	local dest_ip
 	local dest_port dest_port2
 	local proto
-
+	
 	config_get src $1 src
 	config_get src_ip $1 src_ip
 	config_get src_port $1 src_port
@@ -351,7 +314,7 @@ fw_redirect() {
 	config_get proto $1 proto
 	[ -z "$src" -o -z "$dest_ip" ] && { \
 		echo "redirect needs src and dest_ip"; return ; }
-
+	
 	src_port_first=${src_port%-*}
 	src_port_last=${src_port#*-}
 	[ "$src_port_first" -ne "$src_port_last" ] && { \
@@ -362,7 +325,7 @@ fw_redirect() {
 	[ "$src_dport_first" -ne "$src_dport_last" ] && { \
 		src_dport="$src_dport_first:$src_dport_last"; }
 
-	dest_port2=${dest_port:-$src_dport}
+	dest_port2=$dest_port
 	dest_port_first=${dest_port2%-*}
 	dest_port_last=${dest_port2#*-}
 	[ "$dest_port_first" -ne "$dest_port_last" ] && { \
@@ -384,7 +347,7 @@ fw_redirect() {
 			${src_port:+--sport $src_port} \
 			${dest_port2:+--dport $dest_port2} \
 			${src_mac:+-m mac --mac-source $src_mac} \
-			-j ACCEPT
+			-j ACCEPT 
 	}
 	[ "$proto" == "tcpudp" -o -z "$proto" ] && {
 		proto=tcp
@@ -402,53 +365,13 @@ fw_include() {
 	[ -e $path ] && . $path
 }
 
-get_interface_zones() {
-	local interface="$2"
-	local name
-	local network
-	config_get name $1 name
-	config_get network $1 network
-	[ -z "$network" ] && network=$name 
-	for n in $network; do
-		[ "$n" = "$interface" ] && append add_zone "$name"
-	done
-}
-
-fw_event() {
-	local action="$1"
-	local interface="$2"
-	local ifname="$(sh -c ". /etc/functions.sh; include /lib/network; scan_interfaces; config_get "$interface" ifname")"
-	add_zone=
-	local up
-
-	[ -z "$ifname" ] && return 0
-	config_foreach get_interface_zones zone "$interface"
-	[ -z "$add_zone" ] && return 0
-
-	case "$action" in
-		ifup)
-			for z in $add_zone; do 
-				local loaded
-				config_get loaded core loaded
-				[ -n "$loaded" ] && addif "$interface" "$ifname" "$z"
-			done
-		;;
-		ifdown)
-			config_get up "$interface" up
-
-			for z in $ZONE; do 
-				[ "$up" == "1" ] && delif "$interface" "$ifname" "$z"
-			done
-		;;
-	esac
-}
-
 fw_addif() {
 	local up
 	local ifname
 	config_get up $1 up
+	config_get ifname $1 ifname
 	[ -n "$up" ] || return 0
-	fw_event ifup "$1"
+	(ACTION="ifup" INTERFACE="$1" . /etc/hotplug.d/iface/20-firewall)
 }
 
 fw_custom_chains() {
@@ -458,7 +381,7 @@ fw_custom_chains() {
 	$IPTABLES -N forwarding_rule
 	$IPTABLES -N prerouting_rule -t nat
 	$IPTABLES -N postrouting_rule -t nat
-
+			
 	$IPTABLES -A INPUT -j input_rule
 	$IPTABLES -A OUTPUT -j output_rule
 	$IPTABLES -A FORWARD -j forwarding_rule
@@ -478,14 +401,6 @@ fw_custom_chains_zone() {
 	$IPTABLES -I zone_${zone}_prerouting 1 -t nat -j prerouting_${zone}
 }
 
-fw_check_notrack() {
-	local zone="$1"
-	config_get name "$zone" name
-	[ -n "$NOTRACK_DISABLED" ] || \
-		find_item "$name" $CONNTRACK_ZONES || \
-		$IPTABLES -t raw -A zone_${name}_notrack -j NOTRACK
-}
-
 fw_init() {
 	DEFAULTS_APPLIED=
 
@@ -501,15 +416,10 @@ fw_init() {
 	config_foreach fw_rule rule
 	echo "Loading includes"
 	config_foreach fw_include include
-	echo "Loading zone defaults"
-	config_foreach fw_zone_defaults zone
 	uci_set_state firewall core loaded 1
-	config_set core loaded 1
-	config_foreach fw_check_notrack zone
-	INTERFACES="$(sh -c '. /etc/functions.sh; config_load network; config_foreach echo interface')"
-	for interface in $INTERFACES; do
-		fw_addif "$interface"
-	done
+	unset CONFIG_APPEND
+	config_load network
+	config_foreach fw_addif interface
 }
 
 fw_stop() {
@@ -517,5 +427,5 @@ fw_stop() {
 	$IPTABLES -P INPUT ACCEPT
 	$IPTABLES -P OUTPUT ACCEPT
 	$IPTABLES -P FORWARD ACCEPT
-	uci_revert_state firewall
+	uci_revert_state firewall core
 }

@@ -13,9 +13,8 @@ OS := $(shell uname -s)
 ifeq ($(strip $(OS)),OpenBSD)
 LIBS := -lncurses
 endif
-ifeq ($(shell uname -o),Cygwin)
-LIBS := -lncurses
-endif
+
+
 always		:= $(hostprogs-y) dochecklxdialog
 
 %.o: %.c

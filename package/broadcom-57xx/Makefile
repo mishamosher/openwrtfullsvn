@@ -1,15 +1,16 @@
-#
-# Copyright (C) 2008-2009 OpenWrt.org
+# 
+# Copyright (C) 2006 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id: Makefile 8694 2007-09-08 19:55:42Z nbd $
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=broadcom-57xx
-PKG_RELEASE:=2
+PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -27,10 +28,9 @@ define Build/Prepare
 endef
 
 ifeq ($(BOARD),brcm-2.4)
-  BUILDFLAGS := \
-	-DBCMDRIVER -I$(LINUX_DIR)/arch/mips/bcm947xx/include $(TARGET_CPPFLAGS) \
-	-DDBG=0 -DBCM_PROC_FS=1 -DT3_JUMBO_RCV_RCB_ENTRY_COUNT=256 -DNICE_SUPPORT \
-	-DPCIX_TARGET_WORKAROUND=1 -DINCLUDE_TBI_SUPPORT=1 -DINCLUDE_5701_AX_FIX=1
+	BUILDFLAGS = -DBCMDRIVER -I$(LINUX_DIR)/arch/mips/bcm947xx/include -I$(STAGING_DIR)/usr/include
+	BUILDFLAGS += -DDBG=0 -DBCM_PROC_FS=1 -DT3_JUMBO_RCV_RCB_ENTRY_COUNT=256 -DNICE_SUPPORT
+	BUILDFLAGS += -DPCIX_TARGET_WORKAROUND=1 -DINCLUDE_TBI_SUPPORT=1 -DINCLUDE_5701_AX_FIX=1
 endif
 
 define Build/Compile

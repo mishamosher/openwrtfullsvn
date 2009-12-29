@@ -4,12 +4,13 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=lua
 PKG_VERSION:=5.1.4
-PKG_RELEASE:=5
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.lua.org/ftp/ \
@@ -18,10 +19,10 @@ PKG_SOURCE_URL:=http://www.lua.org/ftp/ \
 	http://www.tecgraf.puc-rio.br/lua/ftp/
 PKG_MD5SUM:=d0870f2de55d59c1c8419f36e8fac150
 
-HOST_PATCH_DIR := ./patches-host
+PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(PKG_VERSION)
+PKG_INSTALL_DIR:=$(PKG_BUILD_DIR)/ipkg-install
 
 include $(INCLUDE_DIR)/package.mk
-include $(INCLUDE_DIR)/host-build.mk
 
 define Package/lua/Default
   SUBMENU:=Lua
@@ -86,24 +87,19 @@ endef
 define Build/Configure
 endef
 
-TARGET_CFLAGS += -DLUA_USE_LINUX $(FPIC) -std=gnu99
-
-ifneq ($(CONFIG_USE_EGLIBC),)
-  ifeq ($(CONFIG_EGLIBC_OPTION_EGLIBC_UTMP),)
-    TARGET_CFLAGS += -DNO_GETLOGIN
-  endif
-endif
+TARGET_CFLAGS += -DLUA_USE_LINUX $(FPIC)
 
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CROSS)gcc" \
+		LD="$(TARGET_CROSS)ld" \
 		AR="$(TARGET_CROSS)ar rcu" \
 		RANLIB="$(TARGET_CROSS)ranlib" \
 		INSTALL_ROOT=/usr \
 		CFLAGS="$(TARGET_CPPFLAGS) $(TARGET_CFLAGS)" \
 		MYLDFLAGS="$(TARGET_LDFLAGS)" \
 		PKG_VERSION=$(PKG_VERSION) \
-		linux
+		all linux 
 	rm -rf $(PKG_INSTALL_DIR)
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \
@@ -111,47 +107,19 @@ define Build/Compile
 		install
 endef
 
-define Host/Configure
-	$(SED) 's,"/usr/local/","$(STAGING_DIR_HOST)/",' $(HOST_BUILD_DIR)/src/luaconf.h
-endef
-
-ifeq ($(HOST_OS),Darwin)
-	LUA_OS:=macosx
-else
-	ifeq ($(HOST_OS),FreeBSD)
-		LUA_OS:=freebsd
-	else
-		LUA_OS:=linux
-	endif
-endif
-
-define Host/Compile
-	$(MAKE) -C $(HOST_BUILD_DIR) \
-		CC="$(HOSTCC) -std=gnu99" \
-		$(LUA_OS)
-endef
-
-define Host/Install
-	$(MAKE) -C $(HOST_BUILD_DIR) \
-		INSTALL_TOP="$(STAGING_DIR_HOST)" \
-		install
-endef
-
 define Build/InstallDev
-	$(INSTALL_DIR) $(1)/usr/include
+	mkdir -p $(1)/usr/include
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/lua{,lib,conf}.h $(1)/usr/include/
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/lauxlib.h $(1)/usr/include/
 	$(CP) $(PKG_INSTALL_DIR)/usr/include/lnum_config.h $(1)/usr/include/
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/liblua.{a,so*} $(1)/usr/lib/
+	mkdir -p $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/liblua.* $(1)/usr/lib/
 	ln -sf liblua.so.$(PKG_VERSION) $(1)/usr/lib/liblualib.so
-	$(INSTALL_DIR) $(1)/usr/lib/pkgconfig
-	$(CP) $(PKG_BUILD_DIR)/etc/lua.pc $(1)/usr/lib/pkgconfig/
 endef
 
 define Package/liblua/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/liblua.so.* $(1)/usr/lib/
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/liblua.so* $(1)/usr/lib/
 endef
 
 define Package/lua/install
@@ -174,5 +142,3 @@ $(eval $(call BuildPackage,liblua))
 $(eval $(call BuildPackage,lua))
 $(eval $(call BuildPackage,luac))
 $(eval $(call BuildPackage,lua-examples))
-$(eval $(call HostBuild))
-

@@ -69,6 +69,9 @@ _export(getintvar)
 
 _export(nvram_get)
 _export(nvram_getall)
+_export(nvram_set)
+_export(nvram_unset)
+_export(nvram_commit)
 
 _export(srom_read)
 _export(srom_write)

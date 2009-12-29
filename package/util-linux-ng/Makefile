@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2007-2009 OpenWrt.org
+# Copyright (C) 2007-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,7 +9,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=util-linux-ng
 PKG_VERSION:=2.13.0.1
-PKG_RELEASE:=3
+PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@KERNEL/linux/utils/$(PKG_NAME)/v2.13
@@ -44,16 +44,6 @@ endef
 
 define Package/cfdisk/description
  This package contains a utility for managing disk partition tables.
-endef
-
-define Package/sfdisk
-$(call Package/util-linux/Default)
-  TITLE:=Partition table manipulation utility (Command-line)
-  SUBMENU=disc
-endef
-
-define Package/sfdisk/description
- This package contains a utility for managing disk partition tables using command-line only.
 endef
 
 define Package/losetup
@@ -98,21 +88,11 @@ define Package/hwclock/description
  This package contains a utility for managing the hardware clock.
 endef
 
-define Package/flock
-$(call Package/util-linux/Default)
-  TITLE:=Manage file locks from shell scripts
-endef
-
-define Package/flock/description
-  This package contains a utility for managing file locks from shell scripts.
-endef
-
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR)/disk-utils mkswap
 	$(MAKE) -C $(PKG_BUILD_DIR)/mount swapon losetup umount mount
-	$(MAKE) -C $(PKG_BUILD_DIR)/fdisk fdisk cfdisk sfdisk
+	$(MAKE) -C $(PKG_BUILD_DIR)/fdisk fdisk cfdisk
 	$(MAKE) -C $(PKG_BUILD_DIR)/hwclock hwclock
-	$(MAKE) -C $(PKG_BUILD_DIR)/sys-utils flock
 endef
 
 define Package/fdisk/install
@@ -123,11 +103,6 @@ endef
 define Package/cfdisk/install
 	$(INSTALL_DIR) $(1)/sbin
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/fdisk/cfdisk $(1)/sbin/
-endef
-
-define Package/sfdisk/install
-	$(INSTALL_DIR) $(1)/usr/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/fdisk/sfdisk $(1)/usr/sbin/
 endef
 
 define Package/losetup/install
@@ -151,16 +126,9 @@ define Package/hwclock/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/hwclock/hwclock $(1)/sbin/
 endef
 
-define Package/flock/install
-	$(INSTALL_DIR) $(1)/usr/bin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/sys-utils/flock $(1)/usr/bin/
-endef
-
 $(eval $(call BuildPackage,fdisk))
 $(eval $(call BuildPackage,cfdisk))
-$(eval $(call BuildPackage,sfdisk))
 $(eval $(call BuildPackage,losetup))
 $(eval $(call BuildPackage,mount-utils))
 $(eval $(call BuildPackage,swap-utils))
 $(eval $(call BuildPackage,hwclock))
-$(eval $(call BuildPackage,flock))

@@ -9,6 +9,7 @@
  * SPECIFICALLY DISCLAIMS ANY IMPLIED WARRANTIES OF MERCHANTABILITY, FITNESS
  * FOR A SPECIFIC PURPOSE OR NONINFRINGEMENT CONCERNING THIS SOFTWARE.
  *
+ * $Id: prom.c,v 1.1 2005/03/16 13:49:59 wbx Exp $
  */
 
 #include <linux/config.h>
@@ -31,15 +32,6 @@ prom_init(int argc, const char **argv)
 		    *(unsigned long *)(prom_init))
 			break;
 	}
-
-	/* Ignoring the last page when ddr size is 128M. Cached
-	 * accesses to last page is causing the processor to prefetch
-	 * using address above 128M stepping out of the ddr address
-	 * space.
-	 */
-	if (mem == 0x8000000)
-		mem -= 0x1000;
-
 	add_memory_region(0, mem, BOOT_MEM_RAM);
 }
 

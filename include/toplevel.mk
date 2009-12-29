@@ -23,11 +23,6 @@ export RELEASE
 export REVISION
 export OPENWRTVERSION
 export IS_TTY=$(shell tty -s && echo 1 || echo 0)
-export LD_LIBRARY_PATH:=$(if $(LD_LIBRARY_PATH),$(LD_LIBRARY_PATH):)$(STAGING_DIR_HOST)/lib
-export DYLD_LIBRARY_PATH:=$(if $(DYLD_LIBRARY_PATH),$(DYLD_LIBRARY_PATH):)$(STAGING_DIR_HOST)/lib
-
-# prevent perforce from messing with the patch utility
-unexport P4PORT P4USER P4CONFIG P4CLIENT
 
 # make sure that a predefined CFLAGS variable does not disturb packages
 export CFLAGS=
@@ -43,8 +38,8 @@ prepare-mk: FORCE ;
 
 prepare-tmpinfo: FORCE
 	mkdir -p tmp/info
-	$(_SINGLE)$(NO_TRACE_MAKE) -j1 -r -s -f include/scan.mk SCAN_TARGET="packageinfo" SCAN_DIR="package" SCAN_NAME="package" SCAN_DEPS="$(TOPDIR)/include/package*.mk $(TOPDIR)/overlay/*/*.mk" SCAN_DEPTH=5 SCAN_EXTRA=""
-	$(_SINGLE)$(NO_TRACE_MAKE) -j1 -r -s -f include/scan.mk SCAN_TARGET="targetinfo" SCAN_DIR="target/linux" SCAN_NAME="target" SCAN_DEPS="profiles/*.mk $(TOPDIR)/include/kernel*.mk $(TOPDIR)/include/target.mk" SCAN_DEPTH=2 SCAN_EXTRA="" SCAN_MAKEOPTS="TARGET_BUILD=1"
+	$(_SINGLE)$(NO_TRACE_MAKE) -j1 -s -f include/scan.mk SCAN_TARGET="packageinfo" SCAN_DIR="package" SCAN_NAME="package" SCAN_DEPS="$(TOPDIR)/include/package*.mk" SCAN_DEPTH=5 SCAN_EXTRA=""
+	$(_SINGLE)$(NO_TRACE_MAKE) -j1 -s -f include/scan.mk SCAN_TARGET="targetinfo" SCAN_DIR="target/linux" SCAN_NAME="target" SCAN_DEPS="profiles/*.mk $(TOPDIR)/include/kernel*.mk $(TOPDIR)/include/target.mk" SCAN_DEPTH=2 SCAN_EXTRA="" SCAN_MAKEOPTS="TARGET_BUILD=1"
 	for type in package target; do \
 		f=tmp/.$${type}info; t=tmp/.config-$${type}.in; \
 		[ "$$t" -nt "$$f" ] || ./scripts/metadata.pl $${type}_config "$$f" > "$$t" || { rm -f "$$t"; echo "Failed to build $$t"; false; break; }; \
@@ -52,7 +47,7 @@ prepare-tmpinfo: FORCE
 	./scripts/metadata.pl package_mk tmp/.packageinfo > tmp/.packagedeps || { rm -f tmp/.packagedeps; false; }
 	touch $(TOPDIR)/tmp/.build
 
-.config: ./scripts/config/conf $(if $(CONFIG_HAVE_DOT_CONFIG),,prepare-tmpinfo)
+.config: ./scripts/config/conf prepare-tmpinfo $(if $(CONFIG_HAVE_DOT_CONFIG),,FORCE)
 	@+if [ \! -e .config ] || ! grep CONFIG_HAVE_DOT_CONFIG .config >/dev/null; then \
 		[ -e $(HOME)/.openwrt/defconfig ] && cp $(HOME)/.openwrt/defconfig .config; \
 		$(_SINGLE)$(NO_TRACE_MAKE) menuconfig $(PREP_MK); \
@@ -85,25 +80,16 @@ menuconfig: scripts/config/mconf prepare-tmpinfo FORCE
 	fi
 	$< Config.in
 
-prepare_kernel_conf: .config FORCE
-
-ifeq ($(wildcard staging_dir/host/bin/sed),)
-  prepare_kernel_conf:
-	@+$(SUBMAKE) -r tools/sed/install
-else
-  prepare_kernel_conf: ;
-endif
-
-kernel_oldconfig: prepare_kernel_conf
+kernel_oldconfig: .config FORCE
 	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux oldconfig
 
-kernel_menuconfig: prepare_kernel_conf
+kernel_menuconfig: .config FORCE
 	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux menuconfig
 
 tmp/.prereq-build: include/prereq-build.mk
 	mkdir -p tmp
 	rm -f tmp/.host.mk
-	@$(_SINGLE)$(NO_TRACE_MAKE) -j1 -r -s -f $(TOPDIR)/include/prereq-build.mk prereq 2>/dev/null || { \
+	@$(_SINGLE)$(NO_TRACE_MAKE) -j1 -s -f $(TOPDIR)/include/prereq-build.mk prereq 2>/dev/null || { \
 		echo "Prerequisite check failed. Use FORCE=1 to override."; \
 		false; \
 	}
@@ -116,14 +102,14 @@ download: .config FORCE
 	@+$(SUBMAKE) target/download
 
 clean dirclean: .config
-	@+$(SUBMAKE) -r $@ 
+	@+$(SUBMAKE) $@ 
 
-prereq:: prepare-tmpinfo .config
-	@+$(MAKE) -r -s tmp/.prereq-build $(PREP_MK)
-	@+$(NO_TRACE_MAKE) -r -s $@
+prereq:: .config
+	@+$(MAKE) -s tmp/.prereq-build $(PREP_MK)
+	@+$(NO_TRACE_MAKE) -s $@
 
 %::
-	@+$(PREP_MK) $(NO_TRACE_MAKE) -r -s prereq
+	@+$(PREP_MK) $(NO_TRACE_MAKE) -s prereq
 	@+$(SUBMAKE) -r $@
 
 help:

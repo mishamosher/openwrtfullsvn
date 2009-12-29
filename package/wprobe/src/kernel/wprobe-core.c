@@ -34,6 +34,10 @@
 #define list_for_each_rcu __list_for_each_rcu
 #endif
 
+#ifndef BIT
+#define BIT(x) (1 << (x))
+#endif
+
 #define WPROBE_MIN_INTERVAL		100 /* minimum measurement interval in msecs */
 #define WPROBE_MAX_FILTER_SIZE	1024
 #define WPROBE_MAX_FRAME_SIZE	1900

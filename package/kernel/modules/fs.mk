@@ -4,11 +4,14 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 FS_MENU:=Filesystems
 
 define KernelPackage/nls/Depends
-  DEPENDS:= +!LINUX_2_4:kmod-nls-base
+  ifneq ($(KERNEL),2.4)
+    DEPENDS:= +kmod-nls-base
+  endif
 endef
 
 define KernelPackage/fs-cifs
@@ -49,7 +52,6 @@ define KernelPackage/fs-ntfs
   KCONFIG:=CONFIG_NTFS_FS
   FILES:=$(LINUX_DIR)/fs/ntfs/ntfs.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,ntfs)
-$(call KernelPackage/nls/Depends)
 endef
 
 define KernelPackage/fs-ntfs/description
@@ -110,30 +112,6 @@ define KernelPackage/fs-ext3/description
 endef
 
 $(eval $(call KernelPackage,fs-ext3))
-
-define KernelPackage/fs-ext4
-  SUBMENU:=$(FS_MENU)
-  TITLE:=EXT4 filesystem support
-  KCONFIG:= \
-	CONFIG_EXT4DEV_COMPAT=y \
-	CONFIG_EXT4_FS_XATTR=y \
-	CONFIG_EXT4_FS_POSIX_ACL=y \
-	CONFIG_EXT4_FS_SECURITY=y \
-	CONFIG_EXT4_FS \
-	CONFIG_JBD2
-  DEPENDS:= @LINUX_2_6 +kmod-crc16 $(if $(DUMP)$(CONFIG_FS_MBCACHE),+kmod-fs-mbcache)
-  FILES:= \
-	$(LINUX_DIR)/fs/ext4/ext4.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/fs/jbd2/jbd2.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,30,jbd2 $(EXT4_NAME))
-endef
-
-define KernelPackage/fs-ext4/description
- Kernel module for EXT4 filesystem support
-endef
-
-$(eval $(call KernelPackage,fs-ext4))
-
 
 
 define KernelPackage/fs-hfs
@@ -214,12 +192,6 @@ define KernelPackage/fs-nfs-common
   AUTOLOAD:=$(call AutoLoad,30,sunrpc lockd)
 endef
 
-define KernelPackage/fs-nfs-common/2.6
-  KCONFIG+=CONFIG_SUNRPC_GSS
-  FILES+=$(LINUX_DIR)/net/sunrpc/auth_gss/auth_rpcgss.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD=$(call AutoLoad,30,sunrpc lockd auth_rpcgss)
-endef
-
 $(eval $(call KernelPackage,fs-nfs-common))
 
 
@@ -241,28 +213,21 @@ endef
 $(eval $(call KernelPackage,fs-nfs))
 
 
-define KernelPackage/fs-exportfs
-  SUBMENU:=$(FS_MENU)
-  TITLE:=exportfs kernel server support
-  KCONFIG:=CONFIG_EXPORTFS
-  FILES=$(LINUX_DIR)/fs/exportfs/exportfs.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,20,exportfs)
-endef
-
-define KernelPackage/fs-exportfs/description
- Kernel module for exportfs. Needed for some other modules.
-endef
-
-$(eval $(call KernelPackage,fs-exportfs))
-
-
 define KernelPackage/fs-nfsd
   SUBMENU:=$(FS_MENU)
   TITLE:=NFS kernel server support
-  DEPENDS:=+kmod-fs-nfs-common +kmod-fs-exportfs
+  DEPENDS:=+kmod-fs-nfs-common
   KCONFIG:=CONFIG_NFSD
   FILES:=$(LINUX_DIR)/fs/nfsd/nfsd.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,40,nfsd)
+endef
+
+define KernelPackage/fs-nfsd/2.6
+  KCONFIG+=CONFIG_EXPORTFS \
+  	CONFIG_SUNRPC_GSS
+  FILES+=$(LINUX_DIR)/fs/exportfs/exportfs.$(LINUX_KMOD_SUFFIX) \
+  	$(LINUX_DIR)/net/sunrpc/auth_gss/auth_rpcgss.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD+=$(call AutoLoad,40,auth_rpcgss exportfs nfsd)
 endef
 
 define KernelPackage/fs-nfsd/description
@@ -271,16 +236,12 @@ endef
 
 $(eval $(call KernelPackage,fs-nfsd))
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.30)),1)
-  MSDOS_DIR:=fat
-endif
-MSDOS_DIR?=msdos
 
 define KernelPackage/fs-msdos
   SUBMENU:=$(FS_MENU)
   TITLE:=MSDOS filesystem support
   KCONFIG:=CONFIG_MSDOS_FS
-  FILES:=$(LINUX_DIR)/fs/$(MSDOS_DIR)/msdos.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(LINUX_DIR)/fs/msdos/msdos.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,40,msdos)
 $(call KernelPackage/nls/Depends)
 endef
@@ -307,10 +268,6 @@ endef
 
 $(eval $(call KernelPackage,fs-reiserfs))
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.28)),1)
-  VFAT_DIR:=fat
-endif
-VFAT_DIR?=vfat
 
 define KernelPackage/fs-vfat
   SUBMENU:=$(FS_MENU)
@@ -320,7 +277,7 @@ define KernelPackage/fs-vfat
 	CONFIG_VFAT_FS
   FILES:= \
 	$(LINUX_DIR)/fs/fat/fat.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/fs/$(VFAT_DIR)/vfat.$(LINUX_KMOD_SUFFIX)
+	$(LINUX_DIR)/fs/vfat/vfat.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,fat vfat)
 $(call KernelPackage/nls/Depends)
 endef
@@ -337,7 +294,6 @@ define KernelPackage/fs-xfs
   SUBMENU:=$(FS_MENU)
   TITLE:=XFS filesystem support
   KCONFIG:=CONFIG_XFS_FS
-  DEPENDS:= +kmod-fs-exportfs
   FILES:=$(LINUX_DIR)/fs/xfs/xfs.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,30,xfs)
 endef
@@ -347,43 +303,6 @@ define KernelPackage/fs-xfs/description
 endef
 
 $(eval $(call KernelPackage,fs-xfs))
-
-define KernelPackage/fs-btrfs
-  SUBMENU:=$(FS_MENU)
-  TITLE:=BTRFS filesystem support
-  KCONFIG:=\
-	CONFIG_CRYPTO_CRC32C \
-	CONFIG_LIBCRC32C \
-	CONFIG_BTRFS_FS \
-	CONFIG_BTRFS_FS_POSIX_ACL=n
-  # for crc32c
-  DEPENDS:=+kmod-crypto-core @!LINUX_2_6_21&&!LINUX_2_6_25
-  FILES:=\
-	$(LINUX_DIR)/crypto/crc32c.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/lib/libcrc32c.$(LINUX_KMOD_SUFFIX) \
-	$(LINUX_DIR)/fs/btrfs/btrfs.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,30,crc32c libcrc32c btrfs)
-endef
-
-define KernelPackage/fs-btrfs/description
-  Kernel module for BTRFS support
-endef
-
-$(eval $(call KernelPackage,fs-btrfs))
-
-define KernelPackage/fs-autofs4
-  SUBMENU:=$(FS_MENU)
-  TITLE:=AUTOFS4 filesystem support
-  KCONFIG:=CONFIG_AUTOFS4_FS 
-  FILES:=$(LINUX_DIR)/fs/autofs4/autofs4.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,30,autofs4)
-endef
-
-define KernelPackage/fs-autofs4/description
-  Kernel module for AutoFS4 support
-endef
-
-$(eval $(call KernelPackage,fs-autofs4))
 
 
 define KernelPackage/nls-base
@@ -433,40 +352,6 @@ define KernelPackage/nls-cp850/description
 endef
 
 $(eval $(call KernelPackage,nls-cp850))
-
-
-define KernelPackage/nls-cp852
-  SUBMENU:=$(FS_MENU)
-  TITLE:=Codepage 852 (Europe)
-  KCONFIG:=CONFIG_NLS_CODEPAGE_852
-  FILES:=$(LINUX_DIR)/fs/nls/nls_cp852.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,25,nls_cp852)
-$(call KernelPackage/nls/Depends)
-endef
-
-
-define KernelPackage/nls-cp852/description
- Kernel module for NLS Codepage 852 (Europe)
-endef
-
-$(eval $(call KernelPackage,nls-cp852))
-
-
-define KernelPackage/nls-cp866
-  SUBMENU:=$(FS_MENU)
-  TITLE:=Codepage 866 (Cyrillic)
-  KCONFIG:=CONFIG_NLS_CODEPAGE_866
-  FILES:=$(LINUX_DIR)/fs/nls/nls_cp866.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,25,nls_cp866)
-$(call KernelPackage/nls/Depends)
-endef
-
-
-define KernelPackage/nls-cp866/description
-  Kernel module for NLS Codepage 866 (Cyrillic)
-endef
-
-$(eval $(call KernelPackage,nls-cp866))
 
 
 define KernelPackage/nls-cp1250
@@ -585,37 +470,3 @@ define KernelPackage/nls-utf8/description
 endef
 
 $(eval $(call KernelPackage,nls-utf8))
-
-
-define KernelPackage/nls-iso8859-13
-  SUBMENU:=$(FS_MENU)
-  TITLE:=ISO 8859-13 (Latin 7; Baltic)
-  KCONFIG:=CONFIG_NLS_ISO8859_13
-  FILES:=$(LINUX_DIR)/fs/nls/nls_iso8859-13.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,25,nls_iso8859-13)
-$(call KernelPackage/nls/Depends)
-endef
-
-
-define KernelPackage/nls-iso8859-13/description
- Kernel module for NLS ISO 8859-13 (Latin 7; Baltic)
-endef
-
-$(eval $(call KernelPackage,nls-iso8859-13))
-
-define KernelPackage/nls-cp775
-  SUBMENU:=$(FS_MENU)
-  TITLE:=Codepage 775 (Baltic Rim)
-  KCONFIG:=CONFIG_NLS_CODEPAGE_775
-  FILES:=$(LINUX_DIR)/fs/nls/nls_cp775.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,25,nls_cp775)
-$(call KernelPackage/nls/Depends)
-endef
-
-
-define KernelPackage/nls-cp775/description
- Kernel module for NLS Codepage 775 (Baltic Rim)
-endef
-
-$(eval $(call KernelPackage,nls-cp775))
-

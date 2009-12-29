@@ -16,10 +16,11 @@
 #include <linux/irq.h>
 #include <linux/etherdevice.h>
 
-#include <asm/mips_machine.h>
+#include <asm/bootinfo.h>
 
 #include <asm/mach-adm5120/adm5120_defs.h>
 #include <asm/mach-adm5120/adm5120_nand.h>
+#include <asm/mach-adm5120/adm5120_board.h>
 #include <asm/mach-adm5120/adm5120_platform.h>
 #include <asm/mach-adm5120/adm5120_info.h>
 

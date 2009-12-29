@@ -41,7 +41,6 @@
 
 #define ROBO_PHY_ADDR		0x1E	/* robo switch phy address */
 #define ROBO_PHY_ADDR_TG3	0x01	/* Tigon3 PHY address */
-#define ROBO_PHY_ADDR_BCM63XX	0x00	/* BCM63XX PHY address */
 
 /* MII registers */
 #define REG_MII_PAGE	0x10	/* MII Page register */
@@ -58,7 +57,6 @@
 #define  ROBO_DEVICE_ID_5395	0x95
 #define  ROBO_DEVICE_ID_5397	0x97
 #define  ROBO_DEVICE_ID_5398	0x98
-#define  ROBO_DEVICE_ID_53115	0x3115
 
 /* Private et.o ioctls */
 #define SIOCGETCPHYRD           (SIOCDEVPRIVATE + 9)
@@ -69,13 +67,9 @@
 #define bool int
 #endif
 
-/* Only available on brcm-2.4/brcm47xx */
-#ifdef BROADCOM
+
 extern char *nvram_get(const char *name);
 #define getvar(str) (nvram_get(str)?:"")
-#else
-#define getvar(str) ""
-#endif
 
 /* Data structure for a Roboswitch device. */
 struct robo_switch {
@@ -102,11 +96,7 @@ static int do_ioctl(int cmd, void *buf)
 		robo.ifr.ifr_data = (caddr_t) buf;
 
 	set_fs(KERNEL_DS);
-#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,31)
-	ret = robo.dev->netdev_ops->ndo_do_ioctl(robo.dev, &robo.ifr, cmd);
-#else
 	ret = robo.dev->do_ioctl(robo.dev, &robo.ifr, cmd);
-#endif
 	set_fs(old_fs);
 
 	return ret;
@@ -298,7 +288,6 @@ static void robo_switch_reset(void)
 	    (robo.devid == ROBO_DEVICE_ID_5398)) {
 		/* Trigger a software reset. */
 		robo_write16(ROBO_CTRL_PAGE, 0x79, 0x83);
-		mdelay(500);
 		robo_write16(ROBO_CTRL_PAGE, 0x79, 0);
 	}
 }
@@ -334,14 +323,13 @@ static int robo_probe(char *devname)
 		/* got phy address check for robo address */
 		struct mii_ioctl_data *mii = (struct mii_ioctl_data *) &robo.ifr.ifr_data;
 		if ((mii->phy_id != ROBO_PHY_ADDR) &&
-		    (mii->phy_id != ROBO_PHY_ADDR_BCM63XX) &&
 		    (mii->phy_id != ROBO_PHY_ADDR_TG3)) {
 			printk("Invalid phy address (%d)\n", mii->phy_id);
 			return 1;
 		}
 		robo.use_et = 0;
 		/* The robo has a fixed PHY address that is different from the
-		 * Tigon3 and BCM63xx PHY address. */
+		 * Tigon3 PHY address. */
 		robo.phy_addr = ROBO_PHY_ADDR;
 	}
 
@@ -349,7 +337,7 @@ static int robo_probe(char *devname)
 		(mdio_read(robo.phy_addr, 0x3) << 16);
 
 	if (phyid == 0xffffffff || phyid == 0x55210022) {
-		printk("No Robo switch in managed mode found, phy_id = 0x%08x\n", phyid);
+		printk("No Robo switch in managed mode found\n");
 		return 1;
 	}
 
@@ -369,8 +357,7 @@ static int robo_probe(char *devname)
 	if (err)
 		return err;
 
-	printk("found a 5%s%x!%s\n", robo.devid & 0xff00 ? "" : "3", robo.devid,
-		robo.is_5350 ? " It's a 5350." : "");
+	printk("found!\n");
 	return 0;
 }
 
@@ -448,17 +435,6 @@ static int handle_vlan_port_write(void *driver, char *buf, int nr)
 	}
 
 	/* write config now */
-
-	if (robo.devid != ROBO_DEVICE_ID_5325) {
-		__u8 regoff = ((robo.devid == ROBO_DEVICE_ID_5395) ||
-			(robo.devid == ROBO_DEVICE_ID_53115)) ? 0x20 : 0;
-
-		robo_write32(ROBO_ARLIO_PAGE, 0x63 + regoff, (c->untag << 9) | c->port);
-		robo_write16(ROBO_ARLIO_PAGE, 0x61 + regoff, nr);
-		robo_write16(ROBO_ARLIO_PAGE, 0x60 + regoff, 1 << 7);
-		return 0;
-	}
-
 	val16 = (nr) /* vlan */ | (1 << 12) /* write */ | (1 << 13) /* enable */;
 	if (robo.is_5350) {
 		robo_write32(ROBO_VLAN_PAGE, ROBO_VLAN_WRITE_5350,
@@ -500,12 +476,7 @@ static int handle_enable_vlan_write(void *driver, char *buf, int nr)
 	robo_write16(ROBO_VLAN_PAGE, ROBO_VLAN_CTRL0, disable ? 0 :
 		(1 << 7) /* 802.1Q VLAN */ | (3 << 5) /* mac check and hash */);
 	robo_write16(ROBO_VLAN_PAGE, ROBO_VLAN_CTRL1, disable ? 0 :
-		(robo.devid == ROBO_DEVICE_ID_5325 ? (1 << 1) :
-		0) | (1 << 2) | (1 << 3)); /* RSV multicast */
-
-	if (robo.devid != ROBO_DEVICE_ID_5325)
-		return 0;
-
+		(1 << 1) | (1 << 2) | (1 << 3) /* RSV multicast */);
 	robo_write16(ROBO_VLAN_PAGE, ROBO_VLAN_CTRL4, disable ? 0 :
 		(1 << 6) /* drop invalid VID frames */);
 	robo_write16(ROBO_VLAN_PAGE, ROBO_VLAN_CTRL5, disable ? 0 :
@@ -604,10 +575,6 @@ static int __init robo_init(void)
 			.port_handlers		= NULL,
 			.vlan_handlers		= vlan,
 		};
-		if (robo.devid != ROBO_DEVICE_ID_5325) {
-			driver.ports = 9;
-			driver.cpuport = 8;
-		}
 
 		return switch_register_driver(&driver);
 	}

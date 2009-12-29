@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 WIRELESS_MENU:=Wireless Drivers
 
@@ -12,7 +13,7 @@ WIRELESS_MENU:=Wireless Drivers
 define KernelPackage/ieee80211
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=802.11 Networking stack
-  DEPENDS:=+kmod-crypto-arc4 +kmod-crypto-aes +kmod-crypto-michael-mic @LINUX_2_4||@LINUX_2_6_21||LINUX_2_6_25
+  DEPENDS:=+kmod-crypto-arc4 +kmod-crypto-aes +kmod-crypto-michael-mic
   KCONFIG:= \
 	CONFIG_IEEE80211 \
 	CONFIG_IEEE80211_CRYPT_WEP \
@@ -46,66 +47,46 @@ endef
 $(eval $(call KernelPackage,ieee80211))
 
 
-define KernelPackage/lib80211
+define KernelPackage/ieee80211-softmac
   SUBMENU:=$(WIRELESS_MENU)
-  TITLE:=802.11 Networking stack
-  DEPENDS:=@LINUX_2_6_30||LINUX_2_6_31||LINUX_2_6_32
-  KCONFIG:= \
-	CONFIG_LIB80211 \
-	CONFIG_LIB80211_CRYPT_WEP \
-	CONFIG_LIB80211_CRYPT_TKIP \
-	CONFIG_LIB80211_CRYPT_CCMP
-  FILES:= \
-  	$(LINUX_DIR)/net/wireless/lib80211.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/net/wireless/lib80211_crypt_wep.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/net/wireless/lib80211_crypt_ccmp.$(LINUX_KMOD_SUFFIX) \
-  	$(LINUX_DIR)/net/wireless/lib80211_crypt_tkip.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,10, \
-	lib80211 \
-	lib80211_crypt_wep \
-	lib80211_crypt_ccmp \
-	lib80211_crypt_tkip \
-  )
+  TITLE:=ieee80211 SoftMAC support
+  DEPENDS:=+kmod-ieee80211
+  KCONFIG:=CONFIG_IEEE80211_SOFTMAC
+  FILES:=$(LINUX_DIR)/net/ieee80211/softmac/ieee80211softmac.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,20,ieee80211softmac)
 endef
 
-define KernelPackage/lib80211/description
- Kernel modules for 802.11 Networking stack
+define KernelPackage/ieee80211-softmac/description
+ Kernel modules for 802.11 SoftMAC support
+endef
+
+$(eval $(call KernelPackage,ieee80211-softmac))
+
+
+define KernelPackage/net-bcm43xx
+  SUBMENU:=$(WIRELESS_MENU)
+  TITLE:=Broadcom BCM43xx driver
+  DEPENDS:=@TARGET_brcm47xx||TARGET_brcm63xx +kmod-ieee80211-softmac
+  KCONFIG:=CONFIG_BCM43XX
+  FILES:=$(LINUX_DIR)/drivers/net/wireless/bcm43xx/bcm43xx.$(LINUX_KMOD_SUFFIX)
+  AUTOLOAD:=$(call AutoLoad,50,bcm43xx)
+endef
+
+define KernelPackage/net-bcm43xx/description
+ Kernel support for Broadcom BCM43xx
  Includes:
- - lib80211
- - lib80211_crypt_wep
- - lib80211_crypt_tkip
- - lib80211_crytp_ccmp
+ - bcm43xx
 endef
 
-$(eval $(call KernelPackage,lib80211))
-
-
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.29)),1)
-  IPW_DIR:=ipw2x00/
-endif
-
-define KernelPackage/net-libipw
-  SUBMENU:=$(WIRELESS_MENU)
-  TITLE:=libipw for ipw2100 and ipw2200
-  DEPENDS:=@PCI_SUPPORT +kmod-crypto-arc4 +kmod-crypto-aes +kmod-crypto-michael-mic +kmod-lib80211 @LINUX_2_6_30||LINUX_2_6_31||LINUX_2_6_32
-  KCONFIG:=CONFIG_LIBIPW
-  FILES:=$(LINUX_DIR)/drivers/net/wireless/$(IPW_DIR)libipw.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,49,libipw)
-endef
-
-define KernelPackage/net-libipw/description
- Hardware independent IEEE 802.11 networking stack for ipw2100 and ipw2200.
-endef
-
-$(eval $(call KernelPackage,net-libipw))
+$(eval $(call KernelPackage,net-bcm43xx))
 
 
 define KernelPackage/net-ipw2100
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=Intel IPW2100 driver
-  DEPENDS:=@PCI_SUPPORT +!(LINUX_2_6_30||LINUX_2_6_31):kmod-ieee80211 +LINUX_2_6_30||LINUX_2_6_31:kmod-net-libipw
+  DEPENDS:=@PCI_SUPPORT +kmod-ieee80211
   KCONFIG:=CONFIG_IPW2100
-  FILES:=$(LINUX_DIR)/drivers/net/wireless/$(IPW_DIR)ipw2100.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(LINUX_DIR)/drivers/net/wireless/ipw2100.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,ipw2100)
 endef
 
@@ -121,9 +102,9 @@ $(eval $(call KernelPackage,net-ipw2100))
 define KernelPackage/net-ipw2200
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=Intel IPW2200 driver
-  DEPENDS:=@PCI_SUPPORT +!(LINUX_2_6_30||LINUX_2_6_31):kmod-ieee80211 +LINUX_2_6_30||LINUX_2_6_31:kmod-net-libipw
+  DEPENDS:=@PCI_SUPPORT +kmod-ieee80211
   KCONFIG:=CONFIG_IPW2200
-  FILES:=$(LINUX_DIR)/drivers/net/wireless/$(IPW_DIR)ipw2200.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(LINUX_DIR)/drivers/net/wireless/ipw2200.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,ipw2200)
 endef
 
@@ -152,26 +133,15 @@ endef
 $(eval $(call KernelPackage,net-airo))
 
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.29)),1)
-  ORINOCO_DIR:=orinoco/
-endif
-
 define KernelPackage/net-hermes
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=Hermes 802.11b chipset support
   DEPENDS:=@LINUX_2_6 @PCI_SUPPORT||PCMCIA_SUPPORT
-  KCONFIG:=CONFIG_HERMES \
-	CONFIG_HERMES_CACHE_FW_ON_INIT=n
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,2.6.30)),1)
-  FILES:= \
-	$(LINUX_DIR)/drivers/net/wireless/$(ORINOCO_DIR)orinoco.$(LINUX_KMOD_SUFFIX)
-  AUTOLOAD:=$(call AutoLoad,50,orinoco)
-else
+  KCONFIG:=CONFIG_HERMES
   FILES:= \
 	$(LINUX_DIR)/drivers/net/wireless/hermes.$(LINUX_KMOD_SUFFIX) \
 	$(LINUX_DIR)/drivers/net/wireless/orinoco.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,hermes orinoco)
-endif
 endef
 
 define KernelPackage/net-hermes/description
@@ -184,9 +154,9 @@ $(eval $(call KernelPackage,net-hermes))
 define KernelPackage/net-hermes-pci
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=Intersil Prism 2.5 PCI support
-  DEPENDS:=@PCI_SUPPORT +kmod-net-hermes
+  DEPENDS:=@PCI_SUPPORT kmod-net-hermes
   KCONFIG:=CONFIG_PCI_HERMES
-  FILES:=$(LINUX_DIR)/drivers/net/wireless/$(ORINOCO_DIR)orinoco_pci.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(LINUX_DIR)/drivers/net/wireless/orinoco_pci.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,55,orinoco_pci)
 endef
 
@@ -200,9 +170,9 @@ $(eval $(call KernelPackage,net-hermes-pci))
 define KernelPackage/net-hermes-plx
   SUBMENU:=$(WIRELESS_MENU)
   TITLE:=PLX9052 based PCI adaptor
-  DEPENDS:=@PCI_SUPPORT +kmod-net-hermes
+  DEPENDS:=@PCI_SUPPORT kmod-net-hermes
   KCONFIG:=CONFIG_PLX_HERMES
-  FILES:=$(LINUX_DIR)/drivers/net/wireless/$(ORINOCO_DIR)orinoco_plx.$(LINUX_KMOD_SUFFIX)
+  FILES:=$(LINUX_DIR)/drivers/net/wireless/orinoco_plx.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,55,orinoco_plx)
 endef
 
@@ -226,20 +196,5 @@ define KernelPackage/net-prism54/description
  Kernel modules for Intersil Prism54 support
 endef
 
-# Prism54 FullMAC firmware (jbnore.free.fr seems to be rather slow, so we use daemonizer.de)
-PRISM54_FW:=1.0.4.3.arm
-
-define Download/net-prism54
-  FILE:=$(PRISM54_FW)
-  URL:=http://daemonizer.de/prism54/prism54-fw/fw-fullmac/
-  MD5SUM:=8bd4310971772a486b9784c77f8a6df9
-endef
-
-define KernelPackage/net-prism54/install
-	$(INSTALL_DIR) $(1)/lib/firmware
-	$(INSTALL_DATA) $(DL_DIR)/$(PRISM54_FW) $(1)/lib/firmware/isl3890
-endef
-
-$(eval $(call Download,net-prism54))
 $(eval $(call KernelPackage,net-prism54))
 

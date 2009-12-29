@@ -4,11 +4,11 @@
 #include <linux/init.h>
 #include <linux/delay.h>
 #include <linux/mm.h>
+#include <asm/ifxmips/ifxmips.h>
+#include <asm/ifxmips/ifxmips_irq.h>
+#include <asm/ifxmips/ifxmips_cgu.h>
 #include <asm/addrspace.h>
 #include <linux/vmalloc.h>
-#include <ifxmips.h>
-#include <ifxmips_irq.h>
-#include <ifxmips_cgu.h>
 
 #define IFXMIPS_PCI_MEM_BASE    0x18000000
 #define IFXMIPS_PCI_MEM_SIZE    0x02000000
@@ -49,8 +49,6 @@ static struct pci_controller ifxmips_pci_controller =
 	.io_offset	= 0x00000000UL,
 };
 
-/* the cpu can can generate the 33Mhz or rely on an external clock the cgu needs the
-   proper setting, otherwise the cpu hangs. we have no way of runtime detecting this */
 u32 ifxmips_pci_mapped_cfg;
 int ifxmips_pci_external_clock = 0;
 
@@ -175,7 +173,7 @@ pcibios_map_irq(const struct pci_dev *dev, u8 slot, u8 pin){
 	}
 }
 
-int __init
+int
 pcibios_init(void)
 {
 	extern int pci_probe_only;
@@ -183,6 +181,7 @@ pcibios_init(void)
 	pci_probe_only = 0;
 	printk("PCI: Probing PCI hardware on host bus 0.\n");
 	ifxmips_pci_startup ();
+	//	IFXMIPS_PCI_REG32(PCI_CR_CLK_CTRL_REG) &= (~8);
 	ifxmips_pci_mapped_cfg = (u32)ioremap_nocache(0x17000000, 0x800 * 16);
 	printk("IFXMips PCI mapped to 0x%08lX\n", (unsigned long)ifxmips_pci_mapped_cfg);
 	ifxmips_pci_controller.io_map_base = (unsigned long)ioremap(IFXMIPS_PCI_IO_BASE, IFXMIPS_PCI_IO_SIZE - 1);

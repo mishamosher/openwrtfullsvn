@@ -1,21 +1,20 @@
-#
-# Copyright (C) 2006-2009 OpenWrt.org
+# 
+# Copyright (C) 2006-2008 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 
 include $(TOPDIR)/rules.mk
-include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=opkg
-PKG_REV:=503
+PKG_REV:=4564
 PKG_VERSION:=$(PKG_REV)
-PKG_RELEASE:=2
+PKG_RELEASE:=3.1
 
 PKG_SOURCE_PROTO:=svn
 PKG_SOURCE_VERSION:=$(PKG_REV)
 PKG_SOURCE_SUBDIR:=opkg-$(PKG_VERSION)
-PKG_SOURCE_URL:=http://opkg.googlecode.com/svn/trunk/
+PKG_SOURCE_URL:=http://svn.openmoko.org/trunk/src/target/opkg/
 PKG_SOURCE:=$(PKG_SOURCE_SUBDIR).tar.gz
 PKG_FIXUP = libtool
 include $(INCLUDE_DIR)/package.mk
@@ -41,13 +40,13 @@ define Package/opkg/conffiles
 /etc/opkg.conf
 endef
 
-TARGET_CFLAGS += $(if $(CONFIG_GCC_VERSION_4_3)$(CONFIG_GCC_VERSION_4_4),-Wno-array-bounds)
-EXTRA_CFLAGS += $(TARGET_CPPFLAGS)
+TARGET_CFLAGS += $(FPIC)
+EXTRA_CFLAGS+=-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include -I$(STAGING_DIR)/usr/lib
+EXTRA_LDFLAGS+=-L$(STAGING_DIR)/usr/lib -Wl,-rpath-link,$(STAGING_DIR)/usr/lib
 
 CONFIGURE_ARGS += \
 	--disable-curl \
 	--disable-gpg \
-	--with-ipkgetcdir=/etc
 
 define Build/Configure
 	(cd $(PKG_BUILD_DIR); \
@@ -60,7 +59,7 @@ define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC)" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		HOST_CPU="$(PKGARCH)" \
+		HOST_CPU="$(ARCH)" \
 		all install
 endef
 
@@ -69,8 +68,10 @@ define Package/opkg/install
 	$(INSTALL_DIR) $(1)/bin
 	$(INSTALL_DIR) $(1)/etc
 	$(INSTALL_DATA) ./files/opkg.conf $(1)/etc/
-	$(SED) 's,$$$$S,$(PKGARCH),g' $(1)/etc/opkg.conf
+	$(SED) 's,$$$$S,$(BOARD),g' -e 's,$$$$A,$(ARCH),g' $(1)/etc/opkg.conf
 	$(INSTALL_BIN) $(PKG_INSTALL_DIR)/usr/bin/opkg-cl $(1)/bin/opkg
+	$(INSTALL_DIR) $(1)/usr/lib
+	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libopkg.so.* $(1)/usr/lib/
 endef
 
 define Build/InstallDev

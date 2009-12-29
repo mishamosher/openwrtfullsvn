@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
@@ -34,7 +35,7 @@ define Package/kernel
   CATEGORY:=Kernel
   DEFAULT:=y
   TITLE:=Virtual kernel package
-  VERSION:=$(LINUX_VERSION)-$(LINUX_RELEASE)
+  VERSION:=$(LINUX_VERSION)-$(BOARD)-$(LINUX_RELEASE)
 endef
 
 define Package/kernel/install

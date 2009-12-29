@@ -45,7 +45,7 @@ pivot() { # <new_root> <old_root>
 }
 
 run_ramfs() { # <command> [...]
-	install_bin /bin/busybox /bin/ash /bin/sh /bin/mount /bin/umount /sbin/pivot_root /usr/bin/wget /sbin/reboot /bin/sync /bin/dd /bin/grep /bin/cp /bin/mv /bin/tar /usr/bin/md5sum "/usr/bin/[" /bin/vi /bin/ls /bin/cat /usr/bin/awk /usr/bin/hexdump /bin/sleep /bin/zcat /usr/bin/bzcat
+	install_bin /bin/busybox /bin/ash /bin/sh /bin/mount /bin/umount /sbin/pivot_root /usr/bin/wget /sbin/reboot /bin/sync /bin/dd /bin/grep /bin/cp /bin/mv /bin/tar /usr/bin/md5sum "/usr/bin/[" /bin/vi /bin/ls /bin/cat /usr/bin/awk /usr/bin/hexdump /bin/sleep /bin/zcat
 	install_bin /sbin/mtd
 	for file in $RAMFS_COPY_BIN; do
 		install_bin $file
@@ -103,28 +103,20 @@ rootfs_type() {
 	mount | awk '($3 ~ /^\/$/) && ($5 !~ /rootfs/) { print $5 }'
 }
 
-get_image() { # <source> [ <command> ]
+get_image() {
 	local from="$1"
-	local conc="$2"
-	local cmd
+	local conc="cat"
+
+	[ $GZIPED -eq 1 ] && conc="zcat"
 
 	case "$from" in
-		http://*|ftp://*) cmd="wget -O- -q";;
-		*) cmd="cat";;
+		http://*|ftp://*) wget -O- -q "$from" | "$conc";;
+		*) cat "$from" | "$conc";;
 	esac
-	if [ -z "$conc" ]; then
-		local magic="$(eval $cmd $from | dd bs=2 count=1 2>/dev/null | hexdump -n 2 -e '1/1 "%02x"')"
-		case "$magic" in
-			1f8b) conc="zcat";;
-			425a) conc="bzcat";;
-		esac
-	fi
-
-	eval "$cmd $from ${conc:+| $conc}"
 }
 
 get_magic_word() {
-	get_image "$@" | dd bs=2 count=1 2>/dev/null | hexdump -v -n 2 -e '1/1 "%02x"'
+	get_image "$1" | dd bs=2 count=1 2>/dev/null | hexdump -C | awk '$2 { print $2 $3 }'
 }
 
 refresh_mtd_partitions() {

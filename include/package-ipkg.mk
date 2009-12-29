@@ -17,8 +17,6 @@ IPKG:= \
 IPKG_BUILD:= \
   ipkg-build -c -o 0 -g 0
 
-IPKG_STATE_DIR:=$(TARGET_DIR)/usr/lib/opkg
-
 define BuildIPKGVariable
   $(call shexport,Package/$(1)/$(2))
   $(1)_COMMANDS += var2file "$(call shvar,Package/$(1)/$(2))" $(2);
@@ -33,13 +31,12 @@ filter_deps=$(foreach dep,$(call strip_deps,$(1)),$(if $(findstring :,$(dep)),$(
 ifeq ($(DUMP),)
   define BuildTarget/ipkg
     IPKG_$(1):=$(PACKAGE_DIR)/$(1)_$(VERSION)_$(PKGARCH).ipk
-    IDIR_$(1):=$(PKG_BUILD_DIR)/ipkg-$(PKGARCH)/$(1)
+    IDIR_$(1):=$(PKG_BUILD_DIR)/ipkg/$(1)
     INFO_$(1):=$(IPKG_STATE_DIR)/info/$(1).list
 
-    ifeq ($(if $(VARIANT),$(BUILD_VARIANT)),$(VARIANT))
     ifdef Package/$(1)/install
       ifneq ($(CONFIG_PACKAGE_$(1))$(SDK)$(DEVELOPER),)
-        compile: $$(IPKG_$(1)) $(STAGING_DIR_ROOT)/stamp/.$(1)_installed
+        compile: $$(IPKG_$(1))
 
         ifeq ($(CONFIG_PACKAGE_$(1)),y)
           install: $$(INFO_$(1))
@@ -50,7 +47,6 @@ ifeq ($(DUMP),)
 		@echo "WARNING: skipping $(1) -- package not selected"
       endif
     endif
-    endif
 
     IDEPEND_$(1):=$$(call filter_deps,$$(DEPENDS))
   
@@ -59,19 +55,8 @@ ifeq ($(DUMP),)
     $(eval $(call BuildIPKGVariable,$(1),postinst))
     $(eval $(call BuildIPKGVariable,$(1),prerm))
     $(eval $(call BuildIPKGVariable,$(1),postrm))
-
-    $(STAGING_DIR_ROOT)/stamp/.$(1)_installed: $(STAMP_BUILT)
-	rm -rf $(STAGING_DIR_ROOT)/tmp-$(1)
-	mkdir -p $(STAGING_DIR_ROOT)/stamp $(STAGING_DIR_ROOT)/tmp-$(1)
-	$(call Package/$(1)/install,$(STAGING_DIR_ROOT)/tmp-$(1))
-	$(call Package/$(1)/install_lib,$(STAGING_DIR_ROOT)/tmp-$(1))
-	$(CP) $(STAGING_DIR_ROOT)/tmp-$(1)/. $(STAGING_DIR_ROOT)/
-	rm -rf $(STAGING_DIR_ROOT)/tmp-$(1)
-	touch $$@
-
-    $$(IPKG_$(1)): $(STAGING_DIR)/etc/ipkg.conf $(STAMP_BUILT)
+    $$(IDIR_$(1))/CONTROL/control: $(PKG_BUILD_DIR)/.version-$(1)_$(VERSION)_$(PKGARCH)
 	@rm -f $(PACKAGE_DIR)/$(1)_*
-	rm -rf $$(IDIR_$(1))
 	mkdir -p $$(IDIR_$(1))/CONTROL
 	echo "Package: $(1)" > $$(IDIR_$(1))/CONTROL/control
 	echo "Version: $(VERSION)" >> $$(IDIR_$(1))/CONTROL/control
@@ -94,6 +79,8 @@ ifeq ($(DUMP),)
 	(cd $$(IDIR_$(1))/CONTROL; \
 		$($(1)_COMMANDS) \
 	)
+
+    $$(IPKG_$(1)): $(STAGING_DIR)/etc/ipkg.conf $(PKG_BUILD_DIR)/.built $$(IDIR_$(1))/CONTROL/control
 	$(call Package/$(1)/install,$$(IDIR_$(1)))
 	mkdir -p $(PACKAGE_DIR)
 	-find $$(IDIR_$(1)) -name 'CVS' -o -name '.svn' -o -name '.#*' | $(XARGS) rm -rf
@@ -111,6 +98,9 @@ ifeq ($(DUMP),)
 
     clean: $(1)-clean
 
+    $(PKG_BUILD_DIR)/.version-$(1)_$(VERSION)_$(PKGARCH): $(STAMP_PREPARED)
+	-@rm -f $(PKG_BUILD_DIR)/.version-$(1)_* 2>/dev/null
+	@touch $$@
   endef
 
   $(STAGING_DIR)/etc/ipkg.conf:

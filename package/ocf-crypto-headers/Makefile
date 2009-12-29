@@ -18,7 +18,6 @@ define Package/ocf-crypto-headers
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=OCF-Linux cryptodev header
-  PKGARCH:=all
 endef
 
 define Build/Configure

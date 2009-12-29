@@ -25,6 +25,7 @@ static int do_close = 0;
 struct wprobe_mapping {
 	int id;
 	bool counter;
+	float scale;
 	const char *wprobe_id;
 	struct wprobe_value *val;
 };
@@ -35,14 +36,16 @@ struct wprobe_mapping {
 
 #define WMAP(_id, _name, ...) \
 	{ \
+		.scale = 1.0f, \
 		.counter = false, \
-		.id = IPFIX_FT_WPROBE_##_id##_N, \
+		.id = IPFIX_FT_WPROBE_##_id##_AVG, \
 		.wprobe_id = _name \
 		, ## __VA_ARGS__ \
 	}
 
 #define WMAP_COUNTER(_id, _name, ...) \
 	{ \
+		.scale = 1.0f, \
 		.counter = true, \
 		.id = IPFIX_FT_WPROBE_##_id, \
 		.wprobe_id = _name \
@@ -141,7 +144,7 @@ add_template_fields(ipfix_t *handle, ipfix_template_t *t, struct wprobe_mapping 
 		if (map[i].counter)
 			g_data.addrs[f++] = &map[i].val->U32;
 		else
-			g_data.addrs[f++] = &map[i].val->n;
+			g_data.addrs[f++] = &map[i].val->avg;
 
         if (ipfix_add_field( handle, t, FOKUS_USERID, map[i].id + 0, 4) < 0)
             exit(1);
@@ -149,14 +152,11 @@ add_template_fields(ipfix_t *handle, ipfix_template_t *t, struct wprobe_mapping 
 		if (map[i].counter)
 			continue;
 
-		g_data.lens[f] = 8;
-		g_data.addrs[f++] = &map[i].val->s;
-
-		g_data.lens[f] = 8;
-		g_data.addrs[f++] = &map[i].val->ss;
-        if (ipfix_add_field( handle, t, FOKUS_USERID, map[i].id + 1, 8) < 0)
+		g_data.addrs[f++] = &map[i].val->stdev;
+		g_data.addrs[f++] = &map[i].val->n;
+        if (ipfix_add_field( handle, t, FOKUS_USERID, map[i].id + 1, 4) < 0)
             exit(1);
-        if (ipfix_add_field( handle, t, FOKUS_USERID, map[i].id + 2, 8) < 0)
+        if (ipfix_add_field( handle, t, FOKUS_USERID, map[i].id + 2, 4) < 0)
             exit(1);
     }
 	g_data.maxfields = f;

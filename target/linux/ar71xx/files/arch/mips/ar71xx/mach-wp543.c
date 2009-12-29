@@ -1,7 +1,7 @@
 /*
- *  Compex WP543/WPJ543 board support
+ *  Compex WP543 board support
  *
- *  Copyright (C) 2008-2009 Gabor Juhos <juhosg@openwrt.org>
+ *  Copyright (C) 2008 Gabor Juhos <juhosg@openwrt.org>
  *  Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
  *
  *  This program is free software; you can redistribute it and/or modify it
@@ -9,18 +9,17 @@
  *  by the Free Software Foundation.
  */
 
+#include <linux/platform_device.h>
 #include <linux/mtd/mtd.h>
 #include <linux/mtd/partitions.h>
+#include <linux/spi/spi.h>
+#include <linux/spi/flash.h>
+#include <linux/input.h>
 
+#include <asm/mips_machine.h>
 #include <asm/mach-ar71xx/ar71xx.h>
-
-#include "machtype.h"
-#include "devices.h"
-#include "dev-m25p80.h"
-#include "dev-pb42-pci.h"
-#include "dev-gpio-buttons.h"
-#include "dev-leds-gpio.h"
-#include "dev-usb.h"
+#include <asm/mach-ar71xx/pci.h>
+#include <asm/mach-ar71xx/platform.h>
 
 #define WP543_GPIO_SW6		2
 #define WP543_GPIO_LED_1	3
@@ -31,6 +30,54 @@
 #define WP543_GPIO_SW4		8
 
 #define WP543_BUTTONS_POLL_INTERVAL	20
+
+#ifdef CONFIG_MTD_PARTITIONS
+static struct mtd_partition wp543_partitions[] = {
+	{
+		.name	= "myloader",
+		.offset	= 0,
+		.size	= 0x20000,
+		.mask_flags = MTD_WRITEABLE,
+	} , {
+		.name	= "kernel",
+		.offset	= 0x30000,
+		.size	= 0xd0000,
+	} , {
+		.name	= "rootfs",
+		.offset	= 0x100000,
+		.size	= 0x100000,
+	}
+};
+#endif /* CONFIG_MTD_PARTITIONS */
+
+static struct flash_platform_data wp543_flash_data = {
+#ifdef CONFIG_MTD_PARTITIONS
+	.parts		= wp543_partitions,
+	.nr_parts	= ARRAY_SIZE(wp543_partitions),
+#endif
+};
+
+static struct spi_board_info wp543_spi_info[] = {
+	{
+		.bus_num	= 0,
+		.chip_select	= 0,
+		.max_speed_hz	= 25000000,
+		.modalias	= "m25p80",
+		.platform_data	= &wp543_flash_data,
+	}
+};
+
+static struct ar71xx_pci_irq wp543_pci_irqs[] __initdata = {
+	{
+		.slot	= 1,
+		.pin	= 1,
+		.irq	= AR71XX_PCI_IRQ_DEV0,
+	}, {
+		.slot	= 1,
+		.pin	= 2,
+		.irq	= AR71XX_PCI_IRQ_DEV1,
+	}
+};
 
 static struct gpio_led wp543_leds_gpio[] __initdata = {
 	{
@@ -74,19 +121,17 @@ static struct gpio_button wp543_gpio_buttons[] __initdata = {
 
 static void __init wp543_setup(void)
 {
-	ar71xx_add_device_m25p80(NULL);
+	ar71xx_add_device_spi(NULL, wp543_spi_info, ARRAY_SIZE(wp543_spi_info));
 
 	ar71xx_add_device_mdio(0xfffffff7);
 
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_MII;
 	ar71xx_eth0_data.phy_mask = 0x00000008;
-	ar71xx_eth0_data.reset_bit = RESET_MODULE_GE0_MAC |
-				     RESET_MODULE_GE0_PHY;
 	ar71xx_add_device_eth(0);
 
 	ar71xx_add_device_usb();
 
-	pb42_pci_init();
+	ar71xx_pci_init(ARRAY_SIZE(wp543_pci_irqs), wp543_pci_irqs);
 
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(wp543_leds_gpio),
 					wp543_leds_gpio);
@@ -96,4 +141,4 @@ static void __init wp543_setup(void)
 					wp543_gpio_buttons);
 }
 
-MIPS_MACHINE(AR71XX_MACH_WP543, "Compex WP543", wp543_setup);
+MIPS_MACHINE(MACH_AR71XX_WP543, "Compex WP543", wp543_setup);

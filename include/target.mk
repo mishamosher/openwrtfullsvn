@@ -12,10 +12,9 @@ __target_inc=1
 DEVICE_TYPE?=router
 
 # Default packages - the really basic set
-DEFAULT_PACKAGES:=base-files libc libgcc busybox dropbear mtd uci opkg ucitrigger
+DEFAULT_PACKAGES:=base-files libgcc uclibc busybox dropbear mtd uci opkg
 # For router targets
-DEFAULT_PACKAGES.router:=dnsmasq iptables ppp ppp-mod-pppoe kmod-ipt-nathelper firewall
-DEFAULT_PACKAGES.bootloader:=
+DEFAULT_PACKAGES.router:=dnsmasq iptables ppp ppp-mod-pppoe kmod-ipt-nathelper bridge firewall
 
 # Additional packages for Linux 2.6
 ifneq ($(KERNEL),2.4)
@@ -41,11 +40,9 @@ TARGETID:=$(BOARD)$(if $(SUBTARGET),/$(SUBTARGET))
 PLATFORM_SUBDIR:=$(PLATFORM_DIR)$(if $(SUBTARGET),/$(SUBTARGET))
 
 ifneq ($(TARGET_BUILD),1)
-  ifndef DUMP
-    include $(PLATFORM_DIR)/Makefile
-    ifneq ($(PLATFORM_DIR),$(PLATFORM_SUBDIR))
-      include $(PLATFORM_SUBDIR)/target.mk
-    endif
+  include $(PLATFORM_DIR)/Makefile
+  ifneq ($(PLATFORM_DIR),$(PLATFORM_SUBDIR))
+    include $(PLATFORM_SUBDIR)/target.mk
   endif
 else
   ifneq ($(SUBTARGET),)
@@ -105,27 +102,19 @@ endif
 
 $(eval $(call shexport,Target/Description))
 
-ifneq ($(TARGET_BUILD)$(if $(DUMP),,1),)
-  include $(INCLUDE_DIR)/kernel-version.mk
-endif
+include $(INCLUDE_DIR)/kernel-version.mk
 
 GENERIC_PLATFORM_DIR := $(TOPDIR)/target/linux/generic-$(KERNEL)
-GENERIC_PATCH_DIR := $(GENERIC_PLATFORM_DIR)/patches$(if $(wildcard $(GENERIC_PLATFORM_DIR)/patches-$(KERNEL_PATCHVER)),-$(KERNEL_PATCHVER))
-GENERIC_FILES_DIR := $(foreach dir,$(wildcard $(GENERIC_PLATFORM_DIR)/files $(GENERIC_PLATFORM_DIR)/files-$(KERNEL_PATCHVER)),"$(dir)")
+GENERIC_PATCH_DIR := $(GENERIC_PLATFORM_DIR)/patches$(shell [ -d "$(GENERIC_PLATFORM_DIR)/patches-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
+GENERIC_FILES_DIR := $(GENERIC_PLATFORM_DIR)/files$(shell [ -d "$(GENERIC_PLATFORM_DIR)/files-$(KERNEL_PATCHVER)" ] && printf -- "-$(KERNEL_PATCHVER)" || true )
 
 GENERIC_LINUX_CONFIG?=$(firstword $(wildcard $(GENERIC_PLATFORM_DIR)/config-$(KERNEL_PATCHVER) $(GENERIC_PLATFORM_DIR)/config-default))
 LINUX_CONFIG?=$(firstword $(wildcard $(foreach subdir,$(PLATFORM_DIR) $(PLATFORM_SUBDIR),$(subdir)/config-$(KERNEL_PATCHVER) $(subdir)/config-default)) $(PLATFORM_DIR)/config-$(KERNEL_PATCHVER))
-LINUX_SUBCONFIG?=$(if $(SHARED_LINUX_CONFIG),,$(firstword $(wildcard $(PLATFORM_SUBDIR)/config-$(KERNEL_PATCHVER) $(PLATFORM_SUBDIR)/config-default)))
+LINUX_SUBCONFIG?=$(firstword $(wildcard $(PLATFORM_SUBDIR)/config-$(KERNEL_PATCHVER) $(PLATFORM_SUBDIR)/config-default))
 ifeq ($(LINUX_CONFIG),$(LINUX_SUBCONFIG))
   LINUX_SUBCONFIG:=
 endif
-LINUX_CONFCMD=$(if $(LINUX_CONFIG), \
-	$(if $(GENERIC_LINUX_CONFIG),,$(error The generic kernel config for your kernel version is missing)) \
-	$(if $(LINUX_CONFIG),,$(error The target kernel config for your kernel version is missing)) \
-	$(SCRIPT_DIR)/kconfig.pl \
-		+ $(GENERIC_LINUX_CONFIG) \
-		$(if $(LINUX_SUBCONFIG),+ $(LINUX_CONFIG) $(LINUX_SUBCONFIG),$(LINUX_CONFIG)), \
-	true)
+LINUX_CONFCMD=$(if $(LINUX_CONFIG),$(SCRIPT_DIR)/kconfig.pl + $(GENERIC_LINUX_CONFIG) $(if $(LINUX_SUBCONFIG),+ $(LINUX_CONFIG) $(LINUX_SUBCONFIG),$(LINUX_CONFIG)),true)
 
 ifeq ($(DUMP),1)
   BuildTarget=$(BuildTargets/DumpCurrent)
@@ -144,9 +133,6 @@ ifeq ($(DUMP),1)
     ifneq ($(CONFIG_PCI),)
       FEATURES += pci
     endif
-    ifneq ($(CONFIG_PCIEPORTBUS),)
-      FEATURES += pcie
-    endif
     ifneq ($(CONFIG_USB)$(CONFIG_USB_SUPPORT),)
       FEATURES += usb
     endif
@@ -160,16 +146,6 @@ ifeq ($(DUMP),1)
     # remove duplicates
     FEATURES:=$(sort $(FEATURES))
   endif
-  DEFAULT_CFLAGS_i386=-O2 -pipe -march=i486 -funit-at-a-time
-  DEFAULT_CFLAGS_x86_64=-O2 -pipe -march=athlon64 -funit-at-a-time
-  DEFAULT_CFLAGS_m68k=-Os -pipe -mcfv4e -funit-at-a-time
-  DEFAULT_CFLAGS_mips=-Os -pipe -mips32 -mtune=mips32 -funit-at-a-time
-  DEFAULT_CFLAGS_mipsel=$(DEFAULT_CFLAGS_mips)
-  DEFAULT_CFLAGS_mips64=-Os -pipe -mips64 -mtune=mips64 -mabi=64 -funit-at-a-time
-  DEFAULT_CFLAGS_mips64el=$(DEFAULT_CFLAGS_mips64)
-  DEFAULT_CFLAGS_arm=-Os -pipe -march=armv5te -mtune=xscale -funit-at-a-time
-  DEFAULT_CFLAGS_armeb=$(DEFAULT_CFLAGS_arm)
-  DEFAULT_CFLAGS=$(if $(DEFAULT_CFLAGS_$(ARCH)),$(DEFAULT_CFLAGS_$(ARCH)),-Os -pipe -funit-at-a-time)
 endif
 
 define BuildTargets/DumpCurrent
@@ -178,12 +154,11 @@ define BuildTargets/DumpCurrent
 	@echo 'Target: $(TARGETID)'; \
 	 echo 'Target-Board: $(BOARD)'; \
 	 echo 'Target-Kernel: $(KERNEL)'; \
-	 echo 'Target-Name: $(BOARDNAME)$(if $(SUBTARGETS),$(if $(SUBTARGET),))'; \
+	 echo 'Target-Name: $(BOARDNAME)$(if $(SUBTARGET),, [$(KERNEL)])'; \
 	 echo 'Target-Path: $(subst $(TOPDIR)/,,$(PWD))'; \
 	 echo 'Target-Arch: $(ARCH)'; \
 	 echo 'Target-Features: $(FEATURES)'; \
 	 echo 'Target-Depends: $(DEPENDS)'; \
-	 echo 'Target-Optimization: $(if $(CFLAGS),$(CFLAGS),$(DEFAULT_CFLAGS))'; \
 	 echo 'Linux-Version: $(LINUX_VERSION)'; \
 	 echo 'Linux-Release: $(LINUX_RELEASE)'; \
 	 echo 'Linux-Kernel-Arch: $(LINUX_KARCH)'; \

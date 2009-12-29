@@ -4,6 +4,7 @@
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
+# $Id$
 
 include $(TOPDIR)/rules.mk
 
@@ -28,7 +29,7 @@ define Build/Configure
 	(cd $(PKG_BUILD_DIR); \
 		$(TARGET_CONFIGURE_OPTS) \
 		LDSHARED="$(TARGET_CC) -shared -Wl,-soname,libz.so.1" \
-		CFLAGS="$(TARGET_CFLAGS) $(FPIC)" \
+		CFLAGS="$(TARGET_CFLAGS) $(FPIC) $(CFLAGS_LARGEFILE)" \
 		UNAME_S="Linux" \
 		./configure \
 			--prefix=/usr \
@@ -39,7 +40,7 @@ endef
 define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		$(TARGET_CONFIGURE_OPTS) \
-		CFLAGS="$(TARGET_CFLAGS) $(FPIC)" \
+		CFLAGS="$(TARGET_CFLAGS) -fPIC $(CFLAGS_LARGEFILE)" \
 		libz.a libz.so
 	mkdir -p $(PKG_INSTALL_DIR)
 	$(MAKE) -C $(PKG_BUILD_DIR) \

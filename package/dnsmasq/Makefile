@@ -8,12 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=dnsmasq
-PKG_VERSION:=2.51
-PKG_RELEASE:=2
+PKG_VERSION:=2.47
+PKG_RELEASE:=3.3
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://thekelleys.org.uk/dnsmasq
-PKG_MD5SUM:=97465261a6de5258a3c3edfe51ca16a4
+PKG_MD5SUM:=4524081e56d0b935717d493e8e8d3e11
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -30,7 +30,6 @@ endef
 
 define Package/dnsmasq/conffiles
 /etc/config/dhcp
-/etc/dnsmasq.conf
 endef
 
 define Build/Compile
@@ -47,7 +46,6 @@ define Package/dnsmasq/install
 	$(INSTALL_BIN) $(PKG_BUILD_DIR)/src/dnsmasq $(1)/usr/sbin/
 	$(INSTALL_DIR) $(1)/etc/config
 	$(INSTALL_DATA) ./files/dhcp.conf $(1)/etc/config/dhcp
-	$(INSTALL_DATA) ./files/dnsmasq.conf $(1)/etc/dnsmasq.conf
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_BIN) ./files/dnsmasq.init $(1)/etc/init.d/dnsmasq
 endef
