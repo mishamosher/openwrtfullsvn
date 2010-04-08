@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2006-2010 OpenWrt.org
+# Copyright (C) 2006-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -8,13 +8,13 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=busybox
-PKG_VERSION:=1.16.1
+PKG_VERSION:=1.15.3
 PKG_RELEASE:=2
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.busybox.net/downloads \
 		http://distfiles.gentoo.org/distfiles/
-PKG_MD5SUM:=319486ec65078d07fde26eb620fecde7
+PKG_MD5SUM:=6059ac9456de6fb18dc8ee4cd0ec9240
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -30,7 +30,6 @@ init-$(CONFIG_BUSYBOX_CONFIG_TELNETD) += telnet
 define Package/busybox
   SECTION:=base
   CATEGORY:=Base system
-  MAINTAINER:=Nicolas Thill <nico@openwrt.org>
   TITLE:=Core utilities for embedded Linux
   URL:=http://busybox.net/
   MENU:=1
