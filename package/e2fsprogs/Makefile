@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2010 OpenWrt.org
+# Copyright (C) 2006-2008 OpenWrt.org
 # Copyright 2010 Vertical Communications
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -8,14 +8,12 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=e2fsprogs
-PKG_VERSION:=1.41.12
-PKG_MD5SUM:=1b24a21fc0c2381ef420961cbfec733f
-PKG_RELEASE:=2
+PKG_VERSION:=1.41.11
+PKG_MD5SUM:=fb507a40c2706bc38306f150d069e345
+PKG_RELEASE:=1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=@SF/e2fsprogs
-
-PKG_INSTALL:=1
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -29,7 +27,7 @@ $(call Package/e2fsprogs/Default)
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=Ext2/3/4 filesystem utilities
-  DEPENDS:=+libblkid +libuuid +libext2fs +libpthread +libcom_err
+  DEPENDS:=+libblkid +libuuid +libext2fs +libpthread
 endef
 
 define Package/e2fsprogs/description
@@ -66,7 +64,7 @@ define Package/libblkid
 $(call Package/e2fsprogs/Default)
   SECTION:=libs
   CATEGORY:=Libraries
-  TITLE:=Block device id library
+  TITLE:=block device id library
 endef
 
 define Package/libblkid/description
@@ -83,17 +81,6 @@ endef
 
 define Package/libext2fs/description
 libext2fs is a library which can access ext2, ext3 and ext4 filesystems.
-endef
-
-define Package/libcom_err
-$(call Package/e2fsprogs/Default)
-  SECTION:=libs
-  CATEGORY:=Libraries
-  TITLE:=Common error description library
-endef
-
-define Package/libcom_err/description
-libcom_err is a library providing common error descriptions
 endef
 
 define Package/tune2fs
@@ -117,7 +104,7 @@ endef
 define Package/blkid
 $(call Package/e2fsprogs)
   TITLE:=Command-line utility to locate/print block device attributes
-  DEPENDS:=+libuuid +libblkid +libext2fs +libcom_err +libpthread
+  DEPENDS:=+libuuid +libblkid
 endef
 
 TARGET_CFLAGS += $(FPIC)
@@ -145,7 +132,7 @@ define Build/Compile
 	$(MAKE) -C $(PKG_BUILD_DIR) \
 		BUILDCC="$(HOSTCC)" \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
-		all
+		all install
 endef
 
 define Build/InstallDev
@@ -167,16 +154,10 @@ define Package/e2fsprogs/install
 	ln -sf mke2fs $(1)/usr/sbin/mkfs.ext3
 	ln -sf mke2fs $(1)/usr/sbin/mkfs.ext4
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libe2p.so.* $(1)/usr/lib/
+	$(CP) $(foreach lib,com_err e2p,$(PKG_INSTALL_DIR)/usr/lib/lib$(lib).so.*) $(1)/usr/lib/
 	$(INSTALL_DIR) $(1)/etc/init.d
 	$(INSTALL_DIR) $(1)/lib/functions/fsck
 	$(INSTALL_DATA) ./files/e2fsck.sh $(1)/lib/functions/fsck/
-	$(INSTALL_DATA) ./files/e2fsck.conf $(1)/etc/e2fsck.conf
-endef
-
-define Package/libcom_err/install
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_INSTALL_DIR)/usr/lib/libcom_err.so.* $(1)/usr/lib/
 endef
 
 define Package/libuuid/install
@@ -224,7 +205,6 @@ $(eval $(call BuildPackage,libuuid))
 $(eval $(call BuildPackage,uuidgen))
 $(eval $(call BuildPackage,libblkid))
 $(eval $(call BuildPackage,libext2fs))
-$(eval $(call BuildPackage,libcom_err))
 $(eval $(call BuildPackage,tune2fs))
 $(eval $(call BuildPackage,resize2fs))
 $(eval $(call BuildPackage,badblocks))

@@ -45,6 +45,7 @@ sub parse_target_metadata() {
 				$target->{parent} = $target{$1};
 			}
 		};
+		/^Target-Kernel:\s*(\d+\.\d+)\s*$/ and $target->{kernel} = $1;
 		/^Target-Name:\s*(.+)\s*$/ and $target->{name} = $1;
 		/^Target-Path:\s*(.+)\s*$/ and $target->{path} = $1;
 		/^Target-Arch:\s*(.+)\s*$/ and $target->{arch} = $1;
@@ -56,7 +57,6 @@ sub parse_target_metadata() {
 		/^Linux-Version:\s*(.+)\s*$/ and $target->{version} = $1;
 		/^Linux-Release:\s*(.+)\s*$/ and $target->{release} = $1;
 		/^Linux-Kernel-Arch:\s*(.+)\s*$/ and $target->{karch} = $1;
-		/^Default-Subtarget:\s*(.+)\s*$/ and $target->{def_subtarget} = $1;
 		/^Default-Packages:\s*(.+)\s*$/ and $target->{packages} = [ split(/\s+/, $1) ];
 		/^Target-Profile:\s*(.+)\s*$/ and do {
 			$profile = {
@@ -159,16 +159,14 @@ sub target_config_features(@) {
 		/pci/ and $ret .= "\tselect PCI_SUPPORT\n";
 		/pcie/ and $ret .= "\tselect PCIE_SUPPORT\n";
 		/usb/ and $ret .= "\tselect USB_SUPPORT\n";
-		/usbgadget/ and $ret .= "\tselect USB_GADGET_SUPPORT\n";
 		/pcmcia/ and $ret .= "\tselect PCMCIA_SUPPORT\n";
 		/squashfs/ and $ret .= "\tselect USES_SQUASHFS\n";
 		/jffs2/ and $ret .= "\tselect USES_JFFS2\n";
-		/ext4/ and $ret .= "\tselect USES_EXT4\n";
+		/ext2/ and $ret .= "\tselect USES_EXT2\n";
 		/targz/ and $ret .= "\tselect USES_TARGZ\n";
 		/cpiogz/ and $ret .= "\tselect USES_CPIOGZ\n";
 		/ubifs/ and $ret .= "\tselect USES_UBIFS\n";
 		/fpu/ and $ret .= "\tselect HAS_FPU\n";
-		/spe_fpu/ and $ret .= "\tselect HAS_SPE_FPU\n";
 		/ramdisk/ and $ret .= "\tselect USES_INITRAMFS\n";
 		/powerpc64/ and $ret .= "\tselect powerpc64\n";
 		/nommu/ and $ret .= "\tselect NOMMU\n";
@@ -189,11 +187,7 @@ sub target_name($) {
 sub kver($) {
 	my $v = shift;
 	$v =~ tr/\./_/;
-	if (substr($v,0,2) eq "2_") {
-		$v =~ /(\d+_\d+_\d+)(_\d+)?/ and $v = $1;
-	} else {
-		$v =~ /(\d+_\d+)(_\d+)?/ and $v = $1;
-	}
+	$v =~ /(\d+_\d+_\d+)(_\d+)?/ and $v = $1;
 	return $v;
 }
 
@@ -201,7 +195,9 @@ sub print_target($) {
 	my $target = shift;
 	my $features = target_config_features(@{$target->{features}});
 	my $help = $target->{desc};
+	my $kernel = $target->{kernel};
 	my $confstr;
+	$kernel =~ tr/./_/;
 
 	chomp $features;
 	$features .= "\n";
@@ -217,6 +213,7 @@ sub print_target($) {
 	$confstr = <<EOF;
 config TARGET_$target->{conf}
 	bool "$target->{name}"
+	select LINUX_$kernel
 	select LINUX_$v
 EOF
 	}
@@ -231,8 +228,6 @@ EOF
 	}
 	if (@{$target->{subtargets}} > 0) {
 		$confstr .= "\tselect HAS_SUBTARGETS\n";
-	} else {
-		$confstr .= $features;
 	}
 
 	if ($target->{arch} =~ /\w/) {
@@ -252,6 +247,7 @@ EOF
 		$flags =~ /\+/ and $mode = "select";
 		$flags =~ /@/ and $confstr .= "\t$mode $name\n";
 	}
+	$confstr .= $features;
 	$confstr .= "$help\n\n";
 	print $confstr;
 }
@@ -268,7 +264,7 @@ sub gen_target_config() {
 	print <<EOF;
 choice
 	prompt "Target System"
-	default TARGET_brcm47xx
+	default TARGET_brcm_2_4
 	reset if !DEVEL
 	
 EOF
@@ -283,14 +279,6 @@ endchoice
 
 choice
 	prompt "Subtarget" if HAS_SUBTARGETS
-EOF
-	foreach my $target (@target) {
-		next unless $target->{def_subtarget};
-		print <<EOF;
-	default TARGET_$target->{conf}_$target->{def_subtarget} if TARGET_$target->{conf}
-EOF
-	}
-	print <<EOF;
 
 EOF
 	foreach my $target (@target) {
@@ -445,9 +433,8 @@ sub mconf_depends {
 		my $vdep;
 		my $condition = $parent_condition;
 
-		next if $condition eq $depend;
-		next if $seen->{"$parent_condition:$depend"};
-		$seen->{"$parent_condition:$depend"} = 1;
+		next if $seen->{$depend};
+		$seen->{$depend} = 1;
 		if ($depend =~ /^(.+):(.+)$/) {
 			if ($1 ne "PACKAGE_$pkgname") {
 				if ($condition) {
@@ -534,18 +521,15 @@ sub print_package_config_category($) {
 			if ($c > 0) {
 				$title .= ("." x $c). " ". $pkg->{title};
 			}
-			$title = "\"$title\"";
 			print "\t";
 			$pkg->{menu} and print "menu";
 			print "config PACKAGE_".$pkg->{name}."\n";
-			$pkg->{hidden} and $title = "";
-			print "\t\t".($pkg->{tristate} ? 'tristate' : 'bool')." $title\n";
+			print "\t\t".($pkg->{tristate} ? 'tristate' : 'bool')." \"$title\"\n";
 			print "\t\tdefault y if DEFAULT_".$pkg->{name}."\n";
 			foreach my $default (split /\s*,\s*/, $pkg->{default}) {
 				print "\t\tdefault $default\n";
 			}
 			print mconf_depends($pkg->{name}, $pkg->{depends}, 0);
-			print mconf_depends($pkg->{name}, $pkg->{mdepends}, 0);
 			print "\t\thelp\n";
 			print $pkg->{description};
 			print "\n";
@@ -707,10 +691,10 @@ sub gen_package_mk() {
 				my $depstr = "\$(curdir)/$idx$suffix/compile";
 				my $depline = get_conditional_dep($condition, $depstr);
 				if ($depline) {
-					$deplines{$depline}++;
+					$deplines{$dep} = $depline;
 				}
 			}
-			my $depline = join(" ", sort keys %deplines);
+			my $depline = join(" ", values %deplines);
 			if ($depline) {
 				$line .= "\$(curdir)/".$pkg->{subdir}."$pkg->{src}/$type/compile += $depline\n";
 			}
@@ -754,7 +738,7 @@ sub gen_package_mk() {
 				if ($idx) {
 					my $depline;
 					next if $pkg->{src} eq $pkg_dep->{src}.$suffix;
-					next if $dep{$condition.":".$pkg->{src}."->".$idx};
+					next if $dep{$pkg->{src}."->".$idx};
 					next if $dep{$pkg->{src}."->($dep)".$idx} and $pkg_dep->{vdepends};
 					my $depstr;
 
@@ -767,12 +751,12 @@ sub gen_package_mk() {
 					}
 					$depline = get_conditional_dep($condition, $depstr);
 					if ($depline) {
-						$deplines{$depline}++;
+						$deplines{$idx.$dep} = $depline;
 					}
 				}
 			}
 		}
-		my $depline = join(" ", sort keys %deplines);
+		my $depline = join(" ", values %deplines);
 		if ($depline) {
 			$line .= "\$(curdir)/".$pkg->{subdir}."$pkg->{src}/compile += $depline\n";
 		}

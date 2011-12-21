@@ -136,7 +136,6 @@ errout:
 
 }
 
-#ifdef disabled
 char *genl_op2name(int family, int op, char *buf, size_t len)
 {
 	struct genl_ops *ops;
@@ -159,7 +158,7 @@ char *genl_op2name(int family, int op, char *buf, size_t len)
 	strncpy(buf, "unknown", len - 1);
 	return NULL;
 }
-#endif
+
 
 /**
  * @name Register/Unregister

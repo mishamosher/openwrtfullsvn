@@ -8,7 +8,7 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=nvram
-PKG_RELEASE:=9
+PKG_RELEASE:=7
 
 PKG_BUILD_DIR := $(BUILD_DIR)/$(PKG_NAME)
 
@@ -18,13 +18,12 @@ define Package/nvram
   SECTION:=utils
   CATEGORY:=Base system
   TITLE:=Userspace port of the Broadcom NVRAM manipulation tool
-  MAINTAINER:=Jo-Philipp Wich <xm@subsignal.org>
-  DEPENDS:=@TARGET_brcm47xx||@TARGET_ar71xx
+  DEPENDS:=@TARGET_brcm_2_4||@TARGET_brcm47xx||@TARGET_ar71xx
 endef
 
 define Package/nvram/description
  This package contains an utility to manipulate NVRAM on Broadcom based devices.
- It works on bcm47xx (Linux 2.6) without using the kernel api.
+ It works on both brcm-2.4 and bcm47xx (Linux 2.6) without using the kernel api.
 endef
 
 define Build/Prepare

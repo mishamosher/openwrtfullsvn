@@ -29,8 +29,7 @@
 #define WRT400N_GPIO_BTN_RESET	8
 #define WRT400N_GPIO_BTN_WLSEC	3
 
-#define WRT400N_KEYS_POLL_INTERVAL	20	/* msecs */
-#define WRT400N_KEYS_DEBOUNE_INTERVAL	(3 * WRT400N_KEYS_POLL_INTERVAL)
+#define WRT400N_BUTTONS_POLL_INTERVAL	20
 
 #define WRT400N_MAC_ADDR_OFFSET		0x120c
 #define WRT400N_CALDATA0_OFFSET		0x1000
@@ -43,40 +42,40 @@ static struct mtd_partition wrt400n_partitions[] = {
 		.offset		= 0,
 		.size		= 0x030000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "env",
 		.offset		= 0x030000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "linux",
 		.offset		= 0x040000,
 		.size		= 0x140000,
-	}, {
+	} , {
 		.name		= "rootfs",
 		.offset		= 0x180000,
 		.size		= 0x630000,
-	}, {
+	} , {
 		.name		= "nvram",
 		.offset		= 0x7b0000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "factory",
 		.offset		= 0x7c0000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "language",
 		.offset		= 0x7d0000,
 		.size		= 0x020000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "caldata",
 		.offset		= 0x7f0000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "firmware",
 		.offset		= 0x040000,
 		.size		= 0x770000,
@@ -86,8 +85,8 @@ static struct mtd_partition wrt400n_partitions[] = {
 
 static struct flash_platform_data wrt400n_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-	.parts		= wrt400n_partitions,
-	.nr_parts	= ARRAY_SIZE(wrt400n_partitions),
+        .parts          = wrt400n_partitions,
+        .nr_parts       = ARRAY_SIZE(wrt400n_partitions),
 #endif
 };
 
@@ -111,19 +110,19 @@ static struct gpio_led wrt400n_leds_gpio[] __initdata = {
 	}
 };
 
-static struct gpio_keys_button wrt400n_gpio_keys[] __initdata = {
+static struct gpio_button wrt400n_gpio_buttons[] __initdata = {
 	{
 		.desc		= "reset",
 		.type		= EV_KEY,
-		.code		= KEY_RESTART,
-		.debounce_interval = WRT400N_KEYS_DEBOUNE_INTERVAL,
+		.code		= BTN_0,
+		.threshold	= 3,
 		.gpio		= WRT400N_GPIO_BTN_RESET,
 		.active_low	= 1,
-	}, {
+	} , {
 		.desc		= "wlsec",
 		.type		= EV_KEY,
-		.code		= KEY_WPS_BUTTON,
-		.debounce_interval = WRT400N_KEYS_DEBOUNE_INTERVAL,
+		.code		= BTN_1,
+		.threshold	= 3,
 		.gpio		= WRT400N_GPIO_BTN_WLSEC,
 		.active_low	= 1,
 	}
@@ -132,16 +131,21 @@ static struct gpio_keys_button wrt400n_gpio_keys[] __initdata = {
 static void __init wrt400n_setup(void)
 {
 	u8 *art = (u8 *) KSEG1ADDR(0x1fff0000);
-	u8 *mac = art + WRT400N_MAC_ADDR_OFFSET;
+	u8 mac[6];
+	int i;
 
-	ar71xx_add_device_mdio(0, 0x0);
+	memcpy(mac, art + WRT400N_MAC_ADDR_OFFSET, 6);
+	for (i = 5; i >= 3; i--)
+		if (++mac[i] != 0x00) break;
 
-	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 1);
+	ar71xx_set_mac_base(mac);
+
+	ar71xx_add_device_mdio(0x0);
+
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth0_data.speed = SPEED_100;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 
-	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, mac, 2);
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth1_data.phy_mask = 0x10;
 
@@ -153,9 +157,9 @@ static void __init wrt400n_setup(void)
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(wrt400n_leds_gpio),
 					wrt400n_leds_gpio);
 
-	ar71xx_register_gpio_keys_polled(-1, WRT400N_KEYS_POLL_INTERVAL,
-					 ARRAY_SIZE(wrt400n_gpio_keys),
-					 wrt400n_gpio_keys);
+	ar71xx_add_device_gpio_buttons(-1, WRT400N_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(wrt400n_gpio_buttons),
+					wrt400n_gpio_buttons);
 
 	ap94_pci_init(art + WRT400N_CALDATA0_OFFSET, NULL,
 		      art + WRT400N_CALDATA1_OFFSET, NULL);

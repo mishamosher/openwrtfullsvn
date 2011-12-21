@@ -7,7 +7,6 @@ RAMFS_COPY_DATA=""	# extra data files
 export INTERACTIVE=0
 export VERBOSE=1
 export SAVE_CONFIG=1
-export SAVE_OVERLAY=0
 export DELAY=
 export CONF_IMAGE=
 export CONF_BACKUP=
@@ -21,7 +20,6 @@ while [ -n "$1" ]; do
 		-v) export VERBOSE="$(($VERBOSE + 1))";;
 		-q) export VERBOSE="$(($VERBOSE - 1))";;
 		-n) export SAVE_CONFIG=0;;
-		-c) export SAVE_OVERLAY=1;;
 		-b|--create-backup) export CONF_BACKUP="$2"; shift;;
 		-f) export CONF_IMAGE="$2"; shift;;
 		-h|--help) export HELP=1; break;;
@@ -48,7 +46,6 @@ Options:
 	-d <delay>   add a delay before rebooting
 	-f <config>  restore configuration from .tar.gz (file or url)
 	-i           interactive mode
-	-c           attempt to preserve all changed files in /etc/
 	-b / --create-backup <file>
 	             create .tar.gz of files specified in sysupgrade.conf
 	             then exit. Does not flash an image. If file is '-',
@@ -82,22 +79,9 @@ add_uci_conffiles() {
 	return 0
 }
 
-add_overlayfiles() {
-	local file="$1"
-	find /overlay/etc/ -type f | sed \
-		-e 's,^/overlay/,/,' \
-		-e '\,/META_[a-zA-Z0-9]*$,d' \
-		-e '\,/functions.sh$,d' \
-		-e '\,/[^/]*-opkg$,d' \
-	> "$file"
-	return 0
-}
-
 # hooks
 sysupgrade_image_check="platform_check_image"
-[ $SAVE_OVERLAY = 0 -o ! -d /overlay/etc ] && \
-	sysupgrade_init_conffiles="add_uci_conffiles" || \
-	sysupgrade_init_conffiles="add_overlayfiles"
+sysupgrade_init_conffiles="add_uci_conffiles"
 
 include /lib/upgrade
 
@@ -151,12 +135,7 @@ elif ask_bool $SAVE_CONFIG "Keep config files over reflash"; then
 else
 	export SAVE_CONFIG=0
 fi
-
 run_hooks "" $sysupgrade_pre_upgrade
-
-kill_remaining TERM
-sleep 3
-kill_remaining KILL
 
 if [ -n "$(rootfs_type)" ]; then
 	v "Switching to ramdisk..."

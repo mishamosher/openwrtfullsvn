@@ -71,10 +71,11 @@
 		return 1;										\
 	}
 
-#define LUA_WRAP_STRUCT(type,op)						\
+#define LUA_WRAP_LIST(type,op)							\
 	static int iwinfo_L_##type##_##op(lua_State *L)		\
 	{													\
 		return iwinfo_L_##op(L, type##_get_##op);		\
 	}
 
 #endif
+

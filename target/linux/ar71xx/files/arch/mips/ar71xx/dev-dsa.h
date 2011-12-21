@@ -14,8 +14,7 @@
 
 #include <net/dsa.h>
 
-void ar71xx_add_device_dsa(struct device *netdev,
-			   struct device *miidev,
+void ar71xx_add_device_dsa(unsigned int id,
 			   struct dsa_platform_data *d) __init;
 
 #endif /* _AR71XX_DEV_DSA_H */

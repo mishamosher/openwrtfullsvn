@@ -26,15 +26,35 @@
 #
 sinclude $(OBJTREE)/board/$(BOARDDIR)/config.tmp
 
-ifdef CONFIG_BOOTSTRAP
-TEXT_BASE = 0x80001000
-CONFIG_BOOTSTRAP_TEXT_BASE = 0xb0000000
-CONFIG_SYS_RAMBOOT = y
-else
+ifdef CONFIG_LZMA_BOOTSTRAP
+
+ifdef BUILD_BOOTSTRAP
+
+$(info BUILD_BOOTSTRAP )
+#TEXT_BASE = 0xB0000000
+TEXT_BASE = 0x80010000
+
+else # BUILD_BOOTSTRAP
 
 ifndef TEXT_BASE
-$(info redefine TEXT_BASE = 0xB0000000 )
-TEXT_BASE = 0xB0000000
+$(info redefine TEXT_BASE = 0x80040000 )
+TEXT_BASE = 0x80040000
 endif
 
+endif # BUILD_BOOTSTRAP
+
+else
+
+ifdef BUILD_BOOTSTRAP
+$(error BUILD_BOOTSTRAP but not enabled in config)
 endif
+
+ifndef TEXT_BASE
+## Standard: boot from ebu
+$(info redefine TEXT_BASE = 0xB0000000 )
+TEXT_BASE = 0xB0000000
+## For testing: boot from RAM
+# TEXT_BASE = 0x80100000
+endif
+
+endif # CONFIG_LZMA_BOOTSTRAP

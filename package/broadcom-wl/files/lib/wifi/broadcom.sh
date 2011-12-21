@@ -66,6 +66,7 @@ scan_broadcom() {
 	apsta=0
 	radio=1
 	monitor=0
+	passive=0
 	case "$adhoc:$sta:$apmode:$mon" in
 		1*)
 			ap=0
@@ -86,6 +87,7 @@ scan_broadcom() {
 			ap=0
 			mssid=
 			monitor=1
+			passive=1
 		;;
 		::)
 			radio=0
@@ -97,7 +99,6 @@ disable_broadcom() {
 	local device="$1"
 	set_wifi_down "$device"
 	wlc ifname "$device" down
-	wlc ifname "$device" bssid `wlc ifname "$device" default_bssid`
 	(
 		include /lib/network
 
@@ -137,6 +138,7 @@ enable_broadcom() {
 
 	_c=0
 	nas="$(which nas)"
+	[ -n "$nas" ] && nas="start-stop-daemon -S -b -x $nas -- "
 	nas_cmd=
 	if_up=
 
@@ -195,7 +197,7 @@ enable_broadcom() {
 		nasopts=
 		config_get enc "$vif" encryption
 		case "$enc" in
-			*wep*)
+			*WEP*|*wep*)
 				wsec_r=1
 				wsec=1
 				defkey=1
@@ -218,31 +220,22 @@ enable_broadcom() {
 					*) append vif_do_up "wepkey =1,$key" "$N";;
 				esac
 			;;
-			*psk*)
+			*psk*|*PSK*)
 				wsec_r=1
 				config_get key "$vif" key
-
-				# psk version + default cipher
 				case "$enc" in
-					*mixed*|*psk+psk2*) auth=132; wsec=6;;
-					*psk2*) auth=128; wsec=4;;
+					wpa*+wpa2*|WPA*+WPA2*|*psk+*psk2|*PSK+*PSK2) auth=132; wsec=6;;
+					wpa2*|WPA2*|*PSK2|*psk2) auth=128; wsec=4;;
+					*aes|*AES) auth=4; wsec=4;;
 					*) auth=4; wsec=2;;
 				esac
-
-				# cipher override
-				case "$enc" in
-					*tkip+aes*|*tkip+ccmp*|*aes+tkip*|*ccmp+tkip*) wsec=6;;
-					*aes*|*ccmp*) wsec=4;;
-					*tkip*) wsec=2;;
-				esac
-
 				# group rekey interval
 				config_get rekey "$vif" wpa_group_rekey
 
 				eval "${vif}_key=\"\$key\""
 				nasopts="-k \"\$${vif}_key\"${rekey:+ -g $rekey}"
 			;;
-			*wpa*)
+			*wpa*|*WPA*)
 				wsec_r=1
 				eap_r=1
 				config_get auth_server "$vif" auth_server
@@ -254,18 +247,10 @@ enable_broadcom() {
 
 				# wpa version + default cipher
 				case "$enc" in
-					*mixed*|*wpa+wpa2*) auth=66; wsec=6;;
-					*wpa2*) auth=64; wsec=4;;
+					wpa*+wpa2*|WPA*+WPA2*) auth=66; wsec=6;;
+					wpa2*|WPA2*) auth=64; wsec=4;;
 					*) auth=2; wsec=2;;
 				esac
-
-				# cipher override
-				case "$enc" in
-					*tkip+aes*|*tkip+ccmp*|*aes+tkip*|*ccmp+tkip*) wsec=6;;
-					*aes*|*ccmp*) wsec=4;;
-					*tkip*) wsec=2;;
-				esac
-
 				# group rekey interval
 				config_get rekey "$vif" wpa_group_rekey
 
@@ -285,36 +270,43 @@ enable_broadcom() {
 
 		[ "$mode" = "monitor" ] && {
 			append vif_post_up "monitor $monitor" "$N"
+			append vif_post_up "passive $passive" "$N"
 		}
 
 		[ "$mode" = "adhoc" ] && {
 			config_get bssid "$vif" bssid
 			[ -n "$bssid" ] && {
-				append vif_pre_up "bssid $bssid" "$N"
-				append vif_pre_up "ibss_merge 0" "$N"
-			} || {
-				append vif_pre_up "ibss_merge 1" "$N"
+				append vif_pre_up "des_bssid $bssid" "$N"
+				append vif_pre_up "allow_mode 1" "$N"
 			}
-		}
+		} || append vif_pre_up "allow_mode 0" "$N"
 
 		append vif_post_up "enabled 1" "$N"
 
 		config_get ifname "$vif" ifname
 		#append if_up "ifconfig $ifname up" ";$N"
 
-		local net_cfg
+		local net_cfg bridge
 		net_cfg="$(find_net_config "$vif")"
 		[ -z "$net_cfg" ] || {
+			bridge="$(bridge_interface "$net_cfg")"
 			append if_up "set_wifi_up '$vif' '$ifname'" ";$N"
-			append if_up "start_net '$ifname' '$net_cfg'" ";$N"
+			append if_up "start_net '$ifname' '$net_cfg' \$(wlc ifname '$ifname' bssid)" ";$N"
 		}
 		[ -z "$nasopts" ] || {
 			eval "${vif}_ssid=\"\$ssid\""
 			nas_mode="-A"
-			[ "$mode" = "sta" ] && nas_mode="-S"
-			[ -z "$nas" ] || {
-				nas_cmd="${nas_cmd:+$nas_cmd$N}start-stop-daemon -S -b -p /var/run/nas.$ifname.pid -x $nas -- -P /var/run/nas.$ifname.pid -H 34954 -i $ifname $nas_mode -m $auth -w $wsec -s \"\$${vif}_ssid\" -g 3600 -F $nasopts"
+			use_nas=1
+			[ "$mode" = "sta" ] && {
+				nas_mode="-S"
+				[ -z "$bridge" ] || {
+					append vif_post_up "supplicant 1" "$N"
+					append vif_post_up "passphrase $key" "$N"
+
+					use_nas=0
+				}
 			}
+			[ -z "$nas" -o "$use_nas" = "0" ] || nas_cmd="${nas_cmd:+$nas_cmd$N}$nas -P /var/run/nas.$ifname.pid -H 34954 ${bridge:+ -l $bridge} -i $ifname $nas_mode -m $auth -w $wsec -s \"\$${vif}_ssid\" -g 3600 $nasopts &"
 		}
 		_c=$(($_c + 1))
 	done
@@ -336,13 +328,14 @@ txant ${txantenna:-3}
 fragthresh ${frag:-2346}
 rtsthresh ${rts:-2347}
 monitor ${monitor:-0}
+passive ${passive:-0}
 
 radio ${radio:-1}
 macfilter ${macfilter:-0}
 maclist ${maclist:-none}
 wds none
 ${wds:+wds $wds}
-country ${country:-US}
+country ${country:-IL0}
 ${channel:+channel $channel}
 maxassoc ${maxassoc:-128}
 slottime ${slottime:--1}
@@ -369,7 +362,7 @@ EOF
 detect_broadcom() {
 	local i=-1
 
-	while grep -qs "^ *wl$((++i)):" /proc/net/dev; do
+	while [ -f /proc/net/wl$((++i)) ]; do
 		config_get type wl${i} type
 		[ "$type" = broadcom ] && continue
 		cat <<EOF

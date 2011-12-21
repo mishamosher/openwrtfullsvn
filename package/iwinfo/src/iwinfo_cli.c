@@ -282,65 +282,6 @@ static const char * print_type(const struct iwinfo_ops *iw, const char *ifname)
 	return type ? type : "unknown";
 }
 
-static char * print_hardware_id(const struct iwinfo_ops *iw, const char *ifname)
-{
-	static char buf[20];
-	struct iwinfo_hardware_id ids;
-
-	if (!iw->hardware_id(ifname, (char *)&ids))
-	{
-		snprintf(buf, sizeof(buf), "%04X:%04X %04X:%04X",
-			ids.vendor_id, ids.device_id,
-			ids.subsystem_vendor_id, ids.subsystem_device_id);
-	}
-	else
-	{
-		snprintf(buf, sizeof(buf), "unknown");
-	}
-
-	return buf;
-}
-
-static char * print_hardware_name(const struct iwinfo_ops *iw, const char *ifname)
-{
-	static char buf[128];
-
-	if (iw->hardware_name(ifname, buf))
-		snprintf(buf, sizeof(buf), "unknown");
-
-	return buf;
-}
-
-static char * print_txpower_offset(const struct iwinfo_ops *iw, const char *ifname)
-{
-	int off;
-	static char buf[12];
-
-	if (iw->txpower_offset(ifname, &off))
-		snprintf(buf, sizeof(buf), "unknown");
-	else if (off != 0)
-		snprintf(buf, sizeof(buf), "%d dB", off);
-	else
-		snprintf(buf, sizeof(buf), "none");
-
-	return buf;
-}
-
-static char * print_frequency_offset(const struct iwinfo_ops *iw, const char *ifname)
-{
-	int off;
-	static char buf[12];
-
-	if (iw->frequency_offset(ifname, &off))
-		snprintf(buf, sizeof(buf), "unknown");
-	else if (off != 0)
-		snprintf(buf, sizeof(buf), "%.3f GHz", ((float)off / 1000.0));
-	else
-		snprintf(buf, sizeof(buf), "none");
-
-	return buf;
-}
-
 static char * print_ssid(const struct iwinfo_ops *iw, const char *ifname)
 {
 	char buf[IWINFO_ESSID_MAX_SIZE+1] = { 0 };
@@ -482,6 +423,9 @@ static void print_info(const struct iwinfo_ops *iw, const char *ifname)
 		print_ssid(iw, ifname));
 	printf("          Access Point: %s\n",
 		print_bssid(iw, ifname));
+	printf("          Type: %s  HW Mode(s): %s\n",
+		print_type(iw, ifname),
+		print_hwmodes(iw, ifname));
 	printf("          Mode: %s  Channel: %s (%s)\n",
 		print_mode(iw, ifname),
 		print_channel(iw, ifname),
@@ -497,16 +441,6 @@ static void print_info(const struct iwinfo_ops *iw, const char *ifname)
 		print_rate(iw, ifname));
 	printf("          Encryption: %s\n",
 		print_encryption(iw, ifname));
-	printf("          Type: %s  HW Mode(s): %s\n",
-		print_type(iw, ifname),
-		print_hwmodes(iw, ifname));
-	printf("          Hardware: %s [%s]\n",
-		print_hardware_id(iw, ifname),
-		print_hardware_name(iw, ifname));
-	printf("          TX power offset: %s\n",
-		print_txpower_offset(iw, ifname));
-	printf("          Frequency offset: %s\n",
-		print_frequency_offset(iw, ifname));
 	printf("          Supports VAPs: %s\n",
 		print_mbssid_supp(iw, ifname));
 }
@@ -553,7 +487,7 @@ static void print_scanlist(const struct iwinfo_ops *iw, const char *ifname)
 
 static void print_txpwrlist(const struct iwinfo_ops *iw, const char *ifname)
 {
-	int len, pwr, off, i;
+	int len, pwr, i;
 	char buf[IWINFO_BUFSIZE];
 	struct iwinfo_txpwrlist_entry *e;
 
@@ -566,17 +500,14 @@ static void print_txpwrlist(const struct iwinfo_ops *iw, const char *ifname)
 	if (iw->txpower(ifname, &pwr))
 		pwr = -1;
 
-	if (iw->txpower_offset(ifname, &off))
-		off = 0;
-
 	for (i = 0; i < len; i += sizeof(struct iwinfo_txpwrlist_entry))
 	{
 		e = (struct iwinfo_txpwrlist_entry *) &buf[i];
 
 		printf("%s%3d dBm (%4d mW)\n",
 			(pwr == e->dbm) ? "*" : " ",
-			e->dbm + off,
-			iwinfo_dbm2mw(e->dbm + off));
+			e->dbm,
+			e->mw);
 	}
 }
 

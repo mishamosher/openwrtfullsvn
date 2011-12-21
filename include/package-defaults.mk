@@ -10,7 +10,6 @@ define Package/Default
   SECTION:=opt
   CATEGORY:=Extra packages
   DEPENDS:=
-  MDEPENDS:=
   PROVIDES:=
   EXTRA_DEPENDS:=
   MAINTAINER:=OpenWrt Developers Team <openwrt-devel@openwrt.org>
@@ -42,7 +41,6 @@ define Package/Default
   TITLE:=
   KCONFIG:=
   BUILDONLY:=
-  HIDDEN:=
   URL:=
   VARIANT:=
 endef
@@ -50,7 +48,7 @@ endef
 Build/Patch:=$(Build/Patch/Default)
 ifneq ($(strip $(PKG_UNPACK)),)
   define Build/Prepare/Default
-	$(SH_FUNC) $(PKG_UNPACK)
+  	$(PKG_UNPACK)
 	$(Build/Patch)
   endef
 endif
@@ -120,7 +118,7 @@ MAKE_PATH = .
 
 define Build/Compile/Default
 	$(MAKE_VARS) \
-	$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR)/$(MAKE_PATH) \
+	$(MAKE) -C $(PKG_BUILD_DIR)/$(MAKE_PATH) \
 		$(MAKE_FLAGS) \
 		$(1);
 endef

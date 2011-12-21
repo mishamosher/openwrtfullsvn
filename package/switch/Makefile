@@ -15,12 +15,12 @@ include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/switch
   SUBMENU:=Other modules
-  DEPENDS:=@TARGET_brcm47xx||TARGET_brcm63xx
+  DEPENDS:=@TARGET_brcm_2_4||TARGET_brcm47xx||TARGET_brcm63xx
   TITLE:=Switch drivers
   FILES:= \
-	$(PKG_BUILD_DIR)/switch-core.ko \
-	$(PKG_BUILD_DIR)/switch-adm.ko \
-	$(PKG_BUILD_DIR)/switch-robo.ko
+	$(PKG_BUILD_DIR)/switch-core.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/switch-adm.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/switch-robo.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,20,switch-core switch-robo switch-adm)
 endef
 
@@ -32,6 +32,15 @@ define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 	$(CP) ./src/* $(PKG_BUILD_DIR)/
 endef
+
+ifeq ($(BOARD),brcm-2.4)
+  BUILDFLAGS := -DBROADCOM -DBCMDRIVER -I$(LINUX_DIR)/arch/mips/bcm947xx/include
+else
+  ifeq ($(BOARD),brcm47xx)
+    BUILDFLAGS := -DBROADCOM
+  endif
+endif
+
 
 define Build/Compile
 	$(MAKE) -C "$(LINUX_DIR)" \

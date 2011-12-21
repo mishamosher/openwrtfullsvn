@@ -3,12 +3,11 @@
 
 START=98
 
-SERVICE_DAEMONIZE=1
-SERVICE_WRITE_PID=1
-SERVICE_PID_FILE=/var/run/sysntpd.pid
+BIN=/usr/sbin/ntpd
+PID=/var/run/sysntpd.pid
 
 start() {
-	[ -x $PROG ] || return 1
+	[ -x $BIN ] || exit 0
 
 	local peers
 
@@ -26,10 +25,11 @@ start() {
 			append args "-p $peer"
 		done
 
-		service_start /usr/sbin/ntpd $args
+		start-stop-daemon -x $BIN -m -p $PID -b -S -- $args
 	fi
 }
 
 stop() {
-	service_stop /usr/sbin/ntpd
+	service_kill ${BIN##*/} $PID
+	rm -f $PID
 }

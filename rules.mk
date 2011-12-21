@@ -16,8 +16,7 @@ include $(TOPDIR)/include/verbose.mk
 
 TMP_DIR:=$(TOPDIR)/tmp
 
-GREP_OPTIONS=
-export GREP_OPTIONS
+export SHELL=/usr/bin/env bash -c '. $(TOPDIR)/include/shell.sh; eval "$$2"' --
 
 qstrip=$(strip $(subst ",,$(1)))
 #"))
@@ -41,7 +40,6 @@ TARGET_OPTIMIZATION:=$(call qstrip,$(CONFIG_TARGET_OPTIMIZATION))
 TARGET_SUFFIX=$(call qstrip,$(CONFIG_TARGET_SUFFIX))
 BUILD_SUFFIX:=$(call qstrip,$(CONFIG_BUILD_SUFFIX))
 SUBDIR:=$(patsubst $(TOPDIR)/%,%,${CURDIR})
-export SHELL:=/usr/bin/env bash
 
 OPTIMIZE_FOR_CPU=$(subst i386,i486,$(ARCH))
 
@@ -54,17 +52,20 @@ endif
 HOST_FPIC:=-fPIC
 
 ARCH_SUFFIX:=
-GCC_ARCH:=
-
-ifneq ($(filter -march=armv%,$(TARGET_OPTIMIZATION)),)
-  ARCH_SUFFIX:=_$(patsubst -march=arm%,%,$(filter -march=armv%,$(TARGET_OPTIMIZATION)))
-  GCC_ARCH:=$(patsubst -march=%,%,$(filter -march=armv%,$(TARGET_OPTIMIZATION)))
-endif
 ifneq ($(findstring -mips32r2,$(TARGET_OPTIMIZATION)),)
   ARCH_SUFFIX:=_r2
 endif
-ifdef CONFIG_HAS_SPE_FPU
-  TARGET_SUFFIX:=$(TARGET_SUFFIX)spe
+ifneq ($(findstring -march=armv4,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v4
+endif
+ifneq ($(findstring -march=armv4t,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v4t
+endif
+ifneq ($(findstring -march=armv5t,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v5t
+endif
+ifneq ($(findstring -march=armv5te,$(TARGET_OPTIMIZATION)),)
+  ARCH_SUFFIX:=_v5te
 endif
 
 DL_DIR:=$(if $(call qstrip,$(CONFIG_DOWNLOAD_FOLDER)),$(call qstrip,$(CONFIG_DOWNLOAD_FOLDER)),$(TOPDIR)/dl)
@@ -80,7 +81,7 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
   LIBCV:=$(call qstrip,$(CONFIG_LIBC_VERSION))
   REAL_GNU_TARGET_NAME=$(OPTIMIZE_FOR_CPU)-openwrt-linux$(if $(TARGET_SUFFIX),-$(TARGET_SUFFIX))
   GNU_TARGET_NAME=$(OPTIMIZE_FOR_CPU)-openwrt-linux
-  DIR_SUFFIX:=_$(LIBC)-$(LIBCV)$(if $(CONFIG_arm),_eabi)
+  DIR_SUFFIX:=_$(LIBC)-$(LIBCV)$(if $(CONFIG_EABI_SUPPORT),_eabi)
   BUILD_DIR:=$(BUILD_DIR_BASE)/target-$(ARCH)$(ARCH_SUFFIX)$(DIR_SUFFIX)$(if $(BUILD_SUFFIX),_$(BUILD_SUFFIX))
   STAGING_DIR:=$(TOPDIR)/staging_dir/target-$(ARCH)$(ARCH_SUFFIX)$(DIR_SUFFIX)
   BUILD_DIR_TOOLCHAIN:=$(BUILD_DIR_BASE)/toolchain-$(ARCH)$(ARCH_SUFFIX)_gcc-$(GCCV)$(DIR_SUFFIX)
@@ -110,28 +111,17 @@ TARGET_PATH:=$(STAGING_DIR_HOST)/bin:$(PATH)
 TARGET_CFLAGS:=$(TARGET_OPTIMIZATION)$(if $(CONFIG_DEBUG), -g3)
 TARGET_CPPFLAGS:=-I$(STAGING_DIR)/usr/include -I$(STAGING_DIR)/include
 TARGET_LDFLAGS:=-L$(STAGING_DIR)/usr/lib -L$(STAGING_DIR)/lib
-ifneq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
-LIBGCC_S_PATH=$(realpath $(wildcard $(call qstrip,$(CONFIG_LIBGCC_ROOT_DIR))/$(call qstrip,$(CONFIG_LIBGCC_FILE_SPEC))))
-LIBGCC_S=$(if $(LIBGCC_S_PATH),-L$(dir $(LIBGCC_S_PATH)) -lgcc_s)
-LIBGCC_A=$(realpath $(wildcard $(dir $(LIBGCC_S_PATH))/gcc/*/*/libgcc.a))
-else
-LIBGCC_A=$(wildcard $(TOOLCHAIN_DIR)/lib/gcc/*/*/libgcc.a)
+LIBGCC_A=$(wildcard $(TOOLCHAIN_DIR)/usr/lib/gcc/*/*/libgcc.a)
 LIBGCC_S=$(if $(wildcard $(TOOLCHAIN_DIR)/lib/libgcc_s.so),-L$(TOOLCHAIN_DIR)/lib -lgcc_s,$(LIBGCC_A))
-endif
-ifdef CONFIG_USE_UCLIBC
-LIBRPC=-lrpc
-endif
-LIBRPC_DEPENDS=+USE_UCLIBC:librpc
 
 ifndef DUMP
   ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
     -include $(TOOLCHAIN_DIR)/info.mk
-    export GCC_HONOUR_COPTS:=0
     TARGET_CROSS:=$(if $(TARGET_CROSS),$(TARGET_CROSS),$(OPTIMIZE_FOR_CPU)-openwrt-linux$(if $(TARGET_SUFFIX),-$(TARGET_SUFFIX))-)
     TARGET_CFLAGS+= -fhonour-copts
     TARGET_CPPFLAGS+= -I$(TOOLCHAIN_DIR)/usr/include -I$(TOOLCHAIN_DIR)/include
     TARGET_LDFLAGS+= -L$(TOOLCHAIN_DIR)/usr/lib -L$(TOOLCHAIN_DIR)/lib
-    TARGET_PATH:=$(TOOLCHAIN_DIR)/bin:$(TARGET_PATH)
+    TARGET_PATH:=$(TOOLCHAIN_DIR)/usr/bin:$(TARGET_PATH)
   else
     ifeq ($(CONFIG_NATIVE_TOOLCHAIN),)
       TARGET_CROSS:=$(call qstrip,$(CONFIG_TOOLCHAIN_PREFIX))
@@ -148,7 +138,6 @@ ifndef DUMP
       ifneq ($(TOOLCHAIN_LIB_DIRS),)
         TARGET_LDFLAGS+= $(patsubst %,-L%,$(TOOLCHAIN_LIB_DIRS))
       endif
-      TOOLCHAIN_DIR:=$(TOOLCHAIN_ROOT_DIR)
     endif
   endif
 endif
@@ -163,7 +152,7 @@ endif
 
 export PATH:=$(TARGET_PATH)
 export STAGING_DIR
-export SH_FUNC:=. $(INCLUDE_DIR)/shell.sh;
+export GCC_HONOUR_COPTS:=0
 
 PKG_CONFIG:=$(STAGING_DIR_HOST)/bin/pkg-config
 
@@ -175,7 +164,7 @@ HOST_LDFLAGS:=-L$(STAGING_DIR_HOST)/lib
 
 TARGET_CC:=$(TARGET_CROSS)gcc
 TARGET_CXX:=$(if $(CONFIG_INSTALL_LIBSTDCPP),$(TARGET_CROSS)g++,no)
-KPATCH:=$(SCRIPT_DIR)/patch-kernel.sh
+PATCH:=$(SCRIPT_DIR)/patch-kernel.sh
 SED:=$(STAGING_DIR_HOST)/bin/sed -i -e
 CP:=cp -fpR
 LN:=ln -sf
@@ -187,7 +176,6 @@ INSTALL_CONF:=install -m0600
 
 ifneq ($(CONFIG_CCACHE),)
   TARGET_CC:= ccache $(TARGET_CC)
-  TARGET_CXX:= ccache $(TARGET_CXX)
 endif
 
 TARGET_CONFIGURE_OPTS = \
@@ -219,7 +207,7 @@ else
   RSTRIP:= \
     NM="$(TARGET_CROSS)nm" \
     STRIP="$(STRIP)" \
-    STRIP_KMOD="$(TARGET_CROSS)strip --strip-unneeded -R .comment -R .pdr -R .mdebug.abi32 -R .note.gnu.build-id -R .gnu.attributes -R .reginfo -x" \
+    STRIP_KMOD="$(TARGET_CROSS)strip --strip-unneeded --remove-section=.comment --remove-section=.pdr --remove-section=.mdebug.abi32" \
     $(SCRIPT_DIR)/rstrip.sh
 endif
 
@@ -235,14 +223,16 @@ else
   DISABLE_IPV6:=--disable-ipv6
 endif
 
+ifeq ($(CONFIG_LARGEFILE),y)
+  DISABLE_LARGEFILE:=
+else
+  DISABLE_LARGEFILE:=--disable-largefile
+endif
+
 ifeq ($(CONFIG_TAR_VERBOSITY),y)
   TAR_OPTIONS:=-xvf -
 else
   TAR_OPTIONS:=-xf -
-endif
-
-ifeq ($(CONFIG_BUILD_LOG),y)
-  BUILD_LOG:=1
 endif
 
 define shvar
@@ -258,33 +248,11 @@ define include_mk
 $(eval -include $(if $(DUMP),,$(STAGING_DIR)/mk/$(strip $(1))))
 endef
 
-# Execute commands under flock
-# $(1) => The shell expression.
-# $(2) => The lock name. If not given, the global lock will be used.
-define locked
-	SHELL= \
-	$(STAGING_DIR_HOST)/bin/flock \
-		$(TMP_DIR)/.$(if $(2),$(strip $(2)),global).flock \
-		-c '$(subst ','\'',$(1))'
-endef
-
 # file extension
 ext=$(word $(words $(subst ., ,$(1))),$(subst ., ,$(1)))
 
 all:
 FORCE: ;
 .PHONY: FORCE
-
-val.%:
-	@$(if $(filter undefined,$(origin $*)),\
-		echo "$* undefined" >&2, \
-		echo '$(subst ','"'"',$($*))' \
-	)
-
-var.%:
-	@$(if $(filter undefined,$(origin $*)),\
-		echo "$* undefined" >&2, \
-		echo "$*='"'$(subst ','"'\"'\"'"',$($*))'"'" \
-	)
 
 endif #__rules_inc

@@ -9,14 +9,12 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=ppp
-PKG_VERSION:=2.4.5
-PKG_RELEASE:=4
+PKG_VERSION:=2.4.4
+PKG_RELEASE:=16.1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=ftp://ftp.samba.org/pub/ppp/
-PKG_MD5SUM:=4621bc56167b6953ec4071043fe0ec57
-
-PKG_BUILD_DIR:=$(BUILD_DIR)/$(PKG_NAME)-$(BUILD_VARIANT)/$(PKG_NAME)-$(PKG_VERSION)
+PKG_MD5SUM:=183800762e266132218b204dfb428d29
 
 PKG_BUILD_DEPENDS:=libpcap
 
@@ -27,7 +25,6 @@ include $(INCLUDE_DIR)/package.mk
 define Package/ppp/Default
   SECTION:=net
   CATEGORY:=Network
-  MAINTAINER:=Jo-Philipp Wich <xm@subsignal.org>
   URL:=http://ppp.samba.org/
 endef
 
@@ -35,14 +32,7 @@ define Package/ppp
 $(call Package/ppp/Default)
   DEPENDS:=+kmod-ppp
   TITLE:=PPP daemon
-  VARIANT:=default
-endef
-
-define Package/ppp-multilink
-$(call Package/ppp/Default)
-  DEPENDS:=+kmod-ppp
-  TITLE:=PPP daemon (with multilink support)
-  VARIANT:=multilink
+  MENU:=1
 endef
 
 define Package/ppp/description
@@ -61,7 +51,7 @@ endef
 
 define Package/ppp-mod-pppoa
 $(call Package/ppp/Default)
-  DEPENDS:=@(PACKAGE_ppp||PACKAGE_ppp-multilink) +linux-atm +kmod-pppoa
+  DEPENDS:=ppp +linux-atm +kmod-pppoa
   TITLE:=PPPoA plugin
 endef
 
@@ -71,7 +61,7 @@ endef
 
 define Package/ppp-mod-pppoe
 $(call Package/ppp/Default)
-  DEPENDS:=@(PACKAGE_ppp||PACKAGE_ppp-multilink) +kmod-pppoe
+  DEPENDS:=ppp +kmod-pppoe
   TITLE:=PPPoE plugin
 endef
 
@@ -81,7 +71,7 @@ endef
 
 define Package/ppp-mod-radius
 $(call Package/ppp/Default)
-  DEPENDS:=@(PACKAGE_ppp||PACKAGE_ppp-multilink)
+  DEPENDS:=ppp
   TITLE:=RADIUS plugin
 endef
 
@@ -97,7 +87,7 @@ endef
 
 define Package/chat
 $(call Package/ppp/Default)
-  DEPENDS:=@(PACKAGE_ppp||PACKAGE_ppp-multilink)
+  DEPENDS:=ppp
   TITLE:=Establish conversation with a modem
 endef
 
@@ -108,7 +98,7 @@ endef
 
 define Package/pppdump
 $(call Package/ppp/Default)
-  DEPENDS:=@(PACKAGE_ppp||PACKAGE_ppp-multilink)
+  DEPENDS:=ppp
   TITLE:=Read PPP record file
 endef
 
@@ -118,7 +108,7 @@ endef
 
 define Package/pppstats
 $(call Package/ppp/Default)
-  DEPENDS:=@(PACKAGE_ppp||PACKAGE_ppp-multilink)
+  DEPENDS:=ppp
   TITLE:=Report PPP statistics
 endef
 
@@ -144,13 +134,6 @@ MAKE_FLAGS += COPTS="$(TARGET_CFLAGS)" \
 		PRECOMPILED_FILTER=1 \
 		STAGING_DIR="$(STAGING_DIR)"
 
-ifeq ($(BUILD_VARIANT),multilink)
-  MAKE_FLAGS += HAVE_MULTILINK=y
-else
-  MAKE_FLAGS += HAVE_MULTILINK=
-endif
-
-
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/include
 	$(CP) $(PKG_INSTALL_DIR)/include/pppd $(1)/usr/include/
@@ -174,7 +157,6 @@ define Package/ppp/install
 	$(INSTALL_DATA) ./files/etc/ppp/options $(1)/etc/ppp/
 	ln -sf /tmp/resolv.conf.ppp $(1)/etc/ppp/resolv.conf
 endef
-Package/ppp-multilink/install=$(Package/ppp/install)
 
 define Package/ppp-mod-pppoa/install
 	$(INSTALL_DIR) $(1)/usr/lib/pppd/$(PKG_VERSION)
@@ -223,7 +205,6 @@ define Package/pppstats/install
 endef
 
 $(eval $(call BuildPackage,ppp))
-$(eval $(call BuildPackage,ppp-multilink))
 $(eval $(call BuildPackage,ppp-mod-pppoa))
 $(eval $(call BuildPackage,ppp-mod-pppoe))
 $(eval $(call BuildPackage,ppp-mod-radius))

@@ -1,9 +1,3 @@
----
- include/linux/pkt_sched.h |   59 +++++++++++++
- tc/Makefile               |    1 
- tc/q_esfq.c               |  200 ++++++++++++++++++++++++++++++++++++++++++++++
- 3 files changed, 260 insertions(+)
-
 --- a/include/linux/pkt_sched.h
 +++ b/include/linux/pkt_sched.h
 @@ -174,8 +174,38 @@ struct tc_sfq_qopt
@@ -45,7 +39,7 @@
  /* RED section */
  
  enum
-@@ -579,8 +609,37 @@ struct tc_sfq_xstats {
+@@ -588,8 +618,37 @@ struct tc_sfq_xstats
   *
   *	The only reason for this is efficiency, it is possible
   *	to change these parameters in compile time.
@@ -82,10 +76,10 @@
 +
  /* RED section */
  
- enum {
+ enum
 --- a/tc/Makefile
 +++ b/tc/Makefile
-@@ -8,6 +8,7 @@ SHARED_LIBS ?= y
+@@ -7,6 +7,7 @@ include ../Config
  TCMODULES :=
  TCMODULES += q_fifo.o
  TCMODULES += q_sfq.o

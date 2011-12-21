@@ -7,7 +7,6 @@
 
 ifeq ($(DUMP),)
   define BuildTarget/bin
-    ifeq ($(if $(VARIANT),$(BUILD_VARIANT)),$(VARIANT))
     ifdef Package/$(1)/install
       ifneq ($(CONFIG_PACKAGE_$(1))$(SDK)$(DEVELOPER),)
         compile: install-bin-$(1)
@@ -16,7 +15,6 @@ ifeq ($(DUMP),)
         $(1)-disabled:
 		@echo "WARNING: skipping $(1) -- package not selected"
       endif
-    endif
     endif
 
     install-bin-$(1): $(STAMP_BUILT)

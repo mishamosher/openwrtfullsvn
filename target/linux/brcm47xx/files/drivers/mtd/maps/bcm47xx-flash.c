@@ -52,8 +52,6 @@
 #include <linux/ssb/ssb.h>
 #endif
 #include <asm/io.h>
-#include <asm/mach-bcm47xx/nvram.h>
-#include <asm/fw/cfe/cfe_api.h>
 
 
 #define TRX_MAGIC	0x30524448	/* "HDR0" */
@@ -71,26 +69,11 @@ struct trx_header {
 	u32 offsets[TRX_MAX_OFFSET];	/* Offsets of partitions from start of header */
 };
 
-/* for Edimax Print servers which use an additional header
- * then the firmware on flash looks like :
- * EDIMAX HEADER | TRX HEADER
- * As this header is 12 bytes long we have to handle it
- * and skip it to find the TRX header
- */
-#define EDIMAX_PS_HEADER_MAGIC	0x36315350 /*  "PS16"  */
-#define EDIMAX_PS_HEADER_LEN	0xc /* 12 bytes long for edimax header */
-
 #define ROUNDUP(x, y) ((((x)+((y)-1))/(y))*(y))
 #define NVRAM_SPACE 0x8000
 #define WINDOW_ADDR 0x1fc00000
 #define WINDOW_SIZE 0x400000
 #define BUSWIDTH 2
-
-#define ROUTER_NETGEAR_WGR614L         1
-#define ROUTER_NETGEAR_WNR834B         2
-#define ROUTER_NETGEAR_WNDR3300        3
-#define ROUTER_NETGEAR_WNR3500L        4
-#define ROUTER_SIMPLETECH_SIMPLESHARE  5
 
 #ifdef CONFIG_SSB
 extern struct ssb_bus ssb_bcm47xx;
@@ -127,7 +110,6 @@ static struct mtd_partition bcm47xx_parts[] = {
 	{ name: "linux", offset: 0, size: 0, },
 	{ name: "rootfs", offset: 0, size: 0, },
 	{ name: "nvram", offset: 0, size: 0, },
-	{ name: NULL, }, /* Used to create custom partitons with the function get_router() */
 	{ name: NULL, },
 };
 
@@ -155,15 +137,6 @@ find_cfe_size(struct mtd_info *mtd, size_t size)
 		if (mtd->read(mtd, off, sizeof(buf), &len, buf) ||
 		    len != sizeof(buf))
 			continue;
-
-		if (le32_to_cpu(trx->magic) == EDIMAX_PS_HEADER_MAGIC) {
-			if (mtd->read(mtd, off + EDIMAX_PS_HEADER_LEN,
-			    sizeof(buf), &len, buf) || len != sizeof(buf)) {
-				continue;
-			} else {
-				printk(KERN_NOTICE"Found edimax header\n");
-			}
-		}
 
 		/* found a TRX header */
 		if (le32_to_cpu(trx->magic) == TRX_MAGIC) {
@@ -237,7 +210,7 @@ static int erase_write (struct mtd_info *mtd, unsigned long pos,
 	remove_wait_queue(&wait_q, &wait);
 
 	/*
-	 * Next, write data to flash.
+	 * Next, writhe data to flash.
 	 */
 
 	ret = mtd->write (mtd, pos, len, &retlen, buf);
@@ -249,37 +222,6 @@ static int erase_write (struct mtd_info *mtd, unsigned long pos,
 }
 
 
-static int __init
-find_dual_image_off (struct mtd_info *mtd, size_t size)
-{
-	struct trx_header trx;
-	int off, blocksize;
-	size_t len;
-
-	blocksize = mtd->erasesize;
-	if (blocksize < 0x10000)
-		blocksize = 0x10000;
-
-	for (off = (128*1024); off < size; off += blocksize) {
-		memset(&trx, 0xe5, sizeof(trx));
-		/*
-		* Read into buffer 
-		*/
-		if (mtd->read(mtd, off, sizeof(trx), &len, (char *) &trx) ||
-		    len != sizeof(trx))
-			continue;
-		/* found last TRX header */
-		if (le32_to_cpu(trx.magic) == TRX_MAGIC){ 
-			if (le32_to_cpu(trx.flag_version >> 16)==2){
-				printk("dual image TRX header found\n");
-				return size/2;
-			} else {
-				return 0;
-			}
-		}
-	}
-	return 0;
-}
 
 
 static int __init
@@ -287,10 +229,10 @@ find_root(struct mtd_info *mtd, size_t size, struct mtd_partition *part)
 {
 	struct trx_header trx, *trx2;
 	unsigned char buf[512], *block;
-	int off, blocksize, trxoff = 0;
+	int off, blocksize;
 	u32 i, crc = ~0;
 	size_t len;
-	bool edimax = false;
+	struct squashfs_super_block *sb = (struct squashfs_super_block *) buf;
 
 	blocksize = mtd->erasesize;
 	if (blocksize < 0x10000)
@@ -306,19 +248,6 @@ find_root(struct mtd_info *mtd, size_t size, struct mtd_partition *part)
 		    len != sizeof(trx))
 			continue;
 
-		/* found an edimax header */
-		if (le32_to_cpu(trx.magic) == EDIMAX_PS_HEADER_MAGIC) {
-			/* read the correct trx header */
-			if (mtd->read(mtd, off + EDIMAX_PS_HEADER_LEN,
-			    sizeof(trx), &len, (char *) &trx) ||
-			    len != sizeof(trx)) {
-				continue;
-			} else {
-				printk(KERN_NOTICE"Found an edimax ps header\n");
-				edimax = true;
-			}
-		}
-
 		/* found a TRX header */
 		if (le32_to_cpu(trx.magic) == TRX_MAGIC) {
 			part->offset = le32_to_cpu(trx.offsets[2]) ? : 
@@ -327,10 +256,6 @@ find_root(struct mtd_info *mtd, size_t size, struct mtd_partition *part)
 
 			part->size -= part->offset;
 			part->offset += off;
-			if (edimax) {
-				off += EDIMAX_PS_HEADER_LEN;
-				trxoff = EDIMAX_PS_HEADER_LEN;
-			}
 
 			goto found;
 		}
@@ -342,7 +267,6 @@ find_root(struct mtd_info *mtd, size_t size, struct mtd_partition *part)
 	return -1;
 
  found:
-	printk(KERN_NOTICE"TRX offset : %x\n", trxoff);
 	if (part->size == 0)
 		return 0;
 	
@@ -367,7 +291,7 @@ find_root(struct mtd_info *mtd, size_t size, struct mtd_partition *part)
 		/* read first eraseblock from the trx */
 		block = kmalloc(mtd->erasesize, GFP_KERNEL);
 		trx2 = (struct trx_header *) block;
-		if (mtd->read(mtd, off - trxoff, mtd->erasesize, &len, block) || len != mtd->erasesize) {
+		if (mtd->read(mtd, off, mtd->erasesize, &len, block) || len != mtd->erasesize) {
 			printk("Error accessing the first trx eraseblock\n");
 			return 0;
 		}
@@ -377,10 +301,10 @@ find_root(struct mtd_info *mtd, size_t size, struct mtd_partition *part)
 		printk("new trx = [0x%08x, 0x%08x, 0x%08x], len=0x%08x crc32=0x%08x\n",   trx.offsets[0],   trx.offsets[1],   trx.offsets[2],   trx.len, trx.crc32);
 
 		/* Write updated trx header to the flash */
-		memcpy(block + trxoff, &trx, sizeof(trx));
+		memcpy(block, &trx, sizeof(trx));
 		if (mtd->unlock)
-			mtd->unlock(mtd, off - trxoff, mtd->erasesize);
-		erase_write(mtd, off - trxoff, mtd->erasesize, block);
+			mtd->unlock(mtd, off, mtd->erasesize);
+		erase_write(mtd, off, mtd->erasesize, block);
 		if (mtd->sync)
 			mtd->sync(mtd);
 		kfree(block);
@@ -390,80 +314,10 @@ find_root(struct mtd_info *mtd, size_t size, struct mtd_partition *part)
 	return part->size;
 }
 
-static int get_router(void)
-{
-	char buf[20];
-	u32 boardnum = 0;
-	u16 boardtype = 0;
-	u16 boardrev = 0;
-	u32 boardflags = 0;
-	u16 sdram_init = 0;
-	u16 cardbus = 0;
-	u16 strev = 0;
-
-	if (nvram_getenv("boardnum", buf, sizeof(buf)) >= 0)
-		boardnum = simple_strtoul(buf, NULL, 0);
-	if (nvram_getenv("boardtype", buf, sizeof(buf)) >= 0)
-		boardtype = simple_strtoul(buf, NULL, 0);
-	if (nvram_getenv("boardrev", buf, sizeof(buf)) >= 0)
-		boardrev = simple_strtoul(buf, NULL, 0);
-	if (nvram_getenv("boardflags", buf, sizeof(buf)) >= 0)
-		boardflags = simple_strtoul(buf, NULL, 0);
-	if (nvram_getenv("sdram_init", buf, sizeof(buf)) >= 0)
-		sdram_init = simple_strtoul(buf, NULL, 0);
-	if (nvram_getenv("cardbus", buf, sizeof(buf)) >= 0)
-		cardbus = simple_strtoul(buf, NULL, 0);
-	if (nvram_getenv("st_rev", buf, sizeof(buf)) >= 0)
-		strev = simple_strtoul(buf, NULL, 0);
-
-	if ((boardnum == 8 || boardnum == 01)
-	  && boardtype == 0x0472 && cardbus == 1) {
-		/* Netgear WNR834B, Netgear WNR834Bv2 */
-		return ROUTER_NETGEAR_WNR834B;
-	}
-
-	if (boardnum == 01 && boardtype == 0x0472 && boardrev == 0x23) {
-		/* Netgear WNDR-3300 */
-		return ROUTER_NETGEAR_WNDR3300;
-	}
-
-	if ((boardnum == 83258 || boardnum == 01)
-	  && boardtype == 0x048e
-	  && (boardrev == 0x11 || boardrev == 0x10)
-	  && boardflags == 0x750
-	  && sdram_init == 0x000A) {
-		/* Netgear WGR614v8/L/WW 16MB ram, cfe v1.3 or v1.5 */
-		return ROUTER_NETGEAR_WGR614L;
-	}
-
-	if ((boardnum == 1 || boardnum == 3500)
-	  && boardtype == 0x04CF
-	  && (boardrev == 0x1213 || boardrev == 02)) {
-		/* Netgear WNR3500v2/U/L */
-		return ROUTER_NETGEAR_WNR3500L;
-	}
-
-	if (boardtype == 0x042f
-	  && boardrev == 0x10
-	  && boardflags == 0 
-	  && strev == 0x11) { 
-		/* Simpletech Simpleshare */
-		return ROUTER_SIMPLETECH_SIMPLESHARE;
-	}
-
-	return 0;
-}
-
 struct mtd_partition * __init
 init_mtd_partitions(struct mtd_info *mtd, size_t size)
 {
 	int cfe_size;
-	int dual_image_offset = 0;
-	/* e.g Netgear 0x003e0000-0x003f0000 : "board_data", we exclude this
-	 * part from our mapping to prevent overwriting len/checksum on e.g.
-	 * Netgear WGR614v8/L/WW
-	 */
-	int custom_data_size = 0;
 
 	if ((cfe_size = find_cfe_size(mtd,size)) < 0)
 		return NULL;
@@ -474,66 +328,19 @@ init_mtd_partitions(struct mtd_info *mtd, size_t size)
 
 	/* nvram */
 	if (cfe_size != 384 * 1024) {
-
-		switch (get_router()) {
-		case ROUTER_NETGEAR_WGR614L:
-		case ROUTER_NETGEAR_WNR834B:
-		case ROUTER_NETGEAR_WNDR3300:
-		case ROUTER_NETGEAR_WNR3500L:
-			/* Netgear: checksum is @ 0x003AFFF8 for 4M flash or checksum
-			 * is @ 0x007AFFF8 for 8M flash
-			 */
-			custom_data_size = mtd->erasesize;
-
-			bcm47xx_parts[3].offset = size - ROUNDUP(NVRAM_SPACE, mtd->erasesize);
-			bcm47xx_parts[3].size   = ROUNDUP(NVRAM_SPACE, mtd->erasesize);
-
-			/* Place CFE board_data into a partition */
-			bcm47xx_parts[4].name = "board_data";
-			bcm47xx_parts[4].offset = bcm47xx_parts[3].offset - custom_data_size;
-			bcm47xx_parts[4].size   =  custom_data_size;
-			break;
-
-		case ROUTER_SIMPLETECH_SIMPLESHARE:
-			/* Fixup Simpletech Simple share nvram  */
-
-			printk("Setting up simpletech nvram\n");
-			custom_data_size = mtd->erasesize;
-
-			bcm47xx_parts[3].offset = size - ROUNDUP(NVRAM_SPACE, mtd->erasesize) * 2;
-			bcm47xx_parts[3].size   = ROUNDUP(NVRAM_SPACE, mtd->erasesize);
-
-			/* Place backup nvram into a partition */
-			bcm47xx_parts[4].name = "nvram_copy";
-			bcm47xx_parts[4].offset = size - ROUNDUP(NVRAM_SPACE, mtd->erasesize);
-			bcm47xx_parts[4].size   = ROUNDUP(NVRAM_SPACE, mtd->erasesize);
-			break;
-
-		default:
-			bcm47xx_parts[3].offset = size - ROUNDUP(NVRAM_SPACE, mtd->erasesize);
-			bcm47xx_parts[3].size   = ROUNDUP(NVRAM_SPACE, mtd->erasesize);
-		}
-
+		bcm47xx_parts[3].offset = size - ROUNDUP(NVRAM_SPACE, mtd->erasesize);
+		bcm47xx_parts[3].size   = ROUNDUP(NVRAM_SPACE, mtd->erasesize);
 	} else {
 		/* nvram (old 128kb config partition on netgear wgt634u) */
 		bcm47xx_parts[3].offset = bcm47xx_parts[0].size;
 		bcm47xx_parts[3].size   = ROUNDUP(NVRAM_SPACE, mtd->erasesize);
 	}
 
-	/* dual image offset*/
-	printk("Looking for dual image\n");
-	dual_image_offset=find_dual_image_off(mtd,size);
 	/* linux (kernel and rootfs) */
 	if (cfe_size != 384 * 1024) {
-		if (get_router() == ROUTER_SIMPLETECH_SIMPLESHARE) {
-			bcm47xx_parts[1].offset = bcm47xx_parts[0].size;
-			bcm47xx_parts[1].size   = bcm47xx_parts[4].offset - dual_image_offset -
-				bcm47xx_parts[1].offset - custom_data_size;
-		} else {
-			bcm47xx_parts[1].offset = bcm47xx_parts[0].size;
-			bcm47xx_parts[1].size   = bcm47xx_parts[3].offset - dual_image_offset -
-				bcm47xx_parts[1].offset - custom_data_size;
-		}
+		bcm47xx_parts[1].offset = bcm47xx_parts[0].size;
+		bcm47xx_parts[1].size   = bcm47xx_parts[3].offset - 
+			bcm47xx_parts[1].offset;
 	} else {
 		/* do not count the elf loader, which is on one block */
 		bcm47xx_parts[1].offset = bcm47xx_parts[0].size + 
@@ -541,14 +348,12 @@ init_mtd_partitions(struct mtd_info *mtd, size_t size)
 		bcm47xx_parts[1].size   = size - 
 			bcm47xx_parts[0].size - 
 			(2*bcm47xx_parts[3].size) - 
-			mtd->erasesize - custom_data_size;
+			mtd->erasesize;
 	}
 
 	/* find and size rootfs */
 	find_root(mtd,size,&bcm47xx_parts[2]);
-	bcm47xx_parts[2].size = size - dual_image_offset -
-				bcm47xx_parts[2].offset -
-				bcm47xx_parts[3].size - custom_data_size;
+	bcm47xx_parts[2].size = size - bcm47xx_parts[2].offset - bcm47xx_parts[3].size;
 
 	return bcm47xx_parts;
 }

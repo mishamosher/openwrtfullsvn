@@ -5,8 +5,7 @@ stop_interface_ppp() {
 	config_get proto "$cfg" proto
 
 	local link="$proto-$cfg"
-	SERVICE_PID_FILE="/var/run/ppp-${link}.pid" \
-	service_stop /usr/sbin/pppd
+	service_kill pppd "/var/run/ppp-${link}.pid"
 
 	remove_dns "$cfg"
 
@@ -32,8 +31,8 @@ start_pppd() {
 
 	# make sure only one pppd process is started
 	lock "/var/lock/ppp-${link}"
-	SERVICE_PID_FILE="/var/run/ppp-${link}.pid" \
-	service_check /usr/sbin/pppd && {
+	local pid="$(head -n1 /var/run/ppp-${link}.pid 2>/dev/null)"
+	[ -d "/proc/$pid" ] && grep pppd "/proc/$pid/cmdline" 2>/dev/null >/dev/null && {
 		lock -u "/var/lock/ppp-${link}"
 		return 0
 	}
@@ -106,10 +105,7 @@ start_pppd() {
 	config_get_bool ipv6 "$cfg" ipv6 0
 	[ "$ipv6" -eq 1 ] && ipv6="+ipv6" || ipv6=""
 
-	SERVICE_DAEMONIZE=1 \
-	SERVICE_WRITE_PID=1 \
-	SERVICE_PID_FILE="/var/run/ppp-$link.pid" \
-	service_start /usr/sbin/pppd "$@" \
+	start-stop-daemon -S -b -x /usr/sbin/pppd -m -p /var/run/ppp-$link.pid -- "$@" \
 		${keepalive:+lcp-echo-interval $interval lcp-echo-failure ${keepalive%%[, ]*}} \
 		$demandargs \
 		$peerdns \

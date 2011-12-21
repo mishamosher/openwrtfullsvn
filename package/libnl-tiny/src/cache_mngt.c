@@ -73,8 +73,6 @@ struct nl_cache_ops *nl_cache_ops_associate(int protocol, int msgtype)
 	return NULL;
 }
 
-#ifdef disabled
-
 /**
  * Lookup message type cache association
  * @arg ops			cache operations
@@ -120,7 +118,6 @@ void nl_cache_ops_foreach(void (*cb)(struct nl_cache_ops *, void *), void *arg)
 	for (ops = cache_ops; ops; ops = ops->co_next)
 		cb(ops, arg);
 }
-#endif
 
 /**
  * Register a set of cache operations
@@ -181,7 +178,7 @@ int nl_cache_mngt_unregister(struct nl_cache_ops *ops)
  * @name Global Cache Provisioning/Requiring
  * @{
  */
-#ifdef disabled
+
 /**
  * Provide a cache for global use
  * @arg cache		cache to provide
@@ -247,7 +244,6 @@ struct nl_cache *nl_cache_mngt_require(const char *name)
 	return ops->co_major_cache;
 }
 
-#endif
 /** @} */
 
 /** @} */

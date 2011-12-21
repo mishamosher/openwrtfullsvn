@@ -8,22 +8,19 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=busybox
-PKG_VERSION:=1.19.3
-PKG_RELEASE:=9
+PKG_VERSION:=1.15.3
+PKG_RELEASE:=3.4
 PKG_FLAGS:=essential
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://www.busybox.net/downloads \
 		http://distfiles.gentoo.org/distfiles/
-PKG_MD5SUM:=c3938e1ac59602387009bbf1dd1af7f6
-
-PKG_BUILD_DEPENDS:=BUSYBOX_USE_LIBRPC:librpc
-PKG_BUILD_PARALLEL:=1
+PKG_MD5SUM:=6059ac9456de6fb18dc8ee4cd0ec9240
 
 include $(INCLUDE_DIR)/package.mk
 
 ifeq ($(DUMP),)
-  STAMP_CONFIGURED:=$(strip $(STAMP_CONFIGURED))_$(shell $(SH_FUNC) grep '^CONFIG_BUSYBOX_' $(TOPDIR)/.config | md5s)
+  STAMP_CONFIGURED:=$(strip $(STAMP_CONFIGURED))_$(shell grep '^CONFIG_BUSYBOX_' $(TOPDIR)/.config | md5s)
 endif
 
 init-y :=
@@ -34,10 +31,8 @@ init-$(CONFIG_BUSYBOX_CONFIG_TELNETD) += telnet
 define Package/busybox
   SECTION:=base
   CATEGORY:=Base system
-  MAINTAINER:=Nicolas Thill <nico@openwrt.org>
   TITLE:=Core utilities for embedded Linux
   URL:=http://busybox.net/
-  DEPENDS:=+BUSYBOX_USE_LIBRPC:librpc
   MENU:=1
 endef
 
@@ -61,26 +56,14 @@ define Build/Configure
 		oldconfig
 endef
 
-ifdef CONFIG_GCC_VERSION_LLVM
-  TARGET_CFLAGS += -fnested-functions
-endif
-
-LDLIBS:=m crypt
-ifdef CONFIG_BUSYBOX_USE_LIBRPC
-  TARGET_CFLAGS += -I$(STAGING_DIR)/usr/include
-  export LDFLAGS=$(TARGET_LDFLAGS)
-  LDLIBS += rpc
-endif
-
 define Build/Compile
-	$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CC)" \
 		CROSS_COMPILE="$(TARGET_CROSS)" \
 		KBUILD_HAVE_NLS=no \
 		EXTRA_CFLAGS="$(TARGET_CFLAGS)" \
 		ARCH="$(ARCH)" \
 		SKIP_STRIP=y \
-		LDLIBS="$(LDLIBS)" \
 		all
 	rm -rf $(PKG_INSTALL_DIR)
 	$(FIND) $(PKG_BUILD_DIR) -lname "*busybox" -exec rm \{\} \;
@@ -90,7 +73,6 @@ define Build/Compile
 		EXTRA_CFLAGS="$(TARGET_CFLAGS)" \
 		ARCH="$(ARCH)" \
 		CONFIG_PREFIX="$(PKG_INSTALL_DIR)" \
-		LDLIBS="$(LDLIBS)" \
 		install
 endef
 

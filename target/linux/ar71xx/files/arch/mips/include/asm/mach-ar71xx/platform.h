@@ -17,16 +17,13 @@
 #include <linux/phy.h>
 #include <linux/spi/spi.h>
 
-struct ag71xx_switch_platform_data {
-	u8		phy4_mii_en:1;
-};
-
 struct ag71xx_platform_data {
 	phy_interface_t	phy_if_mode;
 	u32		phy_mask;
 	int		speed;
 	int		duplex;
 	u32		reset_bit;
+	u32		mii_if;
 	u8		mac_addr[ETH_ALEN];
 	struct device	*mii_bus_dev;
 
@@ -35,11 +32,10 @@ struct ag71xx_platform_data {
 	u8		is_ar7240:1;
 	u8		is_ar724x:1;
 	u8		has_ar8216:1;
+	u8		has_ar7240_switch:1;
 
-	struct ag71xx_switch_platform_data *switch_data;
-
-	void		(*ddr_flush)(void);
-	void		(*set_speed)(int speed);
+	void		(* ddr_flush)(void);
+	void		(* set_pll)(int speed);
 
 	u32		fifo_cfg1;
 	u32		fifo_cfg2;

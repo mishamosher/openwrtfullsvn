@@ -24,8 +24,6 @@ ifneq ($(OPENWRT_BUILD),1)
 
   override OPENWRT_BUILD=1
   export OPENWRT_BUILD
-  GREP_OPTIONS=
-  export GREP_OPTIONS
   include $(TOPDIR)/include/debug.mk
   include $(TOPDIR)/include/depends.mk
   include $(TOPDIR)/include/toplevel.mk
@@ -46,8 +44,9 @@ $(package/stamp-install): $(package/stamp-compile)
 $(package/stamp-rootfs-prepare): $(package/stamp-install)
 $(target/stamp-install): $(package/stamp-compile) $(package/stamp-install) $(package/stamp-rootfs-prepare)
 
-printdb:
-	@true
+$(BUILD_DIR)/.prepared: Makefile
+	@mkdir -p $$(dirname $@)
+	@touch $@
 
 prepare: $(target/stamp-compile)
 
@@ -59,11 +58,6 @@ dirclean: clean
 	rm -rf $(STAGING_DIR) $(STAGING_DIR_HOST) $(STAGING_DIR_TOOLCHAIN) $(TOOLCHAIN_DIR) $(BUILD_DIR_HOST) $(BUILD_DIR_TOOLCHAIN)
 	rm -rf $(TMP_DIR)
 
-ifndef DUMP_TARGET_DB
-$(BUILD_DIR)/.prepared: Makefile
-	@mkdir -p $$(dirname $@)
-	@touch $@
-
 tmp/.prereq_packages: .config
 	unset ERROR; \
 	for package in $(sort $(prereq-y) $(prereq-m)); do \
@@ -74,7 +68,6 @@ tmp/.prereq_packages: .config
 		false; \
 	fi
 	touch $@
-endif
 
 # check prerequisites before starting to build
 prereq: $(target/stamp-prereq) tmp/.prereq_packages

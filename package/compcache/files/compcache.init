@@ -20,7 +20,6 @@ load_modules() {
 			if [ "`lsmod | grep 'ramzswap'`" == "" ]; then
 				insmod lzo1x
 				insmod ramzswap $params_set
-				sleep 2
 				swapon /dev/ramzswap0
 			fi
 		fi

@@ -17,7 +17,7 @@
 #include "machtype.h"
 #include "devices.h"
 #include "dev-m25p80.h"
-#include "dev-ar9xxx-wmac.h"
+#include "dev-ar913x-wmac.h"
 #include "dev-gpio-buttons.h"
 #include "dev-leds-gpio.h"
 #include "nvram.h"
@@ -28,8 +28,7 @@
 #define TEW_632BRP_GPIO_BTN_WPS		12
 #define TEW_632BRP_GPIO_BTN_RESET	21
 
-#define TEW_632BRP_KEYS_POLL_INTERVAL	20	/* msecs */
-#define TEW_632BRP_KEYS_DEBOUNCE_INTERVAL (3 * TEW_632BRP_KEYS_POLL_INTERVAL)
+#define TEW_632BRP_BUTTONS_POLL_INTERVAL	20
 
 #define TEW_632BRP_CONFIG_ADDR	0x1f020000
 #define TEW_632BRP_CONFIG_SIZE	0x10000
@@ -41,24 +40,24 @@ static struct mtd_partition tew_632brp_partitions[] = {
 		.offset		= 0,
 		.size		= 0x020000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "config",
 		.offset		= 0x020000,
 		.size		= 0x010000,
-	}, {
+	} , {
 		.name		= "kernel",
 		.offset		= 0x030000,
-		.size		= 0x0e0000,
-	}, {
+		.size		= 0x0d0000,
+	} , {
 		.name		= "rootfs",
-		.offset		= 0x110000,
-		.size		= 0x2e0000,
-	}, {
+		.offset		= 0x100000,
+		.size		= 0x2f0000,
+	} , {
 		.name		= "art",
 		.offset		= 0x3f0000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "firmware",
 		.offset		= 0x030000,
 		.size		= 0x3c0000,
@@ -68,8 +67,8 @@ static struct mtd_partition tew_632brp_partitions[] = {
 
 static struct flash_platform_data tew_632brp_flash_data = {
 #ifdef CONFIG_MTD_PARTITIONS
-	.parts		= tew_632brp_partitions,
-	.nr_parts	= ARRAY_SIZE(tew_632brp_partitions),
+        .parts          = tew_632brp_partitions,
+        .nr_parts       = ARRAY_SIZE(tew_632brp_partitions),
 #endif
 };
 
@@ -89,18 +88,18 @@ static struct gpio_led tew_632brp_leds_gpio[] __initdata = {
 	}
 };
 
-static struct gpio_keys_button tew_632brp_gpio_keys[] __initdata = {
+static struct gpio_button tew_632brp_gpio_buttons[] __initdata = {
 	{
 		.desc		= "reset",
 		.type		= EV_KEY,
-		.code		= KEY_RESTART,
-		.debounce_interval = TEW_632BRP_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_0,
+		.threshold	= 3,
 		.gpio		= TEW_632BRP_GPIO_BTN_RESET,
 	}, {
 		.desc		= "wps",
 		.type		= EV_KEY,
-		.code		= KEY_WPS_BUTTON,
-		.debounce_interval = TEW_632BRP_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_1,
+		.threshold	= 3,
 		.gpio		= TEW_632BRP_GPIO_BTN_WPS,
 	}
 };
@@ -118,13 +117,12 @@ static void __init tew_632brp_setup(void)
 	u8 *wlan_mac = NULL;
 
 	if (nvram_parse_mac_addr(config, TEW_632BRP_CONFIG_SIZE,
-				"lan_mac=", mac) == 0) {
-		ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 0);
-		ar71xx_init_mac(ar71xx_eth1_data.mac_addr, mac, 1);
+			         "lan_mac=", mac) == 0) {
+		ar71xx_set_mac_base(mac);
 		wlan_mac = mac;
 	}
 
-	ar71xx_add_device_mdio(0, TEW_632BRP_MDIO_MASK);
+	ar71xx_add_device_mdio(TEW_632BRP_MDIO_MASK);
 
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth0_data.phy_mask = TEW_632BRP_LAN_PHYMASK;
@@ -140,11 +138,11 @@ static void __init tew_632brp_setup(void)
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(tew_632brp_leds_gpio),
 					tew_632brp_leds_gpio);
 
-	ar71xx_register_gpio_keys_polled(-1, TEW_632BRP_KEYS_POLL_INTERVAL,
-					 ARRAY_SIZE(tew_632brp_gpio_keys),
-					 tew_632brp_gpio_keys);
+	ar71xx_add_device_gpio_buttons(-1, TEW_632BRP_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(tew_632brp_gpio_buttons),
+					tew_632brp_gpio_buttons);
 
-	ar9xxx_add_device_wmac(eeprom, wlan_mac);
+	ar913x_add_device_wmac(eeprom, wlan_mac);
 }
 
 MIPS_MACHINE(AR71XX_MACH_TEW_632BRP, "TEW-632BRP", "TRENDnet TEW-632BRP",

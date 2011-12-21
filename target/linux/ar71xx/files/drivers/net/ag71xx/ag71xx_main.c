@@ -90,7 +90,7 @@ static void ag71xx_ring_free(struct ag71xx_ring *ring)
 				  ring->descs_cpu, ring->descs_dma);
 }
 
-static int ag71xx_ring_alloc(struct ag71xx_ring *ring)
+static int ag71xx_ring_alloc(struct ag71xx_ring *ring, unsigned int size)
 {
 	int err;
 	int i;
@@ -103,21 +103,22 @@ static int ag71xx_ring_alloc(struct ag71xx_ring *ring)
 		ring->desc_size = roundup(ring->desc_size, cache_line_size());
 	}
 
-	ring->descs_cpu = dma_alloc_coherent(NULL, ring->size * ring->desc_size,
+	ring->descs_cpu = dma_alloc_coherent(NULL, size * ring->desc_size,
 					     &ring->descs_dma, GFP_ATOMIC);
 	if (!ring->descs_cpu) {
 		err = -ENOMEM;
 		goto err;
 	}
 
+	ring->size = size;
 
-	ring->buf = kzalloc(ring->size * sizeof(*ring->buf), GFP_KERNEL);
+	ring->buf = kzalloc(size * sizeof(*ring->buf), GFP_KERNEL);
 	if (!ring->buf) {
 		err = -ENOMEM;
 		goto err;
 	}
 
-	for (i = 0; i < ring->size; i++) {
+	for (i = 0; i < size; i++) {
 		int idx = i * ring->desc_size;
 		ring->buf[i].desc = (struct ag71xx_desc *)&ring->descs_cpu[idx];
 		DBG("ag71xx: ring %p, desc %d at %p\n",
@@ -136,7 +137,7 @@ static void ag71xx_ring_tx_clean(struct ag71xx *ag)
 	struct net_device *dev = ag->dev;
 
 	while (ring->curr != ring->dirty) {
-		u32 i = ring->dirty % ring->size;
+		u32 i = ring->dirty % AG71XX_TX_RING_SIZE;
 
 		if (!ag71xx_desc_empty(ring->buf[i].desc)) {
 			ring->buf[i].desc->ctrl = 0;
@@ -161,9 +162,9 @@ static void ag71xx_ring_tx_init(struct ag71xx *ag)
 	struct ag71xx_ring *ring = &ag->tx_ring;
 	int i;
 
-	for (i = 0; i < ring->size; i++) {
+	for (i = 0; i < AG71XX_TX_RING_SIZE; i++) {
 		ring->buf[i].desc->next = (u32) (ring->descs_dma +
-			ring->desc_size * ((i + 1) % ring->size));
+			ring->desc_size * ((i + 1) % AG71XX_TX_RING_SIZE));
 
 		ring->buf[i].desc->ctrl = DESC_EMPTY;
 		ring->buf[i].skb = NULL;
@@ -184,7 +185,7 @@ static void ag71xx_ring_rx_clean(struct ag71xx *ag)
 	if (!ring->buf)
 		return;
 
-	for (i = 0; i < ring->size; i++)
+	for (i = 0; i < AG71XX_RX_RING_SIZE; i++)
 		if (ring->buf[i].skb) {
 			dma_unmap_single(&ag->dev->dev, ring->buf[i].dma_addr,
 					 AG71XX_RX_PKT_SIZE, DMA_FROM_DEVICE);
@@ -218,16 +219,16 @@ static int ag71xx_ring_rx_init(struct ag71xx *ag)
 	int ret;
 
 	ret = 0;
-	for (i = 0; i < ring->size; i++) {
+	for (i = 0; i < AG71XX_RX_RING_SIZE; i++) {
 		ring->buf[i].desc->next = (u32) (ring->descs_dma +
-			ring->desc_size * ((i + 1) % ring->size));
+			ring->desc_size * ((i + 1) % AG71XX_RX_RING_SIZE));
 
 		DBG("ag71xx: RX desc at %p, next is %08x\n",
 			ring->buf[i].desc,
 			ring->buf[i].desc->next);
 	}
 
-	for (i = 0; i < ring->size; i++) {
+	for (i = 0; i < AG71XX_RX_RING_SIZE; i++) {
 		struct sk_buff *skb;
 		dma_addr_t dma_addr;
 
@@ -268,7 +269,7 @@ static int ag71xx_ring_rx_refill(struct ag71xx *ag)
 	for (; ring->curr - ring->dirty > 0; ring->dirty++) {
 		unsigned int i;
 
-		i = ring->dirty % ring->size;
+		i = ring->dirty % AG71XX_RX_RING_SIZE;
 
 		if (ring->buf[i].skb == NULL) {
 			dma_addr_t dma_addr;
@@ -306,13 +307,13 @@ static int ag71xx_rings_init(struct ag71xx *ag)
 {
 	int ret;
 
-	ret = ag71xx_ring_alloc(&ag->tx_ring);
+	ret = ag71xx_ring_alloc(&ag->tx_ring, AG71XX_TX_RING_SIZE);
 	if (ret)
 		return ret;
 
 	ag71xx_ring_tx_init(ag);
 
-	ret = ag71xx_ring_alloc(&ag->rx_ring);
+	ret = ag71xx_ring_alloc(&ag->rx_ring, AG71XX_RX_RING_SIZE);
 	if (ret)
 		return ret;
 
@@ -444,6 +445,9 @@ static void ag71xx_hw_setup(struct ag71xx *ag)
 	/* setup max frame length */
 	ag71xx_wr(ag, AG71XX_REG_MAC_MFL, AG71XX_TX_MTU_LEN);
 
+	/* setup MII interface type */
+	ag71xx_mii_ctrl_set_if(ag, pdata->mii_if);
+
 	/* setup FIFO configuration registers */
 	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG0, FIFO_CFG0_INIT);
 	if (pdata->is_ar724x) {
@@ -533,6 +537,7 @@ void ag71xx_link_adjust(struct ag71xx *ag)
 	u32 cfg2;
 	u32 ifctl;
 	u32 fifo5;
+	u32 mii_speed;
 
 	if (!ag->link) {
 		ag71xx_hw_stop(ag);
@@ -557,14 +562,17 @@ void ag71xx_link_adjust(struct ag71xx *ag)
 
 	switch (ag->speed) {
 	case SPEED_1000:
+		mii_speed =  MII_CTRL_SPEED_1000;
 		cfg2 |= MAC_CFG2_IF_1000;
 		fifo5 |= FIFO_CFG5_BM;
 		break;
 	case SPEED_100:
+		mii_speed = MII_CTRL_SPEED_100;
 		cfg2 |= MAC_CFG2_IF_10_100;
 		ifctl |= MAC_IFCTL_SPEED;
 		break;
 	case SPEED_10:
+		mii_speed = MII_CTRL_SPEED_10;
 		cfg2 |= MAC_CFG2_IF_10_100;
 		break;
 	default:
@@ -579,8 +587,10 @@ void ag71xx_link_adjust(struct ag71xx *ag)
 	else
 		ag71xx_wr(ag, AG71XX_REG_FIFO_CFG3, 0x008001ff);
 
-	if (pdata->set_speed)
-		pdata->set_speed(ag->speed);
+	if (pdata->set_pll)
+		pdata->set_pll(ag->speed);
+
+	ag71xx_mii_ctrl_set_speed(ag, mii_speed);
 
 	ag71xx_wr(ag, AG71XX_REG_MAC_CFG2, cfg2);
 	ag71xx_wr(ag, AG71XX_REG_FIFO_CFG5, fifo5);
@@ -675,7 +685,7 @@ static netdev_tx_t ag71xx_hard_start_xmit(struct sk_buff *skb,
 	dma_addr_t dma_addr;
 	int i;
 
-	i = ring->curr % ring->size;
+	i = ring->curr % AG71XX_TX_RING_SIZE;
 	desc = ring->buf[i].desc;
 
 	if (!ag71xx_desc_empty(desc))
@@ -703,7 +713,7 @@ static netdev_tx_t ag71xx_hard_start_xmit(struct sk_buff *skb,
 	wmb();
 
 	ring->curr++;
-	if (ring->curr == (ring->dirty + ring->size)) {
+	if (ring->curr == (ring->dirty + AG71XX_TX_THRES_STOP)) {
 		DBG("%s: tx queue full\n", ag->dev->name);
 		netif_stop_queue(dev);
 	}
@@ -755,7 +765,7 @@ static int ag71xx_do_ioctl(struct net_device *dev, struct ifreq *ifr, int cmd)
 		if (ag->phy_dev == NULL)
 			break;
 
-		return phy_mii_ioctl(ag->phy_dev, ifr, cmd);
+		return phy_mii_ioctl(ag->phy_dev, if_mii(ifr), cmd);
 
 	default:
 		break;
@@ -829,7 +839,7 @@ static int ag71xx_tx_packets(struct ag71xx *ag)
 
 	sent = 0;
 	while (ring->dirty != ring->curr) {
-		unsigned int i = ring->dirty % ring->size;
+		unsigned int i = ring->dirty % AG71XX_TX_RING_SIZE;
 		struct ag71xx_desc *desc = ring->buf[i].desc;
 		struct sk_buff *skb = ring->buf[i].skb;
 
@@ -854,7 +864,7 @@ static int ag71xx_tx_packets(struct ag71xx *ag)
 
 	DBG("%s: %d packets sent out\n", ag->dev->name, sent);
 
-	if ((ring->curr - ring->dirty) < (ring->size * 3) / 4)
+	if ((ring->curr - ring->dirty) < AG71XX_TX_THRES_WAKEUP)
 		netif_wake_queue(ag->dev);
 
 	return sent;
@@ -870,7 +880,7 @@ static int ag71xx_rx_packets(struct ag71xx *ag, int limit)
 			dev->name, limit, ring->curr, ring->dirty);
 
 	while (done < limit) {
-		unsigned int i = ring->curr % ring->size;
+		unsigned int i = ring->curr % AG71XX_RX_RING_SIZE;
 		struct ag71xx_desc *desc = ring->buf[i].desc;
 		struct sk_buff *skb;
 		int pktlen;
@@ -879,7 +889,7 @@ static int ag71xx_rx_packets(struct ag71xx *ag, int limit)
 		if (ag71xx_desc_empty(desc))
 			break;
 
-		if ((ring->dirty + ring->size) == ring->curr) {
+		if ((ring->dirty + AG71XX_RX_RING_SIZE) == ring->curr) {
 			ag71xx_assert(0);
 			break;
 		}
@@ -949,7 +959,7 @@ static int ag71xx_poll(struct napi_struct *napi, int limit)
 	ag71xx_debugfs_update_napi_stats(ag, rx_done, tx_done);
 
 	rx_ring = &ag->rx_ring;
-	if (rx_ring->buf[rx_ring->dirty % rx_ring->size].skb == NULL)
+	if (rx_ring->buf[rx_ring->dirty % AG71XX_RX_RING_SIZE].skb == NULL)
 		goto oom;
 
 	status = ag71xx_rr(ag, AG71XX_REG_RX_STATUS);
@@ -1114,13 +1124,27 @@ static int __devinit ag71xx_probe(struct platform_device *pdev)
 		goto err_free_dev;
 	}
 
+	res = platform_get_resource_byname(pdev, IORESOURCE_MEM, "mii_ctrl");
+	if (!res) {
+		dev_err(&pdev->dev, "no mii_ctrl resource found\n");
+		err = -ENXIO;
+		goto err_unmap_base;
+	}
+
+	ag->mii_ctrl = ioremap_nocache(res->start, res->end - res->start + 1);
+	if (!ag->mii_ctrl) {
+		dev_err(&pdev->dev, "unable to ioremap mii_ctrl\n");
+		err = -ENOMEM;
+		goto err_unmap_base;
+	}
+
 	dev->irq = platform_get_irq(pdev, 0);
 	err = request_irq(dev->irq, ag71xx_interrupt,
 			  IRQF_DISABLED,
 			  dev->name, dev);
 	if (err) {
 		dev_err(&pdev->dev, "unable to request IRQ %d\n", dev->irq);
-		goto err_unmap_base;
+		goto err_unmap_mii_ctrl;
 	}
 
 	dev->base_addr = (unsigned long)ag->mac_base;
@@ -1132,9 +1156,6 @@ static int __devinit ag71xx_probe(struct platform_device *pdev)
 	init_timer(&ag->oom_timer);
 	ag->oom_timer.data = (unsigned long) dev;
 	ag->oom_timer.function = ag71xx_oom_timer_handler;
-
-	ag->tx_ring.size = AG71XX_TX_RING_SIZE_DEFAULT;
-	ag->rx_ring.size = AG71XX_RX_RING_SIZE_DEFAULT;
 
 	ag->stop_desc = dma_alloc_coherent(NULL,
 		sizeof(struct ag71xx_desc), &ag->stop_desc_dma, GFP_KERNEL);
@@ -1186,6 +1207,8 @@ err_free_desc:
 			  ag->stop_desc_dma);
 err_free_irq:
 	free_irq(dev->irq, dev);
+err_unmap_mii_ctrl:
+	iounmap(ag->mii_ctrl);
 err_unmap_base:
 	iounmap(ag->mac_base);
 err_free_dev:
@@ -1206,6 +1229,7 @@ static int __devexit ag71xx_remove(struct platform_device *pdev)
 		ag71xx_phy_disconnect(ag);
 		unregister_netdev(dev);
 		free_irq(dev->irq, dev);
+		iounmap(ag->mii_ctrl);
 		iounmap(ag->mac_base);
 		kfree(dev);
 		platform_set_drvdata(pdev, NULL);

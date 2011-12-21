@@ -7,13 +7,11 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mpfr
-PKG_VERSION:=3.0.0
+PKG_VERSION:=2.4.1
 
 PKG_SOURCE_URL:=http://www.mpfr.org/mpfr-$(PKG_VERSION)
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-PKG_MD5SUM:=f45bac3584922c8004a10060ab1a8f9f
-
-HOST_FIXUP:=autoreconf
+PKG_MD5SUM:=c5ee0a8ce82ad55fe29ac57edd35d09e
 
 include $(INCLUDE_DIR)/host-build.mk
 
@@ -21,10 +19,5 @@ HOST_CONFIGURE_ARGS += \
 	--enable-static \
 	--disable-shared \
 	--with-gmp=$(STAGING_DIR_HOST)
-
-define Host/Configure
-	echo "PATH=$(shell echo $$PATH)"
-	$(call Host/Configure/Default)
-endef
 
 $(eval $(call HostBuild))

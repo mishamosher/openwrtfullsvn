@@ -24,7 +24,7 @@ include $(INCLUDE_DIR)/package.mk
 # wprobe-lib.c:149: error: 'packed' attribute ignored for field of type 'struct <anonymous>'
 
 define Package/wprobe/Default
-  DEPENDS:=@(!(TARGET_ps3||TARGET_pxcab||cris)||BROKEN)
+  DEPENDS:=@LINUX_2_6 @(!(cris)||BROKEN)
 endef
 
 define KernelPackage/wprobe
@@ -33,7 +33,7 @@ $(call Package/wprobe/Default)
   TITLE:=Wireless driver probe infrastructure
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
   FILES:= \
-  	$(PKG_BUILD_DIR)/kernel/wprobe.ko
+  	$(PKG_BUILD_DIR)/kernel/wprobe.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,01,wprobe)
 endef
 

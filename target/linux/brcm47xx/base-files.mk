@@ -1,5 +1,1 @@
-define Package/base-files/install-target
-	rm -f $(1)/etc/config/network
-endef
-
-
+../brcm-2.4/base-files.mk

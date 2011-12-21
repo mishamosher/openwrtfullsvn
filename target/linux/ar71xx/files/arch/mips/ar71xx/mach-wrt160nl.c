@@ -8,12 +8,15 @@
  *  by the Free Software Foundation.
  */
 
+#include <linux/mtd/mtd.h>
+#include <linux/mtd/partitions.h>
+
 #include <asm/mach-ar71xx/ar71xx.h>
 
 #include "machtype.h"
 #include "devices.h"
 #include "dev-m25p80.h"
-#include "dev-ar9xxx-wmac.h"
+#include "dev-ar913x-wmac.h"
 #include "dev-gpio-buttons.h"
 #include "dev-leds-gpio.h"
 #include "dev-usb.h"
@@ -27,19 +30,49 @@
 #define WRT160NL_GPIO_BTN_WPS		7
 #define WRT160NL_GPIO_BTN_RESET		21
 
-#define WRT160NL_KEYS_POLL_INTERVAL	20	/* msecs */
-#define WRT160NL_KEYS_DEBOUNCE_INTERVAL	(3 * WRT160NL_KEYS_POLL_INTERVAL)
+#define WRT160NL_BUTTONS_POLL_INTERVAL	20
 
 #define WRT160NL_NVRAM_ADDR	0x1f7e0000
 #define WRT160NL_NVRAM_SIZE	0x10000
 
-static const char *wrt160nl_part_probes[] = {
-	"wrt160nl",
-	NULL,
+#ifdef CONFIG_MTD_PARTITIONS
+static struct mtd_partition wrt160nl_partitions[] = {
+	{
+		.name		= "u-boot",
+		.offset		= 0,
+		.size		= 0x040000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "kernel",
+		.offset		= 0x040000,
+		.size		= 0x0e0000,
+	} , {
+		.name		= "filesytem",
+		.offset		= 0x120000,
+		.size		= 0x6c0000,
+	} , {
+		.name		= "nvram",
+		.offset		= 0x7e0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "ART",
+		.offset		= 0x7f0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "firmware",
+		.offset		= 0x040000,
+		.size		= 0x7a0000,
+	}
 };
+#endif /* CONFIG_MTD_PARTITIONS */
 
 static struct flash_platform_data wrt160nl_flash_data = {
-	.part_probes	= wrt160nl_part_probes,
+#ifdef CONFIG_MTD_PARTITIONS
+        .parts          = wrt160nl_partitions,
+        .nr_parts       = ARRAY_SIZE(wrt160nl_partitions),
+#endif
 };
 
 static struct gpio_led wrt160nl_leds_gpio[] __initdata = {
@@ -63,19 +96,19 @@ static struct gpio_led wrt160nl_leds_gpio[] __initdata = {
 	}
 };
 
-static struct gpio_keys_button wrt160nl_gpio_keys[] __initdata = {
+static struct gpio_button wrt160nl_gpio_buttons[] __initdata = {
 	{
 		.desc		= "reset",
 		.type		= EV_KEY,
-		.code		= KEY_RESTART,
-		.debounce_interval = WRT160NL_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_0,
+		.threshold	= 3,
 		.gpio		= WRT160NL_GPIO_BTN_RESET,
 		.active_low	= 1,
 	}, {
 		.desc		= "wps",
 		.type		= EV_KEY,
-		.code		= KEY_WPS_BUTTON,
-		.debounce_interval = WRT160NL_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_1,
+		.threshold	= 3,
 		.gpio		= WRT160NL_GPIO_BTN_WPS,
 		.active_low	= 1,
 	}
@@ -88,12 +121,10 @@ static void __init wrt160nl_setup(void)
 	u8 mac[6];
 
 	if (nvram_parse_mac_addr(nvram, WRT160NL_NVRAM_SIZE,
-				 "lan_hwaddr=", mac) == 0) {
-		ar71xx_init_mac(ar71xx_eth0_data.mac_addr, mac, 0);
-		ar71xx_init_mac(ar71xx_eth1_data.mac_addr, mac, 1);
-	}
+			         "lan_hwaddr=", mac) == 0)
+		ar71xx_set_mac_base(mac);
 
-	ar71xx_add_device_mdio(0, 0x0);
+	ar71xx_add_device_mdio(0x0);
 
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
 	ar71xx_eth0_data.phy_mask = 0x01;
@@ -109,17 +140,17 @@ static void __init wrt160nl_setup(void)
 	ar71xx_add_device_usb();
 
 	if (nvram_parse_mac_addr(nvram, WRT160NL_NVRAM_SIZE,
-				 "wl0_hwaddr=", mac) == 0)
-		ar9xxx_add_device_wmac(eeprom, mac);
+			         "wl0_hwaddr=", mac) == 0)
+		ar913x_add_device_wmac(eeprom, mac);
 	else
-		ar9xxx_add_device_wmac(eeprom, NULL);
+		ar913x_add_device_wmac(eeprom, NULL);
 
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(wrt160nl_leds_gpio),
 					wrt160nl_leds_gpio);
 
-	ar71xx_register_gpio_keys_polled(-1, WRT160NL_KEYS_POLL_INTERVAL,
-					 ARRAY_SIZE(wrt160nl_gpio_keys),
-					 wrt160nl_gpio_keys);
+	ar71xx_add_device_gpio_buttons(-1, WRT160NL_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(wrt160nl_gpio_buttons),
+					wrt160nl_gpio_buttons);
 
 }
 

@@ -25,8 +25,6 @@
 #define AR7240_MASK_CTRL_REVISION_M	BITM(8)
 #define AR7240_MASK_CTRL_VERSION_M	BITM(8)
 #define AR7240_MASK_CTRL_VERSION_S	8
-#define   AR7240_MASK_CTRL_VERSION_AR7240 0x01
-#define   AR7240_MASK_CTRL_VERSION_AR934X 0x02
 #define AR7240_MASK_CTRL_SOFT_RESET	BIT(31)
 
 #define AR7240_REG_MAC_ADDR0		0x20
@@ -98,7 +96,6 @@
 #define AR7240_REG_PORT_BASE(_port)	(0x100 + (_port) * 0x100)
 
 #define AR7240_REG_PORT_STATUS(_port)	(AR7240_REG_PORT_BASE((_port)) + 0x00)
-#define AR7240_PORT_STATUS_SPEED_S	0
 #define AR7240_PORT_STATUS_SPEED_M	BITM(2)
 #define AR7240_PORT_STATUS_SPEED_10	0
 #define AR7240_PORT_STATUS_SPEED_100	1
@@ -194,52 +191,22 @@
 #define AR7240_PHY_ID1		0x004d
 #define AR7240_PHY_ID2		0xd041
 
-#define AR934X_PHY_ID1		0x004d
-#define AR934X_PHY_ID2		0xd042
+#define AR7240_PORT_MASK(_port)		BIT((_port))
+#define AR7240_PORT_MASK_ALL		BITM(AR7240_NUM_PORTS)
+#define AR7240_PORT_MASK_BUT(_port)	(AR7240_PORT_MASK_ALL & ~BIT((_port)))
 
 #define AR7240_MAX_VLANS	16
-
-#define AR934X_REG_OPER_MODE0		0x04
-#define   AR934X_OPER_MODE0_MAC_GMII_EN	BIT(6)
-#define   AR934X_OPER_MODE0_PHY_MII_EN	BIT(10)
-
-#define AR934X_REG_OPER_MODE1		0x08
-#define   AR934X_REG_OPER_MODE1_PHY4_MII_EN	BIT(28)
-
-#define AR934X_REG_PORT_BASE(_port)	(0x100 + (_port) * 0x100)
-
-#define AR934X_REG_PORT_VLAN1(_port)	(AR934X_REG_PORT_BASE((_port)) + 0x08)
-#define   AR934X_PORT_VLAN1_DEFAULT_SVID_S		0
-#define   AR934X_PORT_VLAN1_FORCE_DEFAULT_VID_EN 	BIT(12)
-#define   AR934X_PORT_VLAN1_PORT_TLS_MODE		BIT(13)
-#define   AR934X_PORT_VLAN1_PORT_VLAN_PROP_EN		BIT(14)
-#define   AR934X_PORT_VLAN1_PORT_CLONE_EN		BIT(15)
-#define   AR934X_PORT_VLAN1_DEFAULT_CVID_S		16
-#define   AR934X_PORT_VLAN1_FORCE_PORT_VLAN_EN		BIT(28)
-#define   AR934X_PORT_VLAN1_ING_PORT_PRI_S		29
-
-#define AR934X_REG_PORT_VLAN2(_port)	(AR934X_REG_PORT_BASE((_port)) + 0x0c)
-#define   AR934X_PORT_VLAN2_PORT_VID_MEM_S		16
-#define   AR934X_PORT_VLAN2_8021Q_MODE_S		30
-#define   AR934X_PORT_VLAN2_8021Q_MODE_PORT_ONLY	0
-#define   AR934X_PORT_VLAN2_8021Q_MODE_PORT_FALLBACK	1
-#define   AR934X_PORT_VLAN2_8021Q_MODE_VLAN_ONLY	2
-#define   AR934X_PORT_VLAN2_8021Q_MODE_SECURE		3
 
 #define sw_to_ar7240(_dev) container_of(_dev, struct ar7240sw, swdev)
 
 struct ar7240sw {
 	struct mii_bus	*mii_bus;
-	struct ag71xx_switch_platform_data *swdata;
 	struct switch_dev swdev;
-	int num_ports;
-	u8 ver;
 	bool vlan;
 	u16 vlan_id[AR7240_MAX_VLANS];
 	u8 vlan_table[AR7240_MAX_VLANS];
 	u8 vlan_tagged;
 	u16 pvid[AR7240_NUM_PORTS];
-	char buf[80];
 };
 
 struct ar7240sw_hw_stat {
@@ -250,29 +217,9 @@ struct ar7240sw_hw_stat {
 
 static DEFINE_MUTEX(reg_mutex);
 
-static inline int sw_is_ar7240(struct ar7240sw *as)
+static inline void ar7240sw_init(struct ar7240sw *as, struct mii_bus *mii)
 {
-	return as->ver == AR7240_MASK_CTRL_VERSION_AR7240;
-}
-
-static inline int sw_is_ar934x(struct ar7240sw *as)
-{
-	return as->ver == AR7240_MASK_CTRL_VERSION_AR934X;
-}
-
-static inline u32 ar7240sw_port_mask(struct ar7240sw *as, int port)
-{
-	return BIT(port);
-}
-
-static inline u32 ar7240sw_port_mask_all(struct ar7240sw *as)
-{
-	return BIT(as->swdev.ports) - 1;
-}
-
-static inline u32 ar7240sw_port_mask_but(struct ar7240sw *as, int port)
-{
-	return ar7240sw_port_mask_all(as) & ~BIT(port);
+	as->mii_bus = mii;
 }
 
 static inline u16 mk_phy_addr(u32 reg)
@@ -450,6 +397,21 @@ int ar7240sw_phy_write(struct mii_bus *mii, unsigned phy_addr,
 	return ret;
 }
 
+static int ar7240sw_capture_stats(struct ar7240sw *as)
+{
+	struct mii_bus *mii = as->mii_bus;
+	int ret;
+
+	/* Capture the hardware statistics for all ports */
+	ar7240sw_reg_write(mii, AR7240_REG_MIB_FUNCTION0,
+			   (AR7240_MIB_FUNC_CAPTURE << AR7240_MIB_FUNC_S));
+
+	/* Wait for the capturing to complete. */
+	ret = ar7240sw_reg_wait(mii, AR7240_REG_MIB_FUNCTION0,
+				AR7240_MIB_BUSY, 0, 10);
+	return ret;
+}
+
 static void ar7240sw_disable_port(struct ar7240sw *as, unsigned port)
 {
 	ar7240sw_reg_write(as->mii_bus, AR7240_REG_PORT_CTRL(port),
@@ -515,7 +477,7 @@ static void ar7240sw_setup_port(struct ar7240sw *as, unsigned port, u8 portmask)
 {
 	struct mii_bus *mii = as->mii_bus;
 	u32 ctrl;
-	u32 vid, mode;
+	u32 vlan;
 
 	ctrl = AR7240_PORT_CTRL_STATE_FORWARD | AR7240_PORT_CTRL_LEARN |
 		AR7240_PORT_CTRL_SINGLE_VLAN;
@@ -535,11 +497,13 @@ static void ar7240sw_setup_port(struct ar7240sw *as, unsigned port, u8 portmask)
 
 	/* Set the default VID for this port */
 	if (as->vlan) {
-		vid = as->vlan_id[as->pvid[port]];
-		mode = AR7240_PORT_VLAN_MODE_SECURE;
+		vlan = as->vlan_id[as->pvid[port]];
+		vlan |= AR7240_PORT_VLAN_MODE_SECURE <<
+			AR7240_PORT_VLAN_MODE_S;
 	} else {
-		vid = port;
-		mode = AR7240_PORT_VLAN_MODE_PORT_ONLY;
+		vlan = port;
+		vlan |= AR7240_PORT_VLAN_MODE_PORT_ONLY <<
+			AR7240_PORT_VLAN_MODE_S;
 	}
 
 	if (as->vlan && (as->vlan_tagged & BIT(port))) {
@@ -552,33 +516,21 @@ static void ar7240sw_setup_port(struct ar7240sw *as, unsigned port, u8 portmask)
 
 	if (!portmask) {
 		if (port == AR7240_PORT_CPU)
-			portmask = ar7240sw_port_mask_but(as, AR7240_PORT_CPU);
+			portmask = AR7240_PORT_MASK_BUT(AR7240_PORT_CPU);
 		else
-			portmask = ar7240sw_port_mask(as, AR7240_PORT_CPU);
+			portmask = AR7240_PORT_MASK(AR7240_PORT_CPU);
 	}
 
 	/* allow the port to talk to all other ports, but exclude its
 	 * own ID to prevent frames from being reflected back to the
 	 * port that they came from */
-	portmask &= ar7240sw_port_mask_but(as, port);
+	portmask &= AR7240_PORT_MASK_BUT(port);
+
+	/* set default VID and and destination ports for this VLAN */
+	vlan |= (portmask << AR7240_PORT_VLAN_DEST_PORTS_S);
 
 	ar7240sw_reg_write(mii, AR7240_REG_PORT_CTRL(port), ctrl);
-	if (sw_is_ar934x(as)) {
-		u32 vlan1, vlan2;
-
-		vlan1 = (vid << AR934X_PORT_VLAN1_DEFAULT_CVID_S);
-		vlan2 = (portmask << AR934X_PORT_VLAN2_PORT_VID_MEM_S) |
-			(mode << AR934X_PORT_VLAN2_8021Q_MODE_S);
-		ar7240sw_reg_write(mii, AR934X_REG_PORT_VLAN1(port), vlan1);
-		ar7240sw_reg_write(mii, AR934X_REG_PORT_VLAN2(port), vlan2);
-	} else {
-		u32 vlan;
-
-		vlan = vid | (mode << AR7240_PORT_VLAN_MODE_S) |
-		       (portmask << AR7240_PORT_VLAN_DEST_PORTS_S);
-
-		ar7240sw_reg_write(mii, AR7240_REG_PORT_VLAN(port), vlan);
-	}
+	ar7240sw_reg_write(mii, AR7240_REG_PORT_VLAN(port), vlan);
 }
 
 static int ar7240_set_addr(struct ar7240sw *as, u8 *addr)
@@ -643,7 +595,7 @@ ar7240_get_ports(struct switch_dev *dev, struct switch_val *val)
 	int i;
 
 	val->len = 0;
-	for (i = 0; i < as->swdev.ports; i++) {
+	for (i = 0; i < AR7240_NUM_PORTS; i++) {
 		struct switch_port *p;
 
 		if (!(ports & (1 << i)))
@@ -708,63 +660,6 @@ ar7240_get_vlan(struct switch_dev *dev, const struct switch_attr *attr,
 	return 0;
 }
 
-static const char *
-ar7240_speed_str(u32 status)
-{
-	u32 speed;
-
-	speed = (status >> AR7240_PORT_STATUS_SPEED_S) &
-					AR7240_PORT_STATUS_SPEED_M;
-	switch (speed) {
-	case AR7240_PORT_STATUS_SPEED_10:
-		return "10baseT";
-	case AR7240_PORT_STATUS_SPEED_100:
-		return "100baseT";
-	case AR7240_PORT_STATUS_SPEED_1000:
-		return "1000baseT";
-	}
-
-	return "unknown";
-}
-
-static int
-ar7240_port_get_link(struct switch_dev *dev, const struct switch_attr *attr,
-		     struct switch_val *val)
-{
-	struct ar7240sw *as = sw_to_ar7240(dev);
-	struct mii_bus *mii = as->mii_bus;
-	u32 len;
-	u32 status;
-	int port;
-
-	port = val->port_vlan;
-
-	memset(as->buf, '\0', sizeof(as->buf));
-	status = ar7240sw_reg_read(mii, AR7240_REG_PORT_STATUS(port));
-
-	if (status & AR7240_PORT_STATUS_LINK_UP) {
-		len = snprintf(as->buf, sizeof(as->buf),
-				"port:%d link:up speed:%s %s-duplex %s%s%s",
-				port,
-				ar7240_speed_str(status),
-				(status & AR7240_PORT_STATUS_DUPLEX) ?
-					"full" : "half",
-				(status & AR7240_PORT_STATUS_TXFLOW) ?
-					"txflow ": "",
-				(status & AR7240_PORT_STATUS_RXFLOW) ?
-					"rxflow " : "",
-				(status & AR7240_PORT_STATUS_LINK_AUTO) ?
-					"auto ": "");
-	} else {
-		len = snprintf(as->buf, sizeof(as->buf),
-			       "port:%d link:down", port);
-	}
-
-	val->value.s = as->buf;
-	val->len = len;
-
-	return 0;
-}
 
 static void
 ar7240_vtu_op(struct ar7240sw *as, u32 op, u32 val)
@@ -803,7 +698,7 @@ ar7240_hw_apply(struct switch_dev *dev)
 			if (!vp)
 				continue;
 
-			for (i = 0; i < as->swdev.ports; i++) {
+			for (i = 0; i < AR7240_NUM_PORTS; i++) {
 				u8 mask = (1 << i);
 				if (vp & mask)
 					portmask[i] |= vp & ~mask;
@@ -817,7 +712,7 @@ ar7240_hw_apply(struct switch_dev *dev)
 	} else {
 		/* vlan disabled:
 		 * isolate all ports, but connect them to the cpu port */
-		for (i = 0; i < as->swdev.ports; i++) {
+		for (i = 0; i < AR7240_NUM_PORTS; i++) {
 			if (i == AR7240_PORT_CPU)
 				continue;
 
@@ -827,7 +722,7 @@ ar7240_hw_apply(struct switch_dev *dev)
 	}
 
 	/* update the port destination mask registers and tag settings */
-	for (i = 0; i < as->swdev.ports; i++)
+	for (i = 0; i < AR7240_NUM_PORTS; i++)
 		ar7240sw_setup_port(as, i, portmask[i]);
 
 	return 0;
@@ -853,14 +748,6 @@ static struct switch_attr ar7240_globals[] = {
 };
 
 static struct switch_attr ar7240_port[] = {
-	{
-		.type = SWITCH_TYPE_STRING,
-		.name = "link",
-		.description = "Get port link information",
-		.max = 1,
-		.set = NULL,
-		.get = ar7240_port_get_link,
-	},
 };
 
 static struct switch_attr ar7240_vlan[] = {
@@ -897,84 +784,59 @@ static const struct switch_dev_ops ar7240_ops = {
 
 static struct ar7240sw *ar7240_probe(struct ag71xx *ag)
 {
-	struct ag71xx_platform_data *pdata = ag71xx_get_pdata(ag);
 	struct mii_bus *mii = ag->mii_bus;
 	struct ar7240sw *as;
 	struct switch_dev *swdev;
 	u32 ctrl;
 	u16 phy_id1;
 	u16 phy_id2;
+	u8 ver;
 	int i;
-
-	phy_id1 = ar7240sw_phy_read(mii, 0, MII_PHYSID1);
-	phy_id2 = ar7240sw_phy_read(mii, 0, MII_PHYSID2);
-	if ((phy_id1 != AR7240_PHY_ID1 || phy_id2 != AR7240_PHY_ID2) &&
-	    (phy_id1 != AR934X_PHY_ID1 || phy_id2 != AR934X_PHY_ID2)) {
-		pr_err("%s: unknown phy id '%04x:%04x'\n",
-		       ag->dev->name, phy_id1, phy_id2);
-		return NULL;
-	}
 
 	as = kzalloc(sizeof(*as), GFP_KERNEL);
 	if (!as)
 		return NULL;
 
-	as->mii_bus = mii;
-	as->swdata = pdata->switch_data;
-
-	swdev = &as->swdev;
+	ar7240sw_init(as, mii);
 
 	ctrl = ar7240sw_reg_read(mii, AR7240_REG_MASK_CTRL);
-	as->ver = (ctrl >> AR7240_MASK_CTRL_VERSION_S) &
-		  AR7240_MASK_CTRL_VERSION_M;
 
-	if (sw_is_ar7240(as)) {
-		swdev->name = "AR7240/AR9330 built-in switch";
-	} else if (sw_is_ar934x(as)) {
-		swdev->name = "AR934X built-in switch";
-
-		if (pdata->phy_if_mode == PHY_INTERFACE_MODE_GMII) {
-			ar7240sw_reg_set(mii, AR934X_REG_OPER_MODE0,
-					 AR934X_OPER_MODE0_MAC_GMII_EN);
-		} else if (pdata->phy_if_mode == PHY_INTERFACE_MODE_MII) {
-			ar7240sw_reg_set(mii, AR934X_REG_OPER_MODE0,
-					 AR934X_OPER_MODE0_PHY_MII_EN);
-		} else {
-			pr_err("%s: invalid PHY interface mode\n",
-			       ag->dev->name);
-			goto err_free;
-		}
-
-		if (as->swdata->phy4_mii_en)
-			ar7240sw_reg_set(mii, AR934X_REG_OPER_MODE1,
-					 AR934X_REG_OPER_MODE1_PHY4_MII_EN);
-	} else {
+	ver = (ctrl >> AR7240_MASK_CTRL_VERSION_S) & AR7240_MASK_CTRL_VERSION_M;
+	if (ver != 1) {
 		pr_err("%s: unsupported chip, ctrl=%08x\n",
 			ag->dev->name, ctrl);
-		goto err_free;
+		return NULL;
 	}
 
-	swdev->ports = AR7240_NUM_PORTS - 1;
+	phy_id1 = ar7240sw_phy_read(mii, 0, MII_PHYSID1);
+	phy_id2 = ar7240sw_phy_read(mii, 0, MII_PHYSID2);
+	if (phy_id1 != AR7240_PHY_ID1 || phy_id2 != AR7240_PHY_ID2) {
+		pr_err("%s: unknown phy id '%04x:%04x'\n",
+		       ag->dev->name, phy_id1, phy_id2);
+		return NULL;
+	}
+
+	swdev = &as->swdev;
+	swdev->name = "AR7240 built-in switch";
+	swdev->ports = AR7240_NUM_PORTS;
 	swdev->cpu_port = AR7240_PORT_CPU;
 	swdev->vlans = AR7240_MAX_VLANS;
 	swdev->ops = &ar7240_ops;
 
-	if (register_switch(&as->swdev, ag->dev) < 0)
-		goto err_free;
+	if (register_switch(&as->swdev, ag->dev) < 0) {
+		kfree(as);
+		return NULL;
+	}
 
-	pr_info("%s: Found an %s\n", ag->dev->name, swdev->name);
+	pr_info("%s: Found an AR7240 built-in switch\n", ag->dev->name);
 
 	/* initialize defaults */
 	for (i = 0; i < AR7240_MAX_VLANS; i++)
 		as->vlan_id[i] = i;
 
-	as->vlan_table[0] = ar7240sw_port_mask_all(as);
+	as->vlan_table[0] = AR7240_PORT_MASK_ALL;
 
 	return as;
-
-err_free:
-	kfree(as);
-	return NULL;
 }
 
 static void link_function(struct work_struct *work) {

@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2007-2011 OpenWrt.org
+# Copyright (C) 2007-2010 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -10,9 +10,7 @@ ARCH:=avr32
 BOARD:=avr32
 BOARDNAME:=Atmel AVR32
 FEATURES:=squashfs
-MAINTAINER:=Imre Kaloz <kaloz@openwrt.org>
-
-LINUX_VERSION:=2.6.39.4
+LINUX_VERSION:=2.6.32.27
 
 include $(INCLUDE_DIR)/target.mk
 

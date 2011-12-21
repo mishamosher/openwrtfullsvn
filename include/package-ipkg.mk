@@ -1,4 +1,4 @@
-#
+# 
 # Copyright (C) 2006,2007 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
@@ -19,7 +19,7 @@ OPKG:= \
 	--force-maintainer \
 	--add-dest root:/ \
 	--add-arch all:100 \
-	--add-arch $(if $(ARCH_PACKAGES),$(ARCH_PACKAGES),$(BOARD)):200
+	--add-arch $(ARCH_PACKAGES):200
 
 # invoke ipkg-build with some default options
 IPKG_BUILD:= \
@@ -71,7 +71,7 @@ ifeq ($(DUMP),)
     endif
 
     IDEPEND_$(1):=$$(call filter_deps,$$(DEPENDS))
-
+  
     $(eval $(call BuildIPKGVariable,$(1),conffiles))
     $(eval $(call BuildIPKGVariable,$(1),preinst))
     $(eval $(call BuildIPKGVariable,$(1),postinst))
@@ -83,19 +83,17 @@ ifeq ($(DUMP),)
 	mkdir -p $(STAGING_DIR_ROOT)/stamp $(STAGING_DIR_ROOT)/tmp-$(1)
 	$(call Package/$(1)/install,$(STAGING_DIR_ROOT)/tmp-$(1))
 	$(call Package/$(1)/install_lib,$(STAGING_DIR_ROOT)/tmp-$(1))
-	$(call locked,$(CP) $(STAGING_DIR_ROOT)/tmp-$(1)/. $(STAGING_DIR_ROOT)/,root-copy)
+	$(CP) $(STAGING_DIR_ROOT)/tmp-$(1)/. $(STAGING_DIR_ROOT)/
 	rm -rf $(STAGING_DIR_ROOT)/tmp-$(1)
 	touch $$@
 
     $$(IPKG_$(1)): $(STAMP_BUILT)
-	@rm -rf $(PACKAGE_DIR)/$(1)_* $$(IDIR_$(1))
-	mkdir -p $(PACKAGE_DIR) $$(IDIR_$(1))/CONTROL
-	$(call Package/$(1)/install,$$(IDIR_$(1)))
-	-find $$(IDIR_$(1)) -name 'CVS' -o -name '.svn' -o -name '.#*' -o -name '*~'| $(XARGS) rm -rf
-	$(RSTRIP) $$(IDIR_$(1))
+	@rm -f $(PACKAGE_DIR)/$(1)_*
+	rm -rf $$(IDIR_$(1))
+	mkdir -p $$(IDIR_$(1))/CONTROL
+	echo "Package: $(1)" > $$(IDIR_$(1))/CONTROL/control
+	echo "Version: $(VERSION)" >> $$(IDIR_$(1))/CONTROL/control
 	( \
-		echo "Package: $(1)"; \
-		echo "Version: $(VERSION)"; \
 		DEPENDS='$(EXTRA_DEPENDS)'; \
 		for depend in $$(filter-out @%,$$(IDEPEND_$(1))); do \
 			DEPENDS=$$$${DEPENDS:+$$$$DEPENDS, }$$$${depend##+}; \
@@ -110,12 +108,16 @@ ifeq ($(DUMP),)
 		echo "Maintainer: $(MAINTAINER)"; \
 		echo "Architecture: $(PKGARCH)"; \
 		echo "Installed-Size: 0"; \
-		echo -n "Description: "; $(SH_FUNC) getvar $(call shvar,Package/$(1)/description) | sed -e 's,^[[:space:]]*, ,g'; \
- 	) > $$(IDIR_$(1))/CONTROL/control
+		echo -n "Description: "; getvar $(call shvar,Package/$(1)/description) | sed -e 's,^[[:space:]]*, ,g'; \
+ 	) >> $$(IDIR_$(1))/CONTROL/control
 	chmod 644 $$(IDIR_$(1))/CONTROL/control
-	$(SH_FUNC) (cd $$(IDIR_$(1))/CONTROL; \
+	(cd $$(IDIR_$(1))/CONTROL; \
 		$($(1)_COMMANDS) \
 	)
+	$(call Package/$(1)/install,$$(IDIR_$(1)))
+	mkdir -p $(PACKAGE_DIR)
+	-find $$(IDIR_$(1)) -name 'CVS' -o -name '.svn' -o -name '.#*' | $(XARGS) rm -rf
+	$(RSTRIP) $$(IDIR_$(1))
 
     ifneq ($$(KEEP_$(1)),)
 		@( \
@@ -123,7 +125,7 @@ ifeq ($(DUMP),)
 			for x in $$(KEEP_$(1)); do \
 				[ -f "$$(IDIR_$(1))/$$$$x" ] || keepfiles="$$$${keepfiles:+$$$$keepfiles }$$$$x"; \
 			done; \
-			[ -z "$$$$keepfiles" ] || { \
+			[ -z "$keepfiles" ] || { \
 				mkdir -p $$(IDIR_$(1))/lib/upgrade/keep.d; \
 				for x in $$$$keepfiles; do echo $$$$x >> $$(IDIR_$(1))/lib/upgrade/keep.d/$(1); done; \
 			}; \
@@ -131,7 +133,7 @@ ifeq ($(DUMP),)
     endif
 
 	$(IPKG_BUILD) $$(IDIR_$(1)) $(PACKAGE_DIR)
-	@[ -f $$(IPKG_$(1)) ]
+	@[ -f $$(IPKG_$(1)) ] || false 
 
     $$(INFO_$(1)): $$(IPKG_$(1))
 	@[ -d $(TARGET_DIR)/tmp ] || mkdir -p $(TARGET_DIR)/tmp

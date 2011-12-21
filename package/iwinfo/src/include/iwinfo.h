@@ -95,34 +95,13 @@ struct iwinfo_iso3166_label {
 	uint8_t  name[28];
 };
 
-struct iwinfo_hardware_id {
-	uint16_t vendor_id;
-	uint16_t device_id;
-	uint16_t subsystem_vendor_id;
-	uint16_t subsystem_device_id;
-};
-
-struct iwinfo_hardware_entry {
-	const char *vendor_name;
-	const char *device_name;
-	uint16_t vendor_id;
-	uint16_t device_id;
-	uint16_t subsystem_vendor_id;
-	uint16_t subsystem_device_id;
-	int16_t txpower_offset;
-	int16_t frequency_offset;
-};
-
 extern const struct iwinfo_iso3166_label IWINFO_ISO3166_NAMES[];
-extern const struct iwinfo_hardware_entry IWINFO_HARDWARE_ENTRIES[];
 
 
 struct iwinfo_ops {
 	int (*channel)(const char *, int *);
 	int (*frequency)(const char *, int *);
-	int (*frequency_offset)(const char *, int *);
 	int (*txpower)(const char *, int *);
-	int (*txpower_offset)(const char *, int *);
 	int (*bitrate)(const char *, int *);
 	int (*signal)(const char *, int *);
 	int (*noise)(const char *, int *);
@@ -134,8 +113,6 @@ struct iwinfo_ops {
 	int (*ssid)(const char *, char *);
 	int (*bssid)(const char *, char *);
 	int (*country)(const char *, char *);
-	int (*hardware_id)(const char *, char *);
-	int (*hardware_name)(const char *, char *);
 	int (*encryption)(const char *, char *);
 	int (*assoclist)(const char *, char *, int *);
 	int (*txpwrlist)(const char *, char *, int *);

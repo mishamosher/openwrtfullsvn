@@ -6,7 +6,7 @@
 #
 
 define Profile/Atheros
-  NAME:=Atheros WiFi (madwifi)
+  NAME:=Atheros WiFi
   PACKAGES:=kmod-madwifi
 endef
 

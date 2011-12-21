@@ -23,9 +23,7 @@
 
 void __init prom_putchar(char ch)
 {
-	while ((UART_READ(UART_REG_FLAG) & UART_FLAG_TXFE) == 0)
-		;
+	while ((UART_READ(UART_REG_FLAG) & UART_FLAG_TXFE) == 0);
 	UART_WRITE(UART_REG_DATA, ch);
-	while ((UART_READ(UART_REG_FLAG) & UART_FLAG_TXFE) == 0)
-		;
+	while ((UART_READ(UART_REG_FLAG) & UART_FLAG_TXFE) == 0);
 }

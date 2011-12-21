@@ -22,7 +22,7 @@
 
 #include "machtype.h"
 #include "devices.h"
-#include "dev-ar9xxx-wmac.h"
+#include "dev-ar913x-wmac.h"
 #include "dev-gpio-buttons.h"
 #include "dev-leds-gpio.h"
 #include "dev-usb.h"
@@ -38,8 +38,7 @@
 #define AP83_050_GPIO_VSC7385_MOSI	16
 #define AP83_050_GPIO_VSC7385_SCK	17
 
-#define AP83_KEYS_POLL_INTERVAL		20	/* msecs */
-#define AP83_KEYS_DEBOUNCE_INTERVAL	(3 * AP83_KEYS_POLL_INTERVAL)
+#define AP83_BUTTONS_POLL_INTERVAL	20
 
 #ifdef CONFIG_MTD_PARTITIONS
 static struct mtd_partition ap83_flash_partitions[] = {
@@ -48,25 +47,25 @@ static struct mtd_partition ap83_flash_partitions[] = {
 		.offset		= 0,
 		.size		= 0x040000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "u-boot-env",
 		.offset		= 0x040000,
 		.size		= 0x020000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "kernel",
 		.offset		= 0x060000,
 		.size		= 0x140000,
-	}, {
+	} , {
 		.name		= "rootfs",
 		.offset		= 0x1a0000,
 		.size		= 0x650000,
-	}, {
+	} , {
 		.name		= "art",
 		.offset		= 0x7f0000,
 		.size		= 0x010000,
 		.mask_flags	= MTD_WRITEABLE,
-	}, {
+	} , {
 		.name		= "firmware",
 		.offset		= 0x060000,
 		.size		= 0x790000,
@@ -77,8 +76,8 @@ static struct mtd_partition ap83_flash_partitions[] = {
 static struct ar91xx_flash_platform_data ap83_flash_data = {
 	.width		= 2,
 #ifdef CONFIG_MTD_PARTITIONS
-	.parts		= ap83_flash_partitions,
-	.nr_parts	= ARRAY_SIZE(ap83_flash_partitions),
+        .parts          = ap83_flash_partitions,
+        .nr_parts       = ARRAY_SIZE(ap83_flash_partitions),
 #endif
 };
 
@@ -116,19 +115,19 @@ static struct gpio_led ap83_leds_gpio[] __initdata = {
 	},
 };
 
-static struct gpio_keys_button ap83_gpio_keys[] __initdata = {
+static struct gpio_button ap83_gpio_buttons[] __initdata = {
 	{
 		.desc		= "soft_reset",
 		.type		= EV_KEY,
-		.code		= KEY_RESTART,
-		.debounce_interval = AP83_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_0,
+		.threshold	= 3,
 		.gpio		= AP83_GPIO_BTN_RESET,
 		.active_low	= 1,
-	}, {
+	} , {
 		.desc		= "jumpstart",
 		.type		= EV_KEY,
-		.code		= KEY_WPS_BUTTON,
-		.debounce_interval = AP83_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_1,
+		.threshold	= 3,
 		.gpio		= AP83_GPIO_BTN_JUMPSTART,
 		.active_low	= 1,
 	}
@@ -197,15 +196,15 @@ static void __init ap83_generic_setup(void)
 {
 	u8 *eeprom = (u8 *) KSEG1ADDR(0x1fff1000);
 
-	ar71xx_add_device_mdio(0, 0xfffffffe);
+	ar71xx_set_mac_base(eeprom);
 
-	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, eeprom, 0);
+	ar71xx_add_device_mdio(0xfffffffe);
+
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth0_data.phy_mask = 0x1;
 
 	ar71xx_add_device_eth(0);
 
-	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, eeprom, 1);
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth1_data.speed = SPEED_1000;
 	ar71xx_eth1_data.duplex = DUPLEX_FULL;
@@ -217,13 +216,13 @@ static void __init ap83_generic_setup(void)
 	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(ap83_leds_gpio),
 					ap83_leds_gpio);
 
-	ar71xx_register_gpio_keys_polled(-1, AP83_KEYS_POLL_INTERVAL,
-					 ARRAY_SIZE(ap83_gpio_keys),
-					 ap83_gpio_keys);
+	ar71xx_add_device_gpio_buttons(-1, AP83_BUTTONS_POLL_INTERVAL,
+					ARRAY_SIZE(ap83_gpio_buttons),
+					ap83_gpio_buttons);
 
 	ar71xx_add_device_usb();
 
-	ar9xxx_add_device_wmac(eeprom, NULL);
+	ar913x_add_device_wmac(eeprom, NULL);
 
 	platform_device_register(&ap83_flash_device);
 
@@ -232,7 +231,7 @@ static void __init ap83_generic_setup(void)
 
 static void __init ap83_040_setup(void)
 {
-	ap83_flash_data.is_shared = 1;
+	ap83_flash_data.is_shared=1;
 	ap83_generic_setup();
 	platform_device_register(&ap83_040_spi_device);
 }

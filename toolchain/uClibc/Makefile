@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2011 OpenWrt.org
+# Copyright (C) 2006-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -9,22 +9,17 @@ include $(INCLUDE_DIR)/target.mk
 
 PKG_NAME:=uClibc
 PKG_VERSION:=$(call qstrip,$(CONFIG_UCLIBC_VERSION))
-ifeq ($(PKG_VERSION),0.9.32)
-  PKG_SOURCE_URL:=git://git.busybox.net/uClibc
-  PKG_SOURCE_PROTO:=git
-  PKG_SOURCE_VERSION:=9152c4d67c763fde5712e2d181d92c0d7e1e2ab9
-  PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)
-  PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)-$(PKG_SOURCE_VERSION).tar.gz
-  PKG_MIRROR_MD5SUM:=723dfa4f1f766cbd675d2c9a8238abb0
-  LIBC_SO_VERSION:=$(PKG_VERSION).1-git
-else
-  PKG_SOURCE_URL:=http://www.uclibc.org/downloads
-  PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
-  LIBC_SO_VERSION:=$(PKG_VERSION)
-endif
+
+PKG_SOURCE_URL:=http://www.uclibc.org/downloads
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
+LIBC_SO_VERSION:=$(PKG_VERSION)
+
 PATCH_DIR:=./patches-$(PKG_VERSION)
 CONFIG_DIR:=./config-$(PKG_VERSION)
 
+PKG_MD5SUM_0.9.30.1 = 1a4b84e5536ad8170563ffa88c34679c
+PKG_MD5SUM_0.9.30.2 = e759ec855500082ac3e671dd6cacfdb0
+PKG_MD5SUM_0.9.30.3 = 73a4bf4a0fa508b01a7a3143574e3d21
 PKG_MD5SUM=$(PKG_MD5SUM_$(PKG_VERSION))
 
 HOST_BUILD_DIR:=$(BUILD_DIR_TOOLCHAIN)/$(PKG_NAME)-$(PKG_VERSION)
@@ -60,30 +55,26 @@ endef
 GEN_CONFIG=$(SCRIPT_DIR)/kconfig.pl -n \
 	$(if $(wildcard $(CONFIG_DIR)/common),'+' $(CONFIG_DIR)/common) \
 	$(if $(CONFIG_UCLIBC_ENABLE_DEBUG),$(if $(wildcard $(CONFIG_DIR)/debug),'+' $(CONFIG_DIR)/debug)) \
-	$(CONFIG_DIR)/$(ARCH)$(strip \
-		$(if $(wildcard $(CONFIG_DIR)/$(ARCH).$(BOARD)),.$(BOARD), \
-			$(if $(CONFIG_HAS_SPE_FPU),$(if $(wildcard $(CONFIG_DIR)/$(ARCH).e500),.e500))))
+	$(CONFIG_DIR)/$(ARCH)$(if $(wildcard $(CONFIG_DIR)/$(ARCH).$(BOARD)),.$(BOARD))
 
 define Host/Prepare
+	$(call Host/SetToolchainInfo)
 	$(call Host/Prepare/Default)
-	$(if $(strip $(QUILT)), \
-		cd $(HOST_BUILD_DIR); \
-		if $(QUILT_CMD) next >/dev/null 2>&1; then \
-			$(QUILT_CMD) push -a; \
-		fi
-	)
 	ln -snf $(PKG_NAME)-$(PKG_VERSION) $(BUILD_DIR_TOOLCHAIN)/$(PKG_NAME)
 	$(GEN_CONFIG) > $(HOST_BUILD_DIR)/.config
-	$(SED) 's,^KERNEL_HEADERS=.*,KERNEL_HEADERS=\"$(BUILD_DIR_TOOLCHAIN)/linux-dev/include\",g' \
+	$(SED) 's,^KERNEL_HEADERS=.*,KERNEL_HEADERS=\"$(BUILD_DIR_TOOLCHAIN)/linux-dev/usr/include\",g' \
 		-e 's,^.*UCLIBC_HAS_FPU.*,UCLIBC_HAS_FPU=$(if $(CONFIG_SOFT_FLOAT),n,y),g' \
 		-e 's,^.*UCLIBC_HAS_SOFT_FLOAT.*,UCLIBC_HAS_SOFT_FLOAT=$(if $(CONFIG_SOFT_FLOAT),y,n),g' \
+		-e 's,^.*UCLIBC_HAS_LFS.*,UCLIBC_HAS_LFS=$(if $(CONFIG_LARGEFILE),y,n),g' \
+		-e 's,^.*CONFIG_ARM_EABI.*,CONFIG_ARM_EABI=$(if $(CONFIG_EABI_SUPPORT),y,n),g' \
+		-e 's,^.*CONFIG_ARM_OABI.*,CONFIG_ARM_OABI=$(if $(CONFIG_EABI_SUPPORT),n,y),g' \
 		-e 's,^.*UCLIBC_HAS_SHADOW.*,UCLIBC_HAS_SHADOW=$(if $(CONFIG_SHADOW_PASSWORDS),y,n),g' \
 		$(HOST_BUILD_DIR)/.config
 	$(MAKE) -C $(HOST_BUILD_DIR) oldconfig KBUILD_HAVE_NLS= HOSTCFLAGS="-DKBUILD_NO_NLS"
 	$(MAKE) -C $(HOST_BUILD_DIR)/extra/config conf KBUILD_HAVE_NLS= HOSTCFLAGS="-DKBUILD_NO_NLS"
 	PATH='$(TARGET_PATH)' $(MAKE) -C $(HOST_BUILD_DIR) \
 		PREFIX="$(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/" \
-		DEVEL_PREFIX=/ \
+		DEVEL_PREFIX=/usr/ \
 		RUNTIME_PREFIX="$(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/" \
 		HOSTCC="$(HOSTCC)" \
 		CC="$(TARGET_CC)" \
@@ -96,27 +87,23 @@ endef
 define Host/Configure
 endef
 
-CPU_CFLAGS = \
-	-funsigned-char -fno-builtin -fno-asm \
-	--std=gnu99 -ffunction-sections -fdata-sections \
-	$(TARGET_CFLAGS)
-
 UCLIBC_MAKE = PATH='$(TARGET_PATH)' $(MAKE) -C $(HOST_BUILD_DIR) \
 	$(TARGET_CONFIGURE_OPTS) \
-	DEVEL_PREFIX=/ \
+	DEVEL_PREFIX=/usr/ \
 	RUNTIME_PREFIX=/ \
 	HOSTCC="$(HOSTCC)" \
-	CPU_CFLAGS="$(CPU_CFLAGS)" \
+	CPU_CFLAGS="$(TARGET_CFLAGS)" \
 	ARCH="$(CONFIG_ARCH)" \
 	LIBGCC="$(subst libgcc.a,libgcc_initial.a,$(shell $(TARGET_CC) -print-libgcc-file-name))" \
 	DOSTRIP=""
 
 define Host/Compile
 	$(SED) 's,^CROSS=.*,CROSS=$(TARGET_CROSS),g' $(HOST_BUILD_DIR)/Rules.mak
-	$(UCLIBC_MAKE) $(TOOLCHAIN_JOBS) PREFIX= all
+	$(UCLIBC_MAKE) PREFIX= all
 	$(UCLIBC_MAKE) PREFIX="$(TOOLCHAIN_DIR)/" install_runtime install_dev
-	$(CP) $(HOST_BUILD_DIR)/libc/libc_so.a $(TOOLCHAIN_DIR)/lib/
-	$(CP) $(HOST_BUILD_DIR)/libpthread/*/libpthread_so.a $(TOOLCHAIN_DIR)/lib/
+	ln -sf ../../lib/libc.so.0 $(TOOLCHAIN_DIR)/usr/lib/libc.so
+	$(CP) $(HOST_BUILD_DIR)/libc/libc_so.a $(TOOLCHAIN_DIR)/usr/lib/
+	$(CP) $(HOST_BUILD_DIR)/libpthread/*/libpthread_so.a $(TOOLCHAIN_DIR)/usr/lib/
 	( cd $(TOOLCHAIN_DIR) ; \
 		for d in lib usr/lib ; do \
 		  for f in libc.so libpthread.so libgcc_s.so ; do \
@@ -126,18 +113,15 @@ define Host/Compile
 		  done \
 		done \
 	)
-	rm -f \
-		$(TOOLCHAIN_DIR)/lib/libresolv*.so* \
-		$(TOOLCHAIN_DIR)/lib/libnsl*.so*
 endef
 
 define Host/Install
-	$(call Host/SetToolchainInfo)
 	$(UCLIBC_MAKE) PREFIX= utils
 	$(INSTALL_DIR) $(TOOLCHAIN_DIR)/bin
+	$(INSTALL_DIR) $(TOOLCHAIN_DIR)/usr/bin
 	$(INSTALL_BIN) \
 		$(HOST_BUILD_DIR)/utils/ldd \
-		$(TOOLCHAIN_DIR)/bin/
+		$(TOOLCHAIN_DIR)/usr/bin/
 	$(INSTALL_DIR) $(TOOLCHAIN_DIR)/sbin
 	$(INSTALL_BIN) \
 		$(HOST_BUILD_DIR)/utils/ldconfig \

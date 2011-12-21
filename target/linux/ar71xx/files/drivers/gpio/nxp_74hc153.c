@@ -11,7 +11,6 @@
 #include <linux/module.h>
 #include <linux/init.h>
 #include <linux/gpio.h>
-#include <linux/slab.h>
 #include <linux/platform_device.h>
 #include <linux/nxp_74hc153.h>
 
@@ -179,15 +178,15 @@ static int __devinit nxp_74hc153_probe(struct platform_device *pdev)
 	platform_set_drvdata(pdev, nxp);
 	return 0;
 
-err_free_2y:
+ err_free_2y:
 	gpio_free(pdata->gpio_pin_2y);
-err_free_1y:
+ err_free_1y:
 	gpio_free(pdata->gpio_pin_1y);
-err_free_s1:
+ err_free_s1:
 	gpio_free(pdata->gpio_pin_s1);
-err_free_s0:
+ err_free_s0:
 	gpio_free(pdata->gpio_pin_s0);
-err_free_nxp:
+ err_free_nxp:
 	kfree(nxp);
 	return err;
 }

@@ -7,17 +7,20 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=cloog-ppl
-PKG_VERSION:=0.15.10
+PKG_VERSION:=0.15.7
 
 PKG_SOURCE_URL:=ftp://gcc.gnu.org/pub/gcc/infrastructure
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
-PKG_MD5SUM:=04aa756179b6d850d9ffa50f61b91895
-
-HOST_FIXUP:=autoreconf
+PKG_MD5SUM:=6455e7875daac5bd885545c71c3f2001
 
 include $(INCLUDE_DIR)/host-build.mk
 
 unexport CFLAGS
+
+ifeq ($(HOST_OS),Darwin)
+  GNU_HOST_NAME:=
+  HOST_CONFIGURE_ARGS:=$(filter-out --target= --build= --host=,$(HOST_CONFIGURE_ARGS))
+endif
 
 HOST_CONFIGURE_VARS += \
 	LIBS=-lstdc++

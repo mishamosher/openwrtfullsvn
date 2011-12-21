@@ -21,8 +21,6 @@ ifeq ($(DUMP),)
   endif
 endif
 
-ifneq ($(DEBUG),)
-
 define debug
 $$(findstring $(2),$$(if $$(DEBUG_SCOPE_DIR),$$(if $$(filter $$(DEBUG_SCOPE_DIR)%,$(1)),$(build_debug)),$(build_debug)))
 endef
@@ -40,12 +38,4 @@ $(call warn,$(1),$(2),$(3)	$(4))
 $(4)
 endef
 
-else
-
-debug:=
-warn:=
-debug_eval:=
-warn_eval = $(4)
-
-endif
 

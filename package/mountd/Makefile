@@ -5,7 +5,7 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=mountd
 PKG_VERSION:=0.1
-PKG_RELEASE:=4
+PKG_RELEASE:=2.1
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://mirror2.openwrt.org/sources
@@ -17,7 +17,7 @@ define Package/mountd
   SECTION:=utils
   CATEGORY:=Utilities
   TITLE:=OpenWrt automount daemon
-  DEPENDS:=@USB_SUPPORT +uci +kmod-usb-storage +kmod-fs-autofs4
+  DEPENDS:=@LINUX_2_6 @USB_SUPPORT +uci +kmod-usb-storage +kmod-fs-autofs4
   URL:=http://www.openwrt.org
 endef
 

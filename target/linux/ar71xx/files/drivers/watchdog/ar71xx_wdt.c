@@ -1,11 +1,8 @@
 /*
  * Driver for the Atheros AR71xx SoC's built-in hardware watchdog timer.
  *
- * Copyright (C) 2010-2011 Jaiganesh Narayanan <jnarayanan@atheros.com>
  * Copyright (C) 2008 Gabor Juhos <juhosg@openwrt.org>
  * Copyright (C) 2008 Imre Kaloz <kaloz@openwrt.org>
- *
- * Parts of this file are based on Atheros 2.6.31 BSP
  *
  * This driver was based on: drivers/watchdog/ixp4xx_wdt.c
  *	Author: Deepak Saxena <dsaxena@plexity.net>
@@ -31,7 +28,6 @@
 #include <linux/platform_device.h>
 #include <linux/types.h>
 #include <linux/watchdog.h>
-#include <linux/delay.h>
 
 #include <asm/mach-ar71xx/ar71xx.h>
 
@@ -57,22 +53,20 @@ static unsigned long wdt_flags;
 static int wdt_timeout = WDT_TIMEOUT;
 static int boot_status;
 static int max_timeout;
-static u32 wdt_clk_freq;
 
-static inline void ar71xx_wdt_keepalive(void)
+static void inline ar71xx_wdt_keepalive(void)
 {
-	ar71xx_reset_wr(AR71XX_RESET_REG_WDOG, wdt_clk_freq * wdt_timeout);
+	ar71xx_reset_wr(AR71XX_RESET_REG_WDOG, ar71xx_ahb_freq * wdt_timeout);
 }
 
-static inline void ar71xx_wdt_enable(void)
+static void inline ar71xx_wdt_enable(void)
 {
 	printk(KERN_DEBUG DRV_NAME ": enabling watchdog timer\n");
 	ar71xx_wdt_keepalive();
-	udelay(2);
 	ar71xx_reset_wr(AR71XX_RESET_REG_WDOG_CTRL, WDOG_CTRL_ACTION_FCR);
 }
 
-static inline void ar71xx_wdt_disable(void)
+static void inline ar71xx_wdt_disable(void)
 {
 	printk(KERN_DEBUG DRV_NAME ": disabling watchdog timer\n");
 	ar71xx_reset_wr(AR71XX_RESET_REG_WDOG_CTRL, WDOG_CTRL_ACTION_NONE);
@@ -121,7 +115,7 @@ static int ar71xx_wdt_release(struct inode *inode, struct file *file)
 static ssize_t ar71xx_wdt_write(struct file *file, const char *data,
 				size_t len, loff_t *ppos)
 {
-	if (len) {
+        if (len) {
 		if (!nowayout) {
 			size_t i;
 
@@ -148,11 +142,11 @@ static ssize_t ar71xx_wdt_write(struct file *file, const char *data,
 static struct watchdog_info ar71xx_wdt_info = {
 	.options		= WDIOF_SETTIMEOUT | WDIOF_KEEPALIVEPING |
 				  WDIOF_MAGICCLOSE | WDIOF_CARDRESET,
-	.firmware_version	= 0,
+	.firmware_version 	= 0,
 	.identity		= "AR71XX watchdog",
 };
 
-static long ar71xx_wdt_ioctl(struct file *file,
+static int ar71xx_wdt_ioctl(struct inode *inode, struct file *file,
 			    unsigned int cmd, unsigned long arg)
 {
 	int t;
@@ -162,7 +156,7 @@ static long ar71xx_wdt_ioctl(struct file *file,
 	case WDIOC_GETSUPPORT:
 		ret = copy_to_user((struct watchdog_info *)arg,
 				   &ar71xx_wdt_info,
-				   sizeof(ar71xx_wdt_info)) ? -EFAULT : 0;
+				   sizeof(&ar71xx_wdt_info)) ? -EFAULT : 0;
 		break;
 
 	case WDIOC_GETSTATUS:
@@ -203,7 +197,7 @@ static long ar71xx_wdt_ioctl(struct file *file,
 static const struct file_operations ar71xx_wdt_fops = {
 	.owner		= THIS_MODULE,
 	.write		= ar71xx_wdt_write,
-	.unlocked_ioctl	= ar71xx_wdt_ioctl,
+	.ioctl		= ar71xx_wdt_ioctl,
 	.open		= ar71xx_wdt_open,
 	.release	= ar71xx_wdt_release,
 };
@@ -218,35 +212,12 @@ static int __devinit ar71xx_wdt_probe(struct platform_device *pdev)
 {
 	int ret;
 
-	switch (ar71xx_soc) {
-	case AR71XX_SOC_AR7130:
-	case AR71XX_SOC_AR7141:
-	case AR71XX_SOC_AR7161:
-	case AR71XX_SOC_AR7240:
-	case AR71XX_SOC_AR7241:
-	case AR71XX_SOC_AR7242:
-	case AR71XX_SOC_AR9130:
-	case AR71XX_SOC_AR9132:
-		wdt_clk_freq = ar71xx_ahb_freq;
-		break;
-
-	case AR71XX_SOC_AR9330:
-	case AR71XX_SOC_AR9331:
-	case AR71XX_SOC_AR9341:
-	case AR71XX_SOC_AR9342:
-	case AR71XX_SOC_AR9344:
-		wdt_clk_freq = ar71xx_ref_freq;
-		break;
-
-	default:
-		BUG();
-	}
-
-	max_timeout = (0xfffffffful / wdt_clk_freq);
+	max_timeout = (0xfffffffful / ar71xx_ahb_freq);
 	wdt_timeout = (max_timeout < WDT_TIMEOUT) ? max_timeout : WDT_TIMEOUT;
 
-	if (ar71xx_reset_rr(AR71XX_RESET_REG_WDOG_CTRL) & WDOG_CTRL_LAST_RESET)
-		boot_status = WDIOF_CARDRESET;
+	boot_status =
+		(ar71xx_reset_rr(AR71XX_RESET_REG_WDOG_CTRL) & WDOG_CTRL_LAST_RESET) ?
+		WDIOF_CARDRESET : 0;
 
 	ret = misc_register(&ar71xx_wdt_miscdev);
 	if (ret)
@@ -255,7 +226,7 @@ static int __devinit ar71xx_wdt_probe(struct platform_device *pdev)
 	printk(KERN_INFO DRV_DESC " version " DRV_VERSION "\n");
 
 	printk(KERN_DEBUG DRV_NAME ": timeout=%d secs (max=%d)\n",
-					wdt_timeout, max_timeout);
+				 	wdt_timeout, max_timeout);
 
 	return 0;
 

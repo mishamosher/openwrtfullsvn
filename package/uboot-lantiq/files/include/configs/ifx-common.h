@@ -23,7 +23,7 @@
 #ifndef __IFX_COMMON_H
 #define __IFX_COMMON_H
 
-#define CONFIG_BOOTDELAY	2	/* autoboot after 5 seconds	*/
+#define CONFIG_BOOTDELAY	5	/* autoboot after 5 seconds	*/
 
 #define CONFIG_BAUDRATE		115200
 
@@ -32,12 +32,14 @@
 
 #define CONFIG_TIMESTAMP		/* Print image info with timestamp */
 
-#undef CONFIG_PREBOOT
+#define CONFIG_PREBOOT	"echo;"	\
+	"echo Type \\\"run flash_nfs\\\" to mount root filesystem over NFS;" \
+	"echo"
 
 #undef	CONFIG_BOOTARGS
 #define CONFIG_EXTRA_ENV_SETTINGS					\
 	"ram_addr=0x80500000\0"						\
-	"kernel_addr=0xb0020000\0"					\
+	"kernel_addr=0xb0050000\0"					\
 	"mtdparts=mtdparts=ifx-nor:256k(uboot)ro,64k(uboot_env)ro,64k(kernel),-(rootfs)\0" \
 	"flashargs=setenv bootargs rootfstype=squashfs,jffs2\0"		\
 	"nfsargs=setenv bootargs root=/dev/nfs rw "			\
@@ -83,17 +85,23 @@
 /*
  * Command line configuration.
  */
+#include <config_cmd_default.h>
 
-#define CONFIG_CMD_FLASH        /* flinfo, erase, protect       */
-#define CONFIG_CMD_MEMORY       /* md mm nm mw cp cmp crc base loop mtest */
-#define CONFIG_CMD_NET          /* bootp, tftpboot, rarpboot    */
-#define CONFIG_CMD_RUN          /* run command in env variable  */
-#define CONFIG_CMD_SAVEENV      /* saveenv                      */
-#define CONFIG_CMD_IMI
-#undef CONFIG_CMD_PING
-#undef CONFIG_ZLIB
-#undef CONFIG_GZIP
-#undef CONFIG_SYS_HUSH_PARSER
+#undef CONFIG_CMD_CONSOLE
+#undef CONFIG_CMD_FPGA
+#undef CONFIG_CMD_IMLS
+#undef CONFIG_CMD_LOADB
+#undef CONFIG_CMD_LOADS
+#undef CONFIG_CMD_NFS
+#undef CONFIG_CMD_XIMG
+
+//#define CONFIG_CMD_ASKENV
+//#define CONFIG_CMD_DHCP
+//#define CONFIG_CMD_ELF
+#define CONFIG_CMD_PING
+//#define CONFIG_CMD_JFFS2
+//#define CONFIG_CMD_SNTP
+
 
 /*
  * Miscellaneous configurable options
@@ -101,7 +109,7 @@
 
 #define CONFIG_LZMA
 
-#undef CONFIG_SYS_LONGHELP				/* undef to save memory */
+#define CONFIG_SYS_LONGHELP				/* undef to save memory */
 #ifndef CONFIG_SYS_PROMPT
 #define CONFIG_SYS_PROMPT		"=> "		/* Monitor Command Prompt */
 #endif
@@ -121,7 +129,7 @@
 #define CONFIG_SYS_MEMTEST_END		0x80800000
 
 #define CONFIG_CMDLINE_EDITING		/* add command line history	*/
-#undef CONFIG_AUTO_COMPLETE		/* add autocompletion support	*/
+#define CONFIG_AUTO_COMPLETE		/* add autocompletion support	*/
 
 #define CONFIG_ZERO_BOOTDELAY_CHECK	/* check for keypress on bootdelay==0 */
 #define CONFIG_VERSION_VARIABLE		/* include version env variable */
@@ -158,7 +166,7 @@
 #define CONFIG_ENV_IS_IN_FLASH		1
 
 /* Address and size of Primary Environment Sector	*/
-#define CONFIG_ENV_ADDR			0xB0010000
+#define CONFIG_ENV_ADDR			0xB0040000
 #define CONFIG_ENV_SIZE			0x10000
 
 #ifdef CONFIG_FLASH_CFI_DRIVER
@@ -179,14 +187,6 @@
 #ifndef INFINEON_EBU_BOOTCFG
 #error Please define INFINEON_EBU_BOOTCFG
 #endif
-#endif
-
-#ifdef CONFIG_BOOTSTRAP
-#define CONFIG_BOOTSTRAP_BASE			CONFIG_BOOTSTRAP_TEXT_BASE
-#define CONFIG_BOOTSTRAP_BAUDRATE		CONFIG_BAUDRATE
-#define CONFIG_SKIP_LOWLEVEL_INIT
-#define CONFIG_BOOTSTRAP_LZMA
-//#define CONFIG_BOOTSTRAP_SERIAL
 #endif
 
 #endif /* __IFX_COMMON_H */

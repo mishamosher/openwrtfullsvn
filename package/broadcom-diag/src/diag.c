@@ -27,12 +27,20 @@
 #include <linux/timer.h>
 #include <linux/version.h>
 #include <asm/uaccess.h>
+
+#ifndef LINUX_2_4
 #include <linux/workqueue.h>
 #include <linux/skbuff.h>
 #include <linux/netlink.h>
-#include <linux/kobject.h>
 #include <net/sock.h>
+extern struct sock *uevent_sock;
 extern u64 uevent_next_seqnum(void);
+#else
+#include <linux/tqueue.h>
+#define INIT_WORK INIT_TQUEUE
+#define schedule_work schedule_task
+#define work_struct tq_struct
+#endif
 
 #include "gpio.h"
 #include "diag.h"
@@ -52,7 +60,6 @@ enum {
 	WRT54G,
 	WRTSL54GS,
 	WRT54G3G,
-	WRT54G3GV2_VF,
 	WRT160N,
 	WRT300NV11,
 	WRT350N,
@@ -110,8 +117,6 @@ enum {
 
 	/* Netgear */
 	WGT634U,
-	WNR834BV1,
-	WNR834BV2,
 
 	/* Trendware */
 	TEW411BRPP,
@@ -139,9 +144,6 @@ enum {
 
 	/* Microsoft */
 	MN700,
-
-	/* Edimax */
-	PS1208MFG,
 };
 
 static void __init bcm4780_init(void) {
@@ -176,10 +178,12 @@ static void __init NetCenter_init(void) {
 static void __init bcm57xx_init(void) {
 	int pin = 1 << 2;
 
+#ifndef LINUX_2_4
 	/* FIXME: switch comes up, but port mappings/vlans not right */
 	gpio_outen(pin, pin);
 	gpio_control(pin, 0);
 	gpio_out(pin, pin);
+#endif
 }
 
 static struct platform_t __initdata platforms[] = {
@@ -265,18 +269,6 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "3g_green",	.gpio = 1 << 2, .polarity = NORMAL },
 			{ .name = "3g_blue",	.gpio = 1 << 3, .polarity = NORMAL },
 			{ .name = "3g_blink",	.gpio = 1 << 5, .polarity = NORMAL },
-		},
-	},
-	[WRT54G3GV2_VF] = {
-		.name		= "Linksys WRT54G3GV2-VF",
-		.buttons	= {
-			{ .name = "reset",	.gpio = 1 << 6 },
-			{ .name = "3g",		.gpio = 1 << 5 },
-		},
-		.leds		= {
-			{ .name = "power",	.gpio = 1 << 1, .polarity = NORMAL },
-			{ .name = "3g_green",	.gpio = 1 << 2, .polarity = NORMAL },
-			{ .name = "3g_blue",	.gpio = 1 << 3, .polarity = NORMAL },
 		},
 	},
 	[WRT160N] = {
@@ -759,28 +751,6 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "power",	.gpio = 1 << 3, .polarity = NORMAL },
 		},
 	},
-	/* Netgear */
-	[WNR834BV1] = {
-		.name		= "Netgear WNR834B V1",
-		.buttons	= { /* TODO: add reset button and confirm LEDs - GPIO from dd-wrt */ },
-		.leds		= {
-			{ .name = "power",	.gpio = 1 << 4, .polarity = REVERSE },
-			{ .name = "diag",	.gpio = 1 << 5, .polarity = REVERSE },
-			{ .name = "wlan",	.gpio = 1 << 6, .polarity = REVERSE },
-		},
-	},
-	/* Netgear */
-	[WNR834BV2] = {
-		.name	 	= "Netgear WNR834B V2",
-		.buttons	= {
-			{ .name = "reset",	.gpio = 1 << 6 },
-		},
-		.leds		= {
-			{ .name = "power",	.gpio = 1 << 2, .polarity = NORMAL },
-			{ .name = "diag",	.gpio = 1 << 3, .polarity = NORMAL },
-			{ .name = "connected",	.gpio = 1 << 7, .polarity = NORMAL },
-		},
-	},
 	/* Trendware */
 	[TEW411BRPP] = {
 		.name           = "Trendware TEW411BRP+",
@@ -910,17 +880,6 @@ static struct platform_t __initdata platforms[] = {
 			{ .name = "power",	.gpio = 1 << 6, .polarity = NORMAL },
 		},
 	},
-	/* Edimax */
-	[PS1208MFG] = {
-		.name   = "Edimax PS-1208MFG",
-		.buttons        = {
-			{ .name = "reset",	.gpio = 1 << 4 },
-		},
-		.leds     = {
-			{ .name = "status",	.gpio = 1 << 1, .polarity = NORMAL },
-			{ .name = "wlan",	.gpio = 1 << 0, .polarity = NORMAL },
-		},
-	},
 };
 
 static struct platform_t __init *platform_detect(void)
@@ -1023,9 +982,6 @@ static struct platform_t __init *platform_detect(void)
 			if (!strcmp(boardtype, "0x0101") && !strcmp(getvar("boot_ver"), "v3.6"))
 				return &platforms[WRT54G3G];
 
-			if (!strcmp(boardtype, "0x042f") && !strcmp(getvar("model_name"), "WRT54G3GV2-VF"))
-				return &platforms[WRT54G3GV2_VF];
-
 			if (!strcmp(getvar("et1phyaddr"),"5") && !strcmp(getvar("et1mdcport"), "1"))
 				return &platforms[WRTSL54GS];
 
@@ -1070,13 +1026,6 @@ static struct platform_t __init *platform_detect(void)
 
 		if (!strncmp(boardnum, "TH",2) && !strcmp(boardtype,"0x042f")) {
 			return &platforms[WDNetCenter];
-		}
-
-		if (!strcmp(boardtype,"0x0472") && !strcmp(getvar("cardbus"), "1")) { /* Netgear WNR834B  V1 and V2*/
-			if (!strcmp(boardnum, "08") || !strcmp(boardnum, "8"))
-				return &platforms[WNR834BV1];
-			if (!strcmp(boardnum, "01") || !strcmp(boardnum, "1"))
-				return &platforms[WNR834BV2];
 		}
 
 	} else { /* PMON based - old stuff */
@@ -1148,12 +1097,8 @@ static struct platform_t __init *platform_detect(void)
 	if (startswith(boardnum, "04FN")) /* SimpleTech SimpleShare */
 		return &platforms[STI_NAS];
 
-	if (!strcmp(boardnum, "10") && !strcmp(getvar("boardrev"), "0x13")) /* D-Link DWL-3150 */
+	if (!strcmp(getvar("boardnum"), "10") && !strcmp(getvar("boardrev"), "0x13")) /* D-Link DWL-3150 */
 		return &platforms[DWL3150];
-
-	if (!strcmp(boardnum, "01") && !strcmp(boardtype, "0x048e") && /* Edimax PS1208MFG */
-		!strcmp(getvar("status_gpio"), "1")) /* gpio based detection */
-		return &platforms[PS1208MFG];
 
 	/* not found */
 	return NULL;
@@ -1183,6 +1128,7 @@ static void unregister_buttons(struct button_t *b)
 }
 
 
+#ifndef LINUX_2_4
 static void add_msg(struct event_t *event, char *msg, int argv)
 {
 	char *s;
@@ -1199,6 +1145,9 @@ static void hotplug_button(struct work_struct *work)
 	struct event_t *event = container_of(work, struct event_t, wq);
 	char *s;
 
+	if (!uevent_sock)
+		return;
+
 	event->skb = alloc_skb(2048, GFP_KERNEL);
 
 	s = skb_put(event->skb, strlen(event->action) + 2);
@@ -1206,11 +1155,48 @@ static void hotplug_button(struct work_struct *work)
 	fill_event(event);
 
 	NETLINK_CB(event->skb).dst_group = 1;
-	broadcast_uevent(event->skb, 0, 1, GFP_KERNEL);
+	netlink_broadcast(uevent_sock, event->skb, 0, 1, GFP_KERNEL);
 
 	kfree(event);
 }
 
+#else /* !LINUX_2_4 */
+static inline char *kzalloc(unsigned int size, unsigned int gfp)
+{
+	char *p;
+
+	p = kmalloc(size, gfp);
+	if (p == NULL)
+		return NULL;
+
+	memset(p, 0, size);
+
+	return p;
+}
+
+static void add_msg(struct event_t *event, char *msg, int argv)
+{
+	if (argv)
+		event->argv[event->anr++] = event->scratch;
+	else
+		event->envp[event->enr++] = event->scratch;
+
+	event->scratch += sprintf(event->scratch, "%s", msg) + 1;
+}
+
+static void hotplug_button(struct event_t *event)
+{
+	char *scratch = kzalloc(256, GFP_KERNEL);
+	event->scratch = scratch;
+
+	add_msg(event, hotplug_path, 1);
+	add_msg(event, "button", 1);
+	fill_event(event);
+	call_usermodehelper (event->argv[0], event->argv, event->envp);
+	kfree(scratch);
+	kfree(event);
+}
+#endif /* !LINUX_2_4 */
 
 static int fill_event (struct event_t *event)
 {
@@ -1225,14 +1211,20 @@ static int fill_event (struct event_t *event)
 	add_msg(event, buf, 0);
 	snprintf(buf, 128, "SEEN=%ld", event->seen);
 	add_msg(event, buf, 0);
+#ifndef LINUX_2_4
 	snprintf(buf, 128, "SEQNUM=%llu", uevent_next_seqnum());
 	add_msg(event, buf, 0);
+#endif
 
 	return 0;
 }
 
 
+#ifndef LINUX_2_4
 static irqreturn_t button_handler(int irq, void *dev_id)
+#else
+static irqreturn_t button_handler(int irq, void *dev_id, struct pt_regs *regs)
+#endif
 {
 	struct button_t *b;
 	u32 in, changed;
@@ -1255,7 +1247,11 @@ static irqreturn_t button_handler(int irq, void *dev_id)
 			event->seen = (jiffies - b->seen)/HZ;
 			event->name = b->name;
 			event->action = b->pressed ? "pressed" : "released";
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(2,6,20)
 			INIT_WORK(&event->wq, (void *)(void *)hotplug_button);
+#else
+			INIT_WORK(&event->wq, (void *)(void *)hotplug_button, (void *)event);
+#endif
 			schedule_work(&event->wq);
 		}
 
@@ -1349,7 +1345,12 @@ static void led_flash(unsigned long dummy) {
 
 static ssize_t diag_proc_read(struct file *file, char *buf, size_t count, loff_t *ppos)
 {
+#ifdef LINUX_2_4
+	struct inode *inode = file->f_dentry->d_inode;
+	struct proc_dir_entry *dent = inode->u.generic_ip;
+#else
 	struct proc_dir_entry *dent = PDE(file->f_dentry->d_inode);
+#endif
 	char *page;
 	int len = 0;
 
@@ -1402,7 +1403,12 @@ static ssize_t diag_proc_read(struct file *file, char *buf, size_t count, loff_t
 
 static ssize_t diag_proc_write(struct file *file, const char *buf, size_t count, loff_t *ppos)
 {
+#ifdef LINUX_2_4
+	struct inode *inode = file->f_dentry->d_inode;
+	struct proc_dir_entry *dent = inode->u.generic_ip;
+#else
 	struct proc_dir_entry *dent = PDE(file->f_dentry->d_inode);
+#endif
 	char *page;
 	int ret = -EINVAL;
 

@@ -10,13 +10,11 @@ ARCH:=mips
 BOARD:=brcm63xx
 BOARDNAME:=Broadcom BCM63xx
 FEATURES:=squashfs jffs2 usb atm pci pcmcia
-LINUX_VERSION:=2.6.39.4
-MAINTAINER:=Florian Fainelli <florian@openwrt.org>
+LINUX_VERSION:=2.6.32.27
 
 include $(INCLUDE_DIR)/target.mk
 
-DEFAULT_PACKAGES += kmod-switch kmod-input-gpio-buttons \
-	kmod-button-hotplug
+DEFAULT_PACKAGES += wpad-mini kmod-switch gpioctl
 
 define Target/Description
 	Build firmware images for Broadcom based xDSL/routers

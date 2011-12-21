@@ -7,14 +7,6 @@
 
 HOST_BUILD_DIR ?= $(BUILD_DIR_HOST)/$(PKG_NAME)$(if $(PKG_VERSION),-$(PKG_VERSION))
 HOST_INSTALL_DIR ?= $(HOST_BUILD_DIR)/host-install
-HOST_BUILD_PARALLEL ?=
-
-ifeq ($(strip $(HOST_BUILD_PARALLEL)),0)
-HOST_JOBS?=-j1
-else
-HOST_JOBS?=$(if $(HOST_BUILD_PARALLEL)$(CONFIG_PKG_DEFAULT_PARALLEL),\
-	$(if $(CONFIG_PKG_BUILD_PARALLEL),-j$(CONFIG_PKG_BUILD_JOBS),-j1),-j1)
-endif
 
 include $(INCLUDE_DIR)/host.mk
 include $(INCLUDE_DIR)/unpack.mk
@@ -59,8 +51,7 @@ HOST_CONFIGURE_ARGS = \
 	--prefix=$(STAGING_DIR_HOST) \
 	--exec-prefix=$(STAGING_DIR_HOST) \
 	--sysconfdir=$(STAGING_DIR_HOST)/etc \
-	--localstatedir=$(STAGING_DIR_HOST)/var \
-	--sbindir=$(STAGING_DIR_HOST)/bin
+	--localstatedir=$(STAGING_DIR_HOST)/var
 
 HOST_CONFIGURE_CMD = ./configure
 
@@ -82,7 +73,7 @@ define Host/Configure
 endef
 
 define Host/Compile/Default
-	$(MAKE) $(HOST_JOBS) -C $(HOST_BUILD_DIR) $(1)
+	$(MAKE) -C $(HOST_BUILD_DIR) $(1)
 endef
 
 define Host/Compile
@@ -154,7 +145,6 @@ ifndef DUMP
     install: host-install
     clean: host-clean
     update: host-update
-    refresh: host-refresh
 
     $(HOST_STAMP_BUILT): $(HOST_STAMP_CONFIGURED)
 		$(foreach hook,$(Hooks/HostCompile/Pre),$(call $(hook))$(sep))
@@ -162,13 +152,13 @@ ifndef DUMP
 		$(foreach hook,$(Hooks/HostCompile/Post),$(call $(hook))$(sep))
 		touch $$@
 
-    $(HOST_STAMP_INSTALLED): $(HOST_STAMP_BUILT) $(if $(FORCE_HOST_INSTALL),FORCE)
+    $(HOST_STAMP_INSTALLED): $(HOST_STAMP_BUILT)
 		$(call Host/Install)
 		$(foreach hook,$(Hooks/HostInstall/Post),$(call $(hook))$(sep))
 		mkdir -p $$(shell dirname $$@)
 		touch $$@
   else
-    $(HOST_STAMP_BUILT): $(HOST_STAMP_CONFIGURED) $(if $(FORCE_HOST_INSTALL),FORCE)
+    $(HOST_STAMP_BUILT): $(HOST_STAMP_CONFIGURED)
 		$(foreach hook,$(Hooks/HostCompile/Pre),$(call $(hook))$(sep))
 		$(call Host/Compile)
 		$(foreach hook,$(Hooks/HostCompile/Post),$(call $(hook))$(sep))
@@ -194,3 +184,4 @@ ifndef DUMP
   clean:
 
 endif
+

@@ -1,12 +1,13 @@
 # Makefile for OpenWrt
 #
-# Copyright (C) 2007-2011 OpenWrt.org
+# Copyright (C) 2007 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
 #
 
-RELEASE:=Attitude Adjustment
+RELEASE:=Backfire
+SHELL:=/usr/bin/env bash
 PREP_MK= OPENWRT_BUILD= QUIET=0
 
 include $(TOPDIR)/include/verbose.mk
@@ -104,9 +105,6 @@ kernel_oldconfig: prepare_kernel_conf
 kernel_menuconfig: prepare_kernel_conf
 	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux menuconfig
 
-kernel_nconfig: prepare_kernel_conf
-	$(_SINGLE)$(NO_TRACE_MAKE) -C target/linux nconfig
-
 tmp/.prereq-build: include/prereq-build.mk
 	mkdir -p tmp
 	rm -f tmp/.host.mk
@@ -115,9 +113,6 @@ tmp/.prereq-build: include/prereq-build.mk
 		false; \
 	}
 	touch $@
-
-printdb: FORCE
-	@$(_SINGLE)$(NO_TRACE_MAKE) -p $@ V=99 DUMP_TARGET_DB=1 2>&1
 
 download: .config FORCE
 	@+$(SUBMAKE) tools/download
@@ -134,13 +129,6 @@ prereq:: prepare-tmpinfo .config
 
 %::
 	@+$(PREP_MK) $(NO_TRACE_MAKE) -r -s prereq
-	@( \
-		cp .config tmp/.config; \
-		./scripts/config/conf -D tmp/.config -w tmp/.config Config.in > /dev/null 2>&1; \
-		if ./scripts/kconfig.pl '>' .config tmp/.config | grep -q CONFIG; then \
-			echo "WARNING: your configuration is out of sync. Please run make menuconfig, oldconfig or defconfig!"; \
-		fi \
-	)
 	@+$(SUBMAKE) -r $@
 
 help:

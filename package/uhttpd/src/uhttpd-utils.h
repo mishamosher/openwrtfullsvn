@@ -21,11 +21,8 @@
 #include <stdarg.h>
 #include <fcntl.h>
 #include <pwd.h>
-#include <sys/stat.h>
-
-#ifdef HAVE_SHADOW
 #include <shadow.h>
-#endif
+#include <sys/stat.h>
 
 #define min(x, y) (((x) < (y)) ? (x) : (y))
 #define max(x, y) (((x) > (y)) ? (x) : (y))

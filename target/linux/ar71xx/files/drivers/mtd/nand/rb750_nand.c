@@ -14,7 +14,6 @@
 #include <linux/mtd/partitions.h>
 #include <linux/platform_device.h>
 #include <linux/io.h>
-#include <linux/slab.h>
 
 #include <asm/mach-ar71xx/ar71xx.h>
 #include <asm/mach-ar71xx/mach-rb750.h>
@@ -75,14 +74,13 @@ static void rb750_nand_write(const u8 *buf, unsigned len)
 {
 	void __iomem *base = ar71xx_gpio_base;
 	u32 out;
-	u32 t;
 	unsigned i;
 
 	/* set data lines to output mode */
-	t = __raw_readl(base + AR71XX_GPIO_REG_OE);
-	__raw_writel(t | RB750_NAND_DATA_BITS, base + AR71XX_GPIO_REG_OE);
+	__raw_writel(__raw_readl(base + GPIO_REG_OE) | RB750_NAND_DATA_BITS,
+		     base + GPIO_REG_OE);
 
-	out = __raw_readl(base + AR71XX_GPIO_REG_OUT);
+	out = __raw_readl(base + GPIO_REG_OUT);
 	out &= ~(RB750_NAND_DATA_BITS | RB750_NAND_NWE);
 	for (i = 0; i != len; i++) {
 		u32 data;
@@ -90,18 +88,18 @@ static void rb750_nand_write(const u8 *buf, unsigned len)
 		data = buf[i];
 		data <<= RB750_NAND_DATA_SHIFT;
 		data |= out;
-		__raw_writel(data, base + AR71XX_GPIO_REG_OUT);
+		__raw_writel(data, base + GPIO_REG_OUT);
 
-		__raw_writel(data | RB750_NAND_NWE, base + AR71XX_GPIO_REG_OUT);
+		__raw_writel(data | RB750_NAND_NWE, base + GPIO_REG_OUT);
 		/* flush write */
-		__raw_readl(base + AR71XX_GPIO_REG_OUT);
+		__raw_readl(base + GPIO_REG_OUT);
 	}
 
 	/* set data lines to input mode */
-	t = __raw_readl(base + AR71XX_GPIO_REG_OE);
-	__raw_writel(t & ~RB750_NAND_DATA_BITS, base + AR71XX_GPIO_REG_OE);
+	__raw_writel(__raw_readl(base + GPIO_REG_OE) & ~RB750_NAND_DATA_BITS,
+		     base + GPIO_REG_OE);
 	/* flush write */
-	__raw_readl(base + AR71XX_GPIO_REG_OE);
+	__raw_readl(base + GPIO_REG_OE);
 }
 
 static int rb750_nand_read_verify(u8 *read_buf, unsigned len,
@@ -114,16 +112,15 @@ static int rb750_nand_read_verify(u8 *read_buf, unsigned len,
 		u8 data;
 
 		/* activate RE line */
-		__raw_writel(RB750_NAND_NRE, base + AR71XX_GPIO_REG_CLEAR);
+		__raw_writel(RB750_NAND_NRE, base + GPIO_REG_CLEAR);
 		/* flush write */
-		__raw_readl(base + AR71XX_GPIO_REG_CLEAR);
+		__raw_readl(base + GPIO_REG_CLEAR);
 
 		/* read input lines */
-		data = __raw_readl(base + AR71XX_GPIO_REG_IN) >>
-		       RB750_NAND_DATA_SHIFT;
+		data = __raw_readl(base + GPIO_REG_IN) >> RB750_NAND_DATA_SHIFT;
 
 		/* deactivate RE line */
-		__raw_writel(RB750_NAND_NRE, base + AR71XX_GPIO_REG_SET);
+		__raw_writel(RB750_NAND_NRE, base + GPIO_REG_SET);
 
 		if (read_buf)
 			read_buf[i] = data;
@@ -138,9 +135,8 @@ static void rb750_nand_select_chip(struct mtd_info *mtd, int chip)
 {
 	void __iomem *base = ar71xx_gpio_base;
 	u32 func;
-	u32 t;
 
-	func = __raw_readl(base + AR71XX_GPIO_REG_FUNC);
+	func = __raw_readl(base + GPIO_REG_FUNC);
 	if (chip >= 0) {
 		/* disable latch */
 		rb750_latch_change(RB750_LVC573_LE, 0);
@@ -150,27 +146,27 @@ static void rb750_nand_select_chip(struct mtd_info *mtd, int chip)
 					   AR724X_GPIO_FUNC_SPI_EN);
 
 		/* set input mode for data lines */
-		t = __raw_readl(base + AR71XX_GPIO_REG_OE);
-		__raw_writel(t & ~RB750_NAND_INPUT_BITS,
-			     base + AR71XX_GPIO_REG_OE);
+		__raw_writel(__raw_readl(base + GPIO_REG_OE) &
+			     ~RB750_NAND_INPUT_BITS,
+			     base + GPIO_REG_OE);
 
 		/* deactivate RE and WE lines */
 		__raw_writel(RB750_NAND_NRE | RB750_NAND_NWE,
-			     base + AR71XX_GPIO_REG_SET);
+			     base + GPIO_REG_SET);
 		/* flush write */
-		(void) __raw_readl(base + AR71XX_GPIO_REG_SET);
+		(void) __raw_readl(base + GPIO_REG_SET);
 
 		/* activate CE line */
-		__raw_writel(RB750_NAND_NCE, base + AR71XX_GPIO_REG_CLEAR);
+		__raw_writel(RB750_NAND_NCE, base + GPIO_REG_CLEAR);
 	} else {
 		/* deactivate CE line */
-		__raw_writel(RB750_NAND_NCE, base + AR71XX_GPIO_REG_SET);
+		__raw_writel(RB750_NAND_NCE, base + GPIO_REG_SET);
 		/* flush write */
-		(void) __raw_readl(base + AR71XX_GPIO_REG_SET);
+		(void) __raw_readl(base + GPIO_REG_SET);
 
-		t = __raw_readl(base + AR71XX_GPIO_REG_OE);
-		__raw_writel(t | RB750_NAND_IO0 | RB750_NAND_RDY,
-			     base + AR71XX_GPIO_REG_OE);
+		__raw_writel(__raw_readl(base + GPIO_REG_OE) |
+			     RB750_NAND_IO0 | RB750_NAND_RDY,
+			     base + GPIO_REG_OE);
 
 		/* restore alternate functions */
 		ar71xx_gpio_function_setup(AR724X_GPIO_FUNC_SPI_EN,
@@ -185,7 +181,7 @@ static int rb750_nand_dev_ready(struct mtd_info *mtd)
 {
 	void __iomem *base = ar71xx_gpio_base;
 
-	return !!(__raw_readl(base + AR71XX_GPIO_REG_IN) & RB750_NAND_RDY);
+	return !!(__raw_readl(base + GPIO_REG_IN) & RB750_NAND_RDY);
 }
 
 static void rb750_nand_cmd_ctrl(struct mtd_info *mtd, int cmd,
@@ -195,15 +191,15 @@ static void rb750_nand_cmd_ctrl(struct mtd_info *mtd, int cmd,
 		void __iomem *base = ar71xx_gpio_base;
 		u32 t;
 
-		t = __raw_readl(base + AR71XX_GPIO_REG_OUT);
+		t = __raw_readl(base + GPIO_REG_OUT);
 
 		t &= ~(RB750_NAND_CLE | RB750_NAND_ALE);
 		t |= (ctrl & NAND_CLE) ? RB750_NAND_CLE : 0;
 		t |= (ctrl & NAND_ALE) ? RB750_NAND_ALE : 0;
 
-		__raw_writel(t, base + AR71XX_GPIO_REG_OUT);
+		__raw_writel(t, base + GPIO_REG_OUT);
 		/* flush write */
-		__raw_readl(base + AR71XX_GPIO_REG_OUT);
+		__raw_readl(base + GPIO_REG_OUT);
 	}
 
 	if (cmd != NAND_CMD_NONE) {
@@ -238,24 +234,23 @@ static void __init rb750_nand_gpio_init(void)
 {
 	void __iomem *base = ar71xx_gpio_base;
 	u32 out;
-	u32 t;
 
-	out = __raw_readl(base + AR71XX_GPIO_REG_OUT);
+	out = __raw_readl(base + GPIO_REG_OUT);
 
 	/* setup output levels */
 	__raw_writel(RB750_NAND_NCE | RB750_NAND_NRE | RB750_NAND_NWE,
-		     base + AR71XX_GPIO_REG_SET);
+		     base + GPIO_REG_SET);
 
 	__raw_writel(RB750_NAND_ALE | RB750_NAND_CLE,
-		     base + AR71XX_GPIO_REG_CLEAR);
+		     base + GPIO_REG_CLEAR);
 
 	/* setup input lines */
-	t = __raw_readl(base + AR71XX_GPIO_REG_OE);
-	__raw_writel(t & ~(RB750_NAND_INPUT_BITS), base + AR71XX_GPIO_REG_OE);
+	__raw_writel(__raw_readl(base + GPIO_REG_OE) & ~(RB750_NAND_INPUT_BITS),
+		     base + GPIO_REG_OE);
 
 	/* setup output lines */
-	t = __raw_readl(base + AR71XX_GPIO_REG_OE);
-	__raw_writel(t | RB750_NAND_OUTPUT_BITS, base + AR71XX_GPIO_REG_OE);
+	__raw_writel(__raw_readl(base + GPIO_REG_OE) | RB750_NAND_OUTPUT_BITS,
+		     base + GPIO_REG_OE);
 
 	rb750_latch_change(~out & RB750_NAND_IO0, out & RB750_NAND_IO0);
 }
@@ -291,7 +286,7 @@ static int __init rb750_nand_probe(struct platform_device *pdev)
 
 	platform_set_drvdata(pdev, info);
 
-	ret = nand_scan_ident(&info->mtd, 1, NULL);
+	ret = nand_scan_ident(&info->mtd, 1);
 	if (ret) {
 		ret = -ENXIO;
 		goto err_free_info;
@@ -317,11 +312,11 @@ static int __init rb750_nand_probe(struct platform_device *pdev)
 
 	return 0;
 
-err_release_nand:
+ err_release_nand:
 	nand_release(&info->mtd);
-err_set_drvdata:
+ err_set_drvdata:
 	platform_set_drvdata(pdev, NULL);
-err_free_info:
+ err_free_info:
 	kfree(info);
 	return ret;
 }

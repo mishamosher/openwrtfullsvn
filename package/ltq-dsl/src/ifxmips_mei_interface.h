@@ -12,9 +12,7 @@
 #ifndef IFXMIPS_MEI_H
 #define IFXMIPS_MEI_H
 
-//#define CONFIG_AMAZON_SE 1
-//#define CONFIG_DANUBE 1
-//#define CONFIG_AR9 1
+#define CONFIG_DANUBE 1
 
 #if !defined(CONFIG_DANUBE) && !defined(CONFIG_AMAZON_SE) && !defined(CONFIG_AR9) && !defined(CONFIG_VR9)
 #error Platform undefined!!!

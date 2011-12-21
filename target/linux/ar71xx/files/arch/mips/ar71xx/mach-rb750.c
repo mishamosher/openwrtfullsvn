@@ -12,8 +12,8 @@
 #include <asm/mach-ar71xx/ar71xx.h>
 #include <asm/mach-ar71xx/mach-rb750.h>
 
-#include "machtype.h"
 #include "devices.h"
+#include "machtype.h"
 
 static struct rb750_led_data rb750_leds[] = {
 	{
@@ -81,29 +81,29 @@ int rb750_latch_change(u32 mask_clr, u32 mask_set)
 	latch_clr = (latch_clr | mask_clr) & ~mask_set;
 
 	if (latch_oe == 0)
-		latch_oe = __raw_readl(ar71xx_gpio_base + AR71XX_GPIO_REG_OE);
+		latch_oe = __raw_readl(ar71xx_gpio_base + GPIO_REG_OE);
 
 	if (likely(latch_set & RB750_LVC573_LE)) {
 		void __iomem *base = ar71xx_gpio_base;
 
-		t = __raw_readl(base + AR71XX_GPIO_REG_OE);
+		t = __raw_readl(base + GPIO_REG_OE);
 		t |= mask_clr | latch_oe | mask_set;
 
-		__raw_writel(t, base + AR71XX_GPIO_REG_OE);
-		__raw_writel(latch_clr, base + AR71XX_GPIO_REG_CLEAR);
-		__raw_writel(latch_set, base + AR71XX_GPIO_REG_SET);
+		__raw_writel(t, base + GPIO_REG_OE);
+		__raw_writel(latch_clr, base + GPIO_REG_CLEAR);
+		__raw_writel(latch_set, base + GPIO_REG_SET);
 	} else if (mask_clr & RB750_LVC573_LE) {
 		void __iomem *base = ar71xx_gpio_base;
 
-		latch_oe = __raw_readl(base + AR71XX_GPIO_REG_OE);
-		__raw_writel(RB750_LVC573_LE, base + AR71XX_GPIO_REG_CLEAR);
+		latch_oe = __raw_readl(base + GPIO_REG_OE);
+		__raw_writel(RB750_LVC573_LE, base + GPIO_REG_CLEAR);
 		/* flush write */
-		__raw_readl(base + AR71XX_GPIO_REG_CLEAR);
+		__raw_readl(base + GPIO_REG_CLEAR);
 	}
 
 	ret = 1;
 
-unlock:
+ unlock:
 	spin_unlock_irqrestore(&lock, flags);
 	return ret;
 }
@@ -117,15 +117,20 @@ static void __init rb750_setup(void)
 				     AR724X_GPIO_FUNC_ETH_SWITCH_LED3_EN |
 				     AR724X_GPIO_FUNC_ETH_SWITCH_LED4_EN);
 
-	ar71xx_init_mac(ar71xx_eth0_data.mac_addr, ar71xx_mac_base, 0);
-	ar71xx_init_mac(ar71xx_eth1_data.mac_addr, ar71xx_mac_base, 1);
-
-	ar71xx_add_device_mdio(0, 0x0);
+	/* WAN port */
+	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth0_data.speed = SPEED_100;
+	ar71xx_eth0_data.duplex = DUPLEX_FULL;
+	ar71xx_eth0_data.phy_mask = BIT(4);
 
 	/* LAN ports */
-	ar71xx_add_device_eth(1);
+	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RMII;
+	ar71xx_eth1_data.speed = SPEED_1000;
+	ar71xx_eth1_data.duplex = DUPLEX_FULL;
+	ar71xx_eth1_data.has_ar7240_switch = 1;
 
-	/* WAN port */
+	ar71xx_add_device_mdio(0x0);
+	ar71xx_add_device_eth(1);
 	ar71xx_add_device_eth(0);
 
 	platform_device_register(&rb750_leds_device);

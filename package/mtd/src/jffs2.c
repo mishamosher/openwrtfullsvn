@@ -244,10 +244,10 @@ int mtd_replace_jffs2(const char *mtd, int fd, int ofs, const char *filename)
 	pad(erasesize);
 	free(buf);
 
-	if (trx_fixup) {
-	  trx_fixup(outfd, mtd);
-	}
-	return (mtdofs - ofs);
+#ifdef target_brcm
+	trx_fixup(outfd, mtd);
+#endif
+	return 0;
 }
 
 void mtd_parse_jffs2data(const char *buf, const char *dir)
@@ -347,9 +347,9 @@ int mtd_write_jffs2(const char *mtd, const char *filename, const char *dir)
 
 	err = 0;
 
-	if (trx_fixup) {
-	  trx_fixup(outfd, mtd);
-	}
+#ifdef target_brcm
+	trx_fixup(outfd, mtd);
+#endif
 
 done:
 	close(outfd);

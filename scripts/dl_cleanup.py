@@ -157,8 +157,7 @@ def main(argv):
 			"hdBw:",
 			[ "help", "dry-run", "show-blacklist", "whitelist=", ])
 		if len(args) != 1:
-			usage()
-			return 1
+			raise getopt.GetoptError()
 	except getopt.GetoptError:
 		usage()
 		return 1

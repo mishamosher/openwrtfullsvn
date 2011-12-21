@@ -9,13 +9,11 @@ include $(TOPDIR)/rules.mk
 
 PKG_NAME:=gdb
 PKG_VERSION:=6.8
-PKG_RELEASE:=4
+PKG_RELEASE:=3
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=@GNU/gdb
 PKG_MD5SUM:=c9da266b884fb8fa54df786dfaadbc7a
-
-PKG_BUILD_PARALLEL:=0
 
 include $(INCLUDE_DIR)/package.mk
 
@@ -23,7 +21,6 @@ define Package/gdb/Default
   SECTION:=utils
   CATEGORY:=Utilities
   DEPENDS:=@!(avr32||cris)
-  URL:=http://www.gnu.org/software/gdb/
 endef
 
 define Package/gdb
@@ -58,7 +55,7 @@ CONFIGURE_VARS+= \
 	ac_cv_search_tgetent="$(TARGET_LDFLAGS) -lncurses -lreadline"
 
 define Build/Compile
-	$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		DESTDIR="$(PKG_INSTALL_DIR)" \
 		CPPFLAGS="$(TARGET_CPPFLAGS)" \
 		all

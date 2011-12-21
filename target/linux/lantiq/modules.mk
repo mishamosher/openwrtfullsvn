@@ -5,6 +5,8 @@
 # See /LICENSE for more information.
 #
 
+CRYPTO_MENU:=Cryptographic API modules
+
 define KernelPackage/lantiq-deu
   TITLE:=Lantiq data encryption unit
   SUBMENU:=$(CRYPTO_MENU)
@@ -15,7 +17,7 @@ define KernelPackage/lantiq-deu
 	   CONFIG_CRYPTO_DEV_LANTIQ_DES=y \
 	   CONFIG_CRYPTO_DEV_LANTIQ_MD5=y \
 	   CONFIG_CRYPTO_DEV_LANTIQ_SHA1=y
-  $(call AddDepends/crypto)
+  DEPENDS+=@TARGET_lantiq +kmod-crypto-core
 endef
 
 define KernelPackage/lantiq-deu/description
@@ -29,7 +31,7 @@ USB_MENU:=USB Support
 define KernelPackage/usb-dwc-otg
   TITLE:=Synopsis DWC_OTG support
   SUBMENU:=$(USB_MENU)
-  DEPENDS+=@(TARGET_lantiq_danube||TARGET_lantiq_ar9||TARGET_lantiq_vr9) +kmod-usb-core
+  DEPENDS+=@TARGET_lantiq_danube +kmod-usb-core
   KCONFIG:=CONFIG_DWC_OTG \
   	CONFIG_DWC_OTG_DEBUG=n \
 	CONFIG_DWC_OTG_LANTIQ=y \
@@ -50,8 +52,11 @@ I2C_FALCON_MODULES:= \
 
 define KernelPackage/i2c-falcon-lantiq
   TITLE:=Falcon I2C controller
-  $(call i2c_defaults,$(I2C_FALCON_MODULES),52)
-  DEPENDS:=kmod-i2c-core @(TARGET_lantiq_falcon||TARGET_lantiq_falcon_stable)
+  SUBMENU:=I2C support
+  DEPENDS:=kmod-i2c-core @TARGET_lantiq_falcon
+  KCONFIG:=CONFIG_I2C_FALCON
+  FILES:=$(LINUX_DIR)/drivers/i2c/busses/i2c-falcon.ko
+  AUTOLOAD:=$(call AutoLoad,52,i2c-falcon)
 endef
 
 define KernelPackage/i2c-falcon-lantiq/description

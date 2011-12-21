@@ -53,8 +53,8 @@ parse_matching_rule() {
 	done
 	config_get type "$section" TYPE
 	case "$type" in
-		classify) unset pkt; append "$var" "-m mark --mark 0/0xff";;
-		default) pkt=1; append "$var" "-m mark --mark 0/0xff";;
+		classify) unset pkt; append "$var" "-m mark --mark 0";;
+		default) pkt=1; append "$var" "-m mark --mark 0";;
 		reclassify) pkt=1;;
 	esac
 	append "$var" "${proto:+-p $proto}"
@@ -161,8 +161,8 @@ parse_matching_rule() {
 				config_get class "${value##!}" classnr
 				[ -z "$class" ] && continue;
 				case "$value" in
-					!*) append "$var" "-m mark ! --mark $class/0xff";;
-					*) append "$var" "-m mark --mark $class/0xff";;
+					!*) append "$var" "-m mark ! --mark $class";;
+					*) append "$var" "-m mark --mark $class";;
 				esac
 			;;
 			1:TOS)
@@ -210,7 +210,7 @@ config_cb() {
 			config_get_bool enabled "$CONFIG_SECTION" enabled 1
 			[ 1 -eq "$enabled" ] || return 0
 			config_get classgroup "$CONFIG_SECTION" classgroup
-			config_set "$CONFIG_SECTION" ifbdev "$C"
+			config_set "$CONFIG_SECTION" imqdev "$C"
 			C=$(($C+1))
 			append INTERFACES "$CONFIG_SECTION"
 			config_set "$classgroup" enabled 1
@@ -274,7 +274,7 @@ tcrules() {
 
 start_interface() {
 	local iface="$1"
-	local num_ifb="$2"
+	local num_imq="$2"
 	config_get device "$iface" device
 	config_get_bool enabled "$iface" enabled 1
 	[ -z "$device" -o 1 -ne "$enabled" ] && {
@@ -298,10 +298,10 @@ start_interface() {
 				prefix="cls"
 			;;
 			down)
-				[ "$(ls -d /proc/sys/net/ipv4/conf/ifb* 2>&- | wc -l)" -ne "$num_ifb" ] && add_insmod ifb numifbs="$num_ifb"
-				config_get ifbdev "$iface" ifbdev
+				[ "$(ls -d /proc/sys/net/ipv4/conf/imq* 2>&- | wc -l)" -ne "$num_imq" ] && add_insmod imq numdevs="$num_imq"
+				config_get imqdev "$iface" imqdev
 				[ "$overhead" = 1 ] && download=$(($download * 98 / 100 - (80 * 1024 / $download)))
-				dev="ifb$ifbdev"
+				dev="imq$imqdev"
 				rate="$download"
 				dl_mode=1
 				prefix="d_cls"
@@ -315,10 +315,10 @@ start_interface() {
 			cls_var maxrate "$class" limitrate $dir 100
 			cls_var prio "$class" priority $dir 1
 			cls_var avgrate "$class" avgrate $dir 0
-			cls_var qdisc "$class" qdisc $dir ""
-			cls_var filter "$class" filter $dir ""
+			cls_var qdisc_esfq "$class" qdisc_esfq $dir ""
+			[ "$qdisc_esfq" != "" ] && add_insmod sch_esfq
 			config_get classnr "$class" classnr
-			append cstr "$classnr:$prio:$avgrate:$pktsize:$pktdelay:$maxrate:$qdisc:$filter" "$N"
+			append cstr "$classnr:$prio:$avgrate:$pktsize:$pktdelay:$maxrate:$qdisc_esfq" "$N"
 		done
 		append ${prefix}q "$(tcrules)" "$N"
 		export dev_${dir}="ifconfig $dev up txqueuelen 5 >&- 2>&-
@@ -326,22 +326,6 @@ tc qdisc del dev $dev root >&- 2>&-
 tc qdisc add dev $dev root handle 1: hfsc default ${class_default}0
 tc class add dev $dev parent 1: classid 1:1 hfsc sc rate ${rate}kbit ul rate ${rate}kbit"
 	done
-	[ -n "$download" ] && {
-		add_insmod cls_u32
-		add_insmod em_u32
-		add_insmod act_connmark
-		add_insmod act_mirred
-		add_insmod sch_ingress
-	}
-	if [ -n "$halfduplex" ]; then
-		export dev_up="tc qdisc del dev $device root >&- 2>&-
-tc qdisc add dev $device root handle 1: hfsc
-tc filter add dev $device parent 1: protocol ip prio 10 u32 match u32 0 0 flowid 1:1 action mirred egress redirect dev ifb$ifbdev"
-	elif [ -n "$download" ]; then
-		append dev_${dir} "tc qdisc del dev $device ingress >&- 2>&-
-tc qdisc add dev $device ingress
-tc filter add dev $device parent ffff: protocol ip prio 1 u32 match u32 0 0 flowid 1:1 action connmark action mirred egress redirect dev ifb$ifbdev" "$N"
-	fi
 	add_insmod cls_fw
 	add_insmod sch_hfsc
 	add_insmod sch_sfq
@@ -350,7 +334,7 @@ tc filter add dev $device parent ffff: protocol ip prio 1 u32 match u32 0 0 flow
 	cat <<EOF
 ${INSMOD:+$INSMOD$N}${dev_up:+$dev_up
 $clsq
-}${ifbdev:+$dev_down
+}${imqdev:+$dev_down
 $d_clsq
 $d_clsl
 $d_clsf
@@ -386,7 +370,7 @@ add_rules() {
 			unset iptrule
 		}
 
-		parse_matching_rule iptrule "$rule" "$options" "$prefix" "-j MARK --set-mark $target/0xff"
+		parse_matching_rule iptrule "$rule" "$options" "$prefix" "-j MARK --set-mark $target"
 		append "$var" "$iptrule" "$N"
 	done
 }
@@ -404,28 +388,37 @@ start_cg() {
 		config_get maxsize "$class" maxsize
 		[ -z "$maxsize" -o -z "$mark" ] || {
 			add_insmod ipt_length
-			append pktrules "iptables -t mangle -A qos_${cg} -m mark --mark $mark/0xff -m length --length $maxsize: -j MARK --set-mark 0/0xff" "$N"
+			append pktrules "iptables -t mangle -A qos_${cg} -m mark --mark $mark -m length --length $maxsize: -j MARK --set-mark 0" "$N"
 		}
 	done
 	add_rules pktrules "$rules" "iptables -t mangle -A qos_${cg}"
 	for iface in $INTERFACES; do
 		config_get classgroup "$iface" classgroup
 		config_get device "$iface" device
-		config_get ifbdev "$iface" ifbdev
+		config_get imqdev "$iface" imqdev
 		config_get upload "$iface" upload
 		config_get download "$iface" download
 		config_get halfduplex "$iface" halfduplex
 		download="${download:-${halfduplex:+$upload}}"
+		add_insmod ipt_IMQ
 		append up "iptables -t mangle -A OUTPUT -o $device -j qos_${cg}" "$N"
 		append up "iptables -t mangle -A FORWARD -o $device -j qos_${cg}" "$N"
+		[ -z "$download" ] || {
+			append down "iptables -t mangle -A POSTROUTING -o $device -j qos_${cg}" "$N"
+			[ -z "$halfduplex" ] || {
+				append down "iptables -t mangle -A POSTROUTING -o $device -j IMQ --todev $imqdev" "$N"
+			}
+			append down "iptables -t mangle -A PREROUTING -i $device -j qos_${cg}" "$N"
+			append down "iptables -t mangle -A PREROUTING -i $device -j IMQ --todev $imqdev" "$N"
+		}
 	done
 	cat <<EOF
 $INSMOD
 iptables -t mangle -N qos_${cg} >&- 2>&-
 iptables -t mangle -N qos_${cg}_ct >&- 2>&-
-${iptrules:+${iptrules}${N}iptables -t mangle -A qos_${cg}_ct -j CONNMARK --save-mark --mask 0xff}
-iptables -t mangle -A qos_${cg} -j CONNMARK --restore-mark --mask 0xff
-iptables -t mangle -A qos_${cg} -m mark --mark 0/0xff -j qos_${cg}_ct
+${iptrules:+${iptrules}${N}iptables -t mangle -A qos_${cg}_ct -j CONNMARK --save-mark}
+iptables -t mangle -A qos_${cg} -j CONNMARK --restore-mark
+iptables -t mangle -A qos_${cg} -m mark --mark 0 -j qos_${cg}_ct
 $pktrules
 $up$N${down:+${down}$N}
 EOF

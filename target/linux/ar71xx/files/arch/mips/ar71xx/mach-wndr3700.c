@@ -38,16 +38,119 @@
 #define WNDR3700_GPIO_RTL8366_SDA	5
 #define WNDR3700_GPIO_RTL8366_SCK	7
 
-#define WNDR3700_KEYS_POLL_INTERVAL	20	/* msecs */
-#define WNDR3700_KEYS_DEBOUNCE_INTERVAL (3 * WNDR3700_KEYS_POLL_INTERVAL)
-
-#define WNDR3700_ETH0_MAC_OFFSET	0
-#define WNDR3700_ETH1_MAC_OFFSET	0x6
+#define WNDR3700_BUTTONS_POLL_INTERVAL    20
 
 #define WNDR3700_WMAC0_MAC_OFFSET	0
 #define WNDR3700_WMAC1_MAC_OFFSET	0xc
 #define WNDR3700_CALDATA0_OFFSET	0x1000
 #define WNDR3700_CALDATA1_OFFSET	0x5000
+
+#ifdef CONFIG_MTD_PARTITIONS
+static struct mtd_partition wndr3700_partitions[] = {
+	{
+		.name		= "uboot",
+		.offset		= 0,
+		.size		= 0x050000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "env",
+		.offset		= 0x050000,
+		.size		= 0x020000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "rootfs",
+		.offset		= 0x070000,
+		.size		= 0x720000,
+	} , {
+		.name		= "config",
+		.offset		= 0x790000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "config_bak",
+		.offset		= 0x7a0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "pot",
+		.offset		= 0x7b0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "traffic_meter",
+		.offset		= 0x7c0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "language",
+		.offset		= 0x7d0000,
+		.size		= 0x020000,
+		.mask_flags	= MTD_WRITEABLE,
+	} , {
+		.name		= "caldata",
+		.offset		= 0x7f0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	}
+};
+
+static struct mtd_partition wndr3700v2_partitions[] = {
+	{
+		.name		= "uboot",
+		.offset		= 0,
+		.size		= 0x050000,
+		.mask_flags	= MTD_WRITEABLE,
+	}, {
+		.name		= "env",
+		.offset		= 0x050000,
+		.size		= 0x020000,
+		.mask_flags	= MTD_WRITEABLE,
+	}, {
+		.name		= "rootfs",
+		.offset		= 0x070000,
+		.size		= 0xe40000,
+	}, {
+		.name		= "config",
+		.offset		= 0xeb0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	}, {
+		.name		= "config_bak",
+		.offset		= 0xec0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	}, {
+		.name		= "pot",
+		.offset		= 0xed0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	}, {
+		.name		= "traffic_meter",
+		.offset		= 0xee0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	}, {
+		.name		= "language",
+		.offset		= 0xef0000,
+		.size		= 0x100000,
+		.mask_flags	= MTD_WRITEABLE,
+	}, {
+		.name		= "caldata",
+		.offset		= 0xff0000,
+		.size		= 0x010000,
+		.mask_flags	= MTD_WRITEABLE,
+	}
+};
+#define wndr3700_num_partitions		ARRAY_SIZE(wndr3700_partitions)
+#define wndr3700v2_num_partitions	ARRAY_SIZE(wndr3700v2_partitions)
+#else
+#define wndr3700_partitions		NULL
+#define wndr3700_num_partitions		0
+#define wndr3700v2_partitions		NULL
+#define wndr3700v2_num_partitions	0
+#endif /* CONFIG_MTD_PARTITIONS */
+
+static struct flash_platform_data wndr3700_flash_data;
 
 static struct gpio_led wndr3700_leds_gpio[] __initdata = {
 	{
@@ -73,34 +176,34 @@ static struct gpio_led wndr3700_leds_gpio[] __initdata = {
 	}
 };
 
-static struct gpio_keys_button wndr3700_gpio_keys[] __initdata = {
+static struct gpio_button wndr3700_gpio_buttons[] __initdata = {
 	{
 		.desc		= "reset",
 		.type		= EV_KEY,
-		.code		= KEY_RESTART,
-		.debounce_interval = WNDR3700_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_0,
+		.threshold	= 3,
 		.gpio		= WNDR3700_GPIO_BTN_RESET,
 		.active_low	= 1,
 	}, {
 		.desc		= "wps",
 		.type		= EV_KEY,
-		.code		= KEY_WPS_BUTTON,
-		.debounce_interval = WNDR3700_KEYS_DEBOUNCE_INTERVAL,
+		.code		= BTN_1,
+		.threshold	= 3,
 		.gpio		= WNDR3700_GPIO_BTN_WPS,
 		.active_low	= 1,
-	}, {
+	} , {
 		.desc		= "wifi",
 		.type		= EV_KEY,
 		.code		= BTN_2,
-		.debounce_interval = WNDR3700_KEYS_DEBOUNCE_INTERVAL,
+		.threshold	= 3,
 		.gpio		= WNDR3700_GPIO_BTN_WIFI,
 		.active_low	= 1,
 	}
 };
 
 static struct rtl8366_platform_data wndr3700_rtl8366s_data = {
-	.gpio_sda	= WNDR3700_GPIO_RTL8366_SDA,
-	.gpio_sck	= WNDR3700_GPIO_RTL8366_SCK,
+	.gpio_sda        = WNDR3700_GPIO_RTL8366_SDA,
+	.gpio_sck        = WNDR3700_GPIO_RTL8366_SCK,
 };
 
 static struct platform_device wndr3700_rtl8366s_device = {
@@ -111,20 +214,18 @@ static struct platform_device wndr3700_rtl8366s_device = {
 	}
 };
 
-static void __init wndr3700_setup(void)
+static void __init wndr3700_common_setup(void)
 {
 	u8 *art = (u8 *) KSEG1ADDR(0x1fff0000);
 
-	ar71xx_init_mac(ar71xx_eth0_data.mac_addr,
-			art + WNDR3700_ETH0_MAC_OFFSET, 0);
+	ar71xx_set_mac_base(art);
+
 	ar71xx_eth0_pll_data.pll_1000 = 0x11110000;
 	ar71xx_eth0_data.mii_bus_dev = &wndr3700_rtl8366s_device.dev;
 	ar71xx_eth0_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
 	ar71xx_eth0_data.speed = SPEED_1000;
 	ar71xx_eth0_data.duplex = DUPLEX_FULL;
 
-	ar71xx_init_mac(ar71xx_eth1_data.mac_addr,
-			art + WNDR3700_ETH1_MAC_OFFSET, 0);
 	ar71xx_eth1_pll_data.pll_1000 = 0x11110000;
 	ar71xx_eth1_data.mii_bus_dev = &wndr3700_rtl8366s_device.dev;
 	ar71xx_eth1_data.phy_if_mode = PHY_INTERFACE_MODE_RGMII;
@@ -135,14 +236,14 @@ static void __init wndr3700_setup(void)
 
 	ar71xx_add_device_usb();
 
-	ar71xx_add_device_m25p80(NULL);
+	ar71xx_add_device_m25p80(&wndr3700_flash_data);
 
-	ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(wndr3700_leds_gpio),
-					wndr3700_leds_gpio);
+        ar71xx_add_device_leds_gpio(-1, ARRAY_SIZE(wndr3700_leds_gpio),
+				    wndr3700_leds_gpio);
 
-	ar71xx_register_gpio_keys_polled(-1, WNDR3700_KEYS_POLL_INTERVAL,
-					 ARRAY_SIZE(wndr3700_gpio_keys),
-					 wndr3700_gpio_keys);
+	ar71xx_add_device_gpio_buttons(-1, WNDR3700_BUTTONS_POLL_INTERVAL,
+				      ARRAY_SIZE(wndr3700_gpio_buttons),
+				      wndr3700_gpio_buttons);
 
 	platform_device_register(&wndr3700_rtl8366s_device);
 	platform_device_register_simple("wndr3700-led-usb", -1, NULL, 0);
@@ -162,6 +263,22 @@ static void __init wndr3700_setup(void)
 		      art + WNDR3700_WMAC1_MAC_OFFSET);
 }
 
-MIPS_MACHINE(AR71XX_MACH_WNDR3700, "WNDR3700",
-	     "NETGEAR WNDR3700/WNDR3800/WNDRMAC",
+static void __init wndr3700_setup(void)
+{
+	wndr3700_flash_data.parts = wndr3700_partitions,
+	wndr3700_flash_data.nr_parts = wndr3700_num_partitions,
+	wndr3700_common_setup();
+}
+
+MIPS_MACHINE(AR71XX_MACH_WNDR3700, "WNDR3700", "NETGEAR WNDR3700",
 	     wndr3700_setup);
+
+static void __init wndr3700v2_setup(void)
+{
+	wndr3700_flash_data.parts = wndr3700v2_partitions,
+	wndr3700_flash_data.nr_parts = wndr3700v2_num_partitions,
+	wndr3700_common_setup();
+}
+
+MIPS_MACHINE(AR71XX_MACH_WNDR3700V2, "WNDR3700v2", "NETGEAR WNDR3700v2",
+	     wndr3700v2_setup);

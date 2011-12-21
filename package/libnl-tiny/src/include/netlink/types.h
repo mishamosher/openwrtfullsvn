@@ -108,14 +108,10 @@ struct nl_dump_params
 	unsigned int		dp_line;
 };
 
-#ifndef __GNUC__
-#define __extension__
-#endif
-
 #define min_t(type,x,y) \
-	__extension__({ type __x = (x); type __y = (y); __x < __y ? __x: __y; })
+	({ type __x = (x); type __y = (y); __x < __y ? __x: __y; })
 #define max_t(type,x,y) \
-	__extension__({ type __x = (x); type __y = (y); __x > __y ? __x: __y; })
+	({ type __x = (x); type __y = (y); __x > __y ? __x: __y; })
 
 
 #endif

@@ -9,7 +9,7 @@ include $(INCLUDE_DIR)/image.mk
 
 JFFS2_BLOCKSIZE = 64k 128k 256k
 
-ase_cmdline=-console=ttyLTQ0,115200 rootfstype=squashfs,jffs2
+ase_cmdline=-console=ttyLTQ1,115200 rootfstype=squashfs,jffs2
 xway_cmdline=-console=ttyLTQ1,115200 rootfstype=squashfs,jffs2
 falcon_cmdline=-console=ttyLTQ0,115200 rootfstype=squashfs,jffs2
 
@@ -112,14 +112,6 @@ define Image/Build/Profile/ARV4525PW
 	$(call Image/Build/$(1),$(1),ARV4525PW)
 endef
 
-define Image/BuildKernel/Profile/ARV7525PW
-	$(call Image/BuildKernel/Template,ARV7525PW,$(xway_cmdline))
-endef
-
-define Image/Build/Profile/ARV7525PW
-	$(call Image/Build/$(1),$(1),ARV7525PW)
-endef
-
 define Image/BuildKernel/Profile/ARV452CPW
 	$(call Image/BuildKernel/Template,ARV452CPW,$(xway_cmdline))
 endef
@@ -134,14 +126,6 @@ endef
 
 define Image/Build/Profile/ARV7518PW
 	$(call Image/Build/$(1),$(1),ARV7518PW)
-endef
-
-define Image/BuildKernel/Profile/ARV752DPW
-	$(call Image/BuildKernel/Template,ARV752DPW,$(xway_cmdline))
-endef
-
-define Image/Build/Profile/ARV752DPW
-	$(call Image/Build/$(1),$(1),ARV752DPW)
 endef
 
 define Image/BuildKernel/Profile/ARV752DPW22
@@ -170,7 +154,6 @@ define Image/BuildKernel/Profile/Generic
 	$(call Image/BuildKernel/Template,ARV4520PW,$(xway_cmdline))
 	$(call Image/BuildKernel/Template,ARV452CPW,$(xway_cmdline))
 	$(call Image/BuildKernel/Template,ARV4525PW,$(xway_cmdline))
-	$(call Image/BuildKernel/Template,ARV7525PW,$(xway_cmdline))
 	$(call Image/BuildKernel/Template,ARV7518PW,$(xway_cmdline))
 	$(call Image/BuildKernel/Template,ARV752DPW,$(xway_cmdline))
 	$(call Image/BuildKernel/Template,ARV752DPW22,$(xway_cmdline))
@@ -188,7 +171,6 @@ define Image/Build/Profile/Generic
 	$(call Image/Build/$(1),$(1),ARV4520PW)
 	$(call Image/Build/$(1),$(1),ARV452CPW)
 	$(call Image/Build/$(1),$(1),ARV4525PW)
-	$(call Image/Build/$(1),$(1),ARV7525PW)
 	$(call Image/Build/$(1),$(1),ARV7518PW)
 	$(call Image/Build/$(1),$(1),ARV752DPW)
 	$(call Image/Build/$(1),$(1),ARV752DPW22)
@@ -199,14 +181,6 @@ endef
 endif
 
 ifeq ($(CONFIG_TARGET_lantiq_ar9),y)
-define Image/BuildKernel/Profile/WBMR
-	$(call Image/BuildKernel/Template,WBMR,$(xway_cmdline))
-endef
-
-define Image/Build/Profile/WBMR
-	$(call Image/Build/$(1),$(1),WBMR)
-endef
-
 define Image/BuildKernel/Profile/DGN3500B
 	$(call Image/BuildKernel/Template,DGN3500B,$(xway_cmdline))
 endef
@@ -216,20 +190,18 @@ define Image/Build/Profile/DGN3500B
 endef
 
 define Image/BuildKernel/Profile/Generic
-	$(call Image/BuildKernel/Template,WBMR,$(xway_cmdline))
 	$(call Image/BuildKernel/Template,DGN3500B,$(xway_cmdline))
 	$(call Image/BuildKernel/Template,NONE)
 endef
 
 define Image/Build/Profile/Generic
-	$(call Image/Build/$(1),$(1),WBMR)
 	$(call Image/Build/$(1),$(1),DGN3500B)
 	$(call Image/Build/$(1),$(1),NONE)
 	$(CP) $(KDIR)/root.$(1) $(BIN_DIR)/$(IMG_PREFIX)-$(1).rootfs
 endef
 endif
 
-ifeq ($(CONFIG_TARGET_lantiq_falcon)$(CONFIG_TARGET_lantiq_falcon_stable),y)
+ifeq ($(CONFIG_TARGET_lantiq_falcon),y)
 define Image/BuildKernel/Profile/EASY98000
 	$(call Image/BuildKernel/Template,EASY98000,$(falcon_cmdline))
 endef

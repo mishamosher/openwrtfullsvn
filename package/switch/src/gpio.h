@@ -8,7 +8,7 @@
 #ifndef __GPIO_H
 #define __GPIO_H
 
-#ifdef CONFIG_BCM47XX
+#ifdef BROADCOM
 #include "gpio-bcm947xx.h"
 #else
 #warning "Unsupported configuration."

@@ -7,7 +7,7 @@
 include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/image.mk
 
-JFFS2OPTS += --little-endian --pagesize=0x800 --no-cleanmarkers --pad
+add_jffs2_mark=
 
 define Image/Prepare
 	cp $(LINUX_DIR)/arch/arm/boot/uImage $(KDIR)/uImage
@@ -19,15 +19,14 @@ define Image/BuildKernel
 endef
 
 define Image/Build
-	$(if $(Image/Build/$(1)), \
-		$(call Image/Build/$(1),$(1)), \
-		$(CP) $(KDIR)/root.$(1) $(BIN_DIR)/$(IMG_PREFIX)-$(PROFILE)-$(1).img \
-	)
+	$(call Image/Build/$(1),$(1))
 endef
 
 define Image/Build/jffs2-128k
-	dd if=$(KDIR)/root.$(1) of=$(BIN_DIR)/$(IMG_PREFIX)-$(PROFILE)-$(1).img \
-		bs=2048 conv=sync
+	( \
+		dd if=$(KDIR)/uImage bs=4096k conv=sync; \
+		dd if=$(KDIR)/root.$(1) bs=128k conv=sync; \
+	) > $(BIN_DIR)/$(IMG_PREFIX)-$(1).img
 endef
 
 define Image/Build/squashfs
@@ -35,7 +34,7 @@ define Image/Build/squashfs
 	( \
 		dd if=$(KDIR)/uImage bs=4096k conv=sync; \
 		dd if=$(KDIR)/root.$(1) bs=128k conv=sync; \
-	) > $(BIN_DIR)/$(IMG_PREFIX)-$(PROFILE)-$(1).img
+	) > $(BIN_DIR)/$(IMG_PREFIX)-$(1).img
 endef
 
 $(eval $(call BuildImage))

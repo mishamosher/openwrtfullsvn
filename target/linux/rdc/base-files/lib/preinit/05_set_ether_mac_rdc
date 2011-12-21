@@ -4,10 +4,6 @@
 . /lib/functions/boot.sh
 
 r6040_module() {
-	insmod libphy
-	insmod swconfig
-	insmod ip17xx
-	sleep 1
 	insmod r6040
 }
 

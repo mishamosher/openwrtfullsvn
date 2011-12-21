@@ -183,7 +183,7 @@ found:
 					port = o->v.string;
 				}
 			}
-			if (!devn || !port || !port[0])
+			if (!dev || !port || !port[0])
 				continue;
 
 			port_n = strtoul(port, &port_err, 0);
@@ -208,7 +208,7 @@ found:
 					vlan = o->v.string;
 				}
 			}
-			if (!devn || !vlan || !vlan[0])
+			if (!dev || !vlan || !vlan[0])
 				continue;
 
 			vlan_n = strtoul(vlan, &vlan_err, 0);

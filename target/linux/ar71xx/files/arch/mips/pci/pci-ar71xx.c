@@ -107,7 +107,7 @@ int ar71xx_pci_be_handler(int is_fixup)
 		__raw_writel(ahb_err, base + PCI_REG_AHB_ERR);
 	}
 
-	return (ahb_err | pci_err) ? 1 : 0;
+	return ((ahb_err | pci_err) ? 1 : 0);
 }
 
 static inline int ar71xx_pci_set_cfgaddr(struct pci_bus *bus,
@@ -329,11 +329,12 @@ static void ar71xx_pci_irq_handler(unsigned int irq, struct irq_desc *desc)
 		spurious_interrupt();
 }
 
-static void ar71xx_pci_irq_unmask(struct irq_data *d)
+static void ar71xx_pci_irq_unmask(unsigned int irq)
 {
-	unsigned int irq = d->irq - AR71XX_PCI_IRQ_BASE;
 	void __iomem *base = ar71xx_reset_base;
 	u32 t;
+
+	irq -= AR71XX_PCI_IRQ_BASE;
 
 	t = __raw_readl(base + AR71XX_RESET_REG_PCI_INT_ENABLE);
 	__raw_writel(t | (1 << irq), base + AR71XX_RESET_REG_PCI_INT_ENABLE);
@@ -342,11 +343,12 @@ static void ar71xx_pci_irq_unmask(struct irq_data *d)
 	(void) __raw_readl(base + AR71XX_RESET_REG_PCI_INT_ENABLE);
 }
 
-static void ar71xx_pci_irq_mask(struct irq_data *d)
+static void ar71xx_pci_irq_mask(unsigned int irq)
 {
-	unsigned int irq = d->irq - AR71XX_PCI_IRQ_BASE;
 	void __iomem *base = ar71xx_reset_base;
 	u32 t;
+
+	irq -= AR71XX_PCI_IRQ_BASE;
 
 	t = __raw_readl(base + AR71XX_RESET_REG_PCI_INT_ENABLE);
 	__raw_writel(t & ~(1 << irq), base + AR71XX_RESET_REG_PCI_INT_ENABLE);
@@ -357,9 +359,9 @@ static void ar71xx_pci_irq_mask(struct irq_data *d)
 
 static struct irq_chip ar71xx_pci_irq_chip = {
 	.name		= "AR71XX PCI ",
-	.irq_mask	= ar71xx_pci_irq_mask,
-	.irq_unmask	= ar71xx_pci_irq_unmask,
-	.irq_mask_ack	= ar71xx_pci_irq_mask,
+	.mask		= ar71xx_pci_irq_mask,
+	.unmask		= ar71xx_pci_irq_unmask,
+	.mask_ack	= ar71xx_pci_irq_mask,
 };
 
 static void __init ar71xx_pci_irq_init(void)
@@ -371,11 +373,13 @@ static void __init ar71xx_pci_irq_init(void)
 	__raw_writel(0, base + AR71XX_RESET_REG_PCI_INT_STATUS);
 
 	for (i = AR71XX_PCI_IRQ_BASE;
-	     i < AR71XX_PCI_IRQ_BASE + AR71XX_PCI_IRQ_COUNT; i++)
-		irq_set_chip_and_handler(i, &ar71xx_pci_irq_chip,
+	     i < AR71XX_PCI_IRQ_BASE + AR71XX_PCI_IRQ_COUNT; i++) {
+		irq_desc[i].status = IRQ_DISABLED;
+		set_irq_chip_and_handler(i, &ar71xx_pci_irq_chip,
 					 handle_level_irq);
+	}
 
-	irq_set_chained_handler(AR71XX_CPU_IRQ_IP2, ar71xx_pci_irq_handler);
+	set_irq_chained_handler(AR71XX_CPU_IRQ_IP2, ar71xx_pci_irq_handler);
 }
 
 int __init ar71xx_pcibios_init(void)

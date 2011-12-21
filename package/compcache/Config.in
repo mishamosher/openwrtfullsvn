@@ -1,5 +1,5 @@
 menu "Configuration"
-	depends on PACKAGE_compcache
+	depends on PACKAGE_kmod-compcache
 
 config COMPCACHE_ENABLE
 	bool "enabled on boot"

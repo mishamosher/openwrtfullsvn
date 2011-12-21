@@ -10,15 +10,14 @@ include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=siit
 PKG_VERSION:=1.1
-PKG_RELEASE:=2
+PKG_RELEASE:=1
 
 include $(INCLUDE_DIR)/package.mk
 
 define KernelPackage/siit
   SUBMENU:=Network Devices
   TITLE:=Stateless IP ICMP Translation Algorithm
-  DEPENDS:= @(!(TARGET_ps3||TARGET_pxcab)||BROKEN)
-  FILES:=$(PKG_BUILD_DIR)/siit.ko
+  FILES:=$(PKG_BUILD_DIR)/siit.$(LINUX_KMOD_SUFFIX)
   AUTOLOAD:=$(call AutoLoad,50,siit)
 endef
 

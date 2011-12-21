@@ -1,5 +1,5 @@
 #
-# Copyright (C) 2006-2011 OpenWrt.org
+# Copyright (C) 2006-2009 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -15,14 +15,23 @@ PKG_SOURCE_VERSION:=$(PKG_REVISION)
 PKG_SOURCE_SUBDIR:=$(PKG_NAME)-$(PKG_VERSION)-r$(PKG_REVISION)
 PKG_SOURCE:=$(PKG_SOURCE_SUBDIR).tar.bz2
 
-ifneq ($(CONFIG_EGLIBC_VERSION_2_12),)
-  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_12
+ifneq ($(CONFIG_EGLIBC_VERSION_2_6),)
+  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_6
 endif
-ifneq ($(CONFIG_EGLIBC_VERSION_2_13),)
-  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_13
+ifneq ($(CONFIG_EGLIBC_VERSION_2_7),)
+  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_7
 endif
-ifneq ($(CONFIG_EGLIBC_VERSION_2_14),)
-  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_14
+ifneq ($(CONFIG_EGLIBC_VERSION_2_8),)
+  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_8
+endif
+ifneq ($(CONFIG_EGLIBC_VERSION_2_9),)
+  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_9
+endif
+ifneq ($(CONFIG_EGLIBC_VERSION_2_10),)
+  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_10
+endif
+ifneq ($(CONFIG_EGLIBC_VERSION_2_11),)
+  PKG_SOURCE_URL:=svn://svn.eglibc.org/branches/eglibc-2_11
 endif
 ifneq ($(CONFIG_EGLIBC_VERSION_TRUNK),)
   PKG_SOURCE_URL:=svn://svn.eglibc.org/trunk
@@ -40,20 +49,20 @@ HOST_STAMP_INSTALLED:=$(TOOLCHAIN_DIR)/stamp/.eglibc_installed
 HOST_BUILD_DIR1:=$(HOST_BUILD_DIR)-initial
 HOST_BUILD_DIR2:=$(HOST_BUILD_DIR)-final
 
-EGLIBC_CFLAGS:= \
-	$(TARGET_CFLAGS)
+# XXX: {e,}glibc does not build w/ -Os
+# http://sourceware.org/bugzilla/show_bug.cgi?id=5203
+EGLIBC_CFLAGS:=$(subst -Os,-O2,$(TARGET_CFLAGS))
 
 EGLIBC_CONFIGURE:= \
 	BUILD_CC="$(HOSTCC)" \
 	$(TARGET_CONFIGURE_OPTS) \
 	CFLAGS="$(EGLIBC_CFLAGS)" \
 	libc_cv_slibdir="/lib" \
-	use_ldconfig=no \
 	$(HOST_BUILD_DIR)/libc/configure \
-		--prefix= \
+		--prefix=/usr \
 		--build=$(GNU_HOST_NAME) \
 		--host=$(REAL_GNU_TARGET_NAME) \
-		--with-headers=$(TOOLCHAIN_DIR)/include \
+		--with-headers=$(TOOLCHAIN_DIR)/usr/include \
 		--disable-profile \
 		--without-gd \
 		--without-cvs \
@@ -70,7 +79,6 @@ endif
 EGLIBC_MAKE:= \
 	$(MAKE) \
 
-export libc_cv_ssp=no
 
 define Host/SetToolchainInfo
 	$(SED) 's,^\(LIBC_TYPE\)=.*,\1=$(PKG_NAME),' $(TOOLCHAIN_DIR)/info.mk
@@ -91,7 +99,7 @@ define Stage1/Compile
 endef
 
 define Stage1/Install
-	mkdir -p $(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/{include,lib}
+	mkdir -p $(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/usr/{include,lib}
 	$(EGLIBC_MAKE) -C $(HOST_BUILD_DIR1) \
 		install_root="$(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev" \
 		install-bootstrap-headers=yes \
@@ -99,10 +107,10 @@ define Stage1/Install
 	$(EGLIBC_MAKE) -C $(HOST_BUILD_DIR1) \
 		csu/subdir_lib
 	( cd $(HOST_BUILD_DIR1); \
-		$(CP) csu/crt1.o csu/crti.o csu/crtn.o $(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/lib/ \
+		$(CP) csu/crt1.o csu/crti.o csu/crtn.o $(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/usr/lib/ \
 	)
 	$(TARGET_CC) -nostdlib -nostartfiles -shared -x c /dev/null \
-		-o $(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/lib/libc.so
+		-o $(BUILD_DIR_TOOLCHAIN)/$(LIBC)-dev/usr/lib/libc.so
 endef
 
 define Stage2/Configure

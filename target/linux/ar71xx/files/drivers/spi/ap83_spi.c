@@ -37,8 +37,8 @@
 #define AP83_SPI_GPIO_MISO	3
 
 struct ap83_spi {
-	struct	spi_bitbang	bitbang;
-	void __iomem		*base;
+	struct	spi_bitbang 	bitbang;
+	void __iomem 		*base;
 	u32			addr;
 
 	struct platform_device	*pdev;
@@ -127,34 +127,33 @@ static void ap83_spi_chipselect(struct spi_device *spi, int on)
 
 #define EXPAND_BITBANG_TXRX
 #include <linux/spi/spi_bitbang.h>
-#include "spi_bitbang_txrx.h"
 
 static u32 ap83_spi_txrx_mode0(struct spi_device *spi,
 			       unsigned nsecs, u32 word, u8 bits)
 {
 	dev_dbg(&spi->dev, "TXRX0 word=%08x, bits=%u\n", word, bits);
-	return bitbang_txrx_be_cpha0(spi, nsecs, 0, 0, word, bits);
+	return bitbang_txrx_be_cpha0(spi, nsecs, 0, word, bits);
 }
 
 static u32 ap83_spi_txrx_mode1(struct spi_device *spi,
 			       unsigned nsecs, u32 word, u8 bits)
 {
 	dev_dbg(&spi->dev, "TXRX1 word=%08x, bits=%u\n", word, bits);
-	return bitbang_txrx_be_cpha1(spi, nsecs, 0, 0, word, bits);
+	return bitbang_txrx_be_cpha1(spi, nsecs, 0, word, bits);
 }
 
 static u32 ap83_spi_txrx_mode2(struct spi_device *spi,
 			       unsigned nsecs, u32 word, u8 bits)
 {
 	dev_dbg(&spi->dev, "TXRX2 word=%08x, bits=%u\n", word, bits);
-	return bitbang_txrx_be_cpha0(spi, nsecs, 1, 0, word, bits);
+	return bitbang_txrx_be_cpha0(spi, nsecs, 1, word, bits);
 }
 
 static u32 ap83_spi_txrx_mode3(struct spi_device *spi,
 			       unsigned nsecs, u32 word, u8 bits)
 {
 	dev_dbg(&spi->dev, "TXRX3 word=%08x, bits=%u\n", word, bits);
-	return bitbang_txrx_be_cpha1(spi, nsecs, 1, 0, word, bits);
+	return bitbang_txrx_be_cpha1(spi, nsecs, 1, word, bits);
 }
 
 static int ap83_spi_probe(struct platform_device *pdev)
@@ -230,15 +229,15 @@ static int ap83_spi_probe(struct platform_device *pdev)
 
 	return 0;
 
-err_unmap:
+ err_unmap:
 	iounmap(sp->base);
-err_spi_put:
+ err_spi_put:
 	platform_set_drvdata(pdev, NULL);
 	spi_master_put(sp->bitbang.master);
 
-err_free_cs:
+ err_free_cs:
 	gpio_free(AP83_SPI_GPIO_CS);
-err_free_miso:
+ err_free_miso:
 	gpio_free(AP83_SPI_GPIO_MISO);
 	return ret;
 }

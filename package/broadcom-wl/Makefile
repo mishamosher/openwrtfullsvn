@@ -9,33 +9,33 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=broadcom-wl
-PKG_VERSION:=5.10.56.27.3
-PKG_RELEASE:=3
+PKG_VERSION:=4.150.10.5.3
+PKG_RELEASE:=9
+WLC_VERSION:=0.2
 
-PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION)_$(ARCH).tar.bz2
+PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.bz2
 PKG_SOURCE_URL:=http://downloads.openwrt.org/sources
+PKG_MD5SUM:=cc615fd49719eea8bce5b2a8813783f3
 
-PKG_MD5SUM.mipsel:=3363e3a6b3d9d73c49dea870c7834eac
-PKG_MD5SUM.mips:=f8de63debc75333d6b4e28193eb051ff
-PKG_MD5SUM:=$(PKG_MD5SUM.$(ARCH))
+WL_WEXT=1
 
 include $(INCLUDE_DIR)/package.mk
 
 define Package/broadcom-wl/Default
   SECTION:=kernel
   CATEGORY:=Kernel modules
-  DEPENDS:=@PACKAGE_kmod-brcm-wl||PACKAGE_kmod-brcm-wl-mini
+  DEPENDS:=@PACKAGE_kmod-brcm-wl||PACKAGE_kmod-brcm-wl-mimo
   SUBMENU:=Proprietary BCM43xx WiFi driver
-  SUBMENUDEP:=@TARGET_brcm47xx||TARGET_brcm63xx
+  SUBMENUDEP:=@TARGET_brcm_2_4
 endef
 
 define KernelPackage/brcm-wl/Default
   $(call Package/broadcom-wl/Default)
   SECTION:=kernel
-  DEPENDS:=@TARGET_brcm47xx||TARGET_brcm63xx +wireless-tools
+  DEPENDS:=@TARGET_brcm_2_4 +wireless-tools
   TITLE:=Kernel driver for BCM43xx chipsets
-  FILES:=$(PKG_BUILD_DIR)/driver$(1)/wl.ko $(PKG_BUILD_DIR)/glue/wl_glue.ko
-  AUTOLOAD:=$(call AutoLoad,30,wl_glue wl)
+  FILES:=$(PKG_BUILD_DIR)/driver/wl$(1).o
+  AUTOLOAD:=$(call AutoLoad,30,wl$(1))
 endef
 
 define KernelPackage/brcm-wl/Default/description
@@ -52,13 +52,40 @@ define KernelPackage/brcm-wl/description
 $(call KernelPackage/brcm-wl/Default/description)
 endef
 
-define KernelPackage/brcm-wl-mini
-$(call KernelPackage/brcm-wl/Default,-mini)
-  TITLE+= (Legacy version)
+define KernelPackage/brcm-wl-mimo
+$(call KernelPackage/brcm-wl/Default,_mimo)
+  TITLE+= (MIMO version)
 endef
 
-define KernelPackage/brcm-wl-mini/description
+define KernelPackage/brcm-wl-mimo/description
 $(call KernelPackage/brcm-wl/Default/description)
+endef
+
+define KernelPackage/wlcompat/Default
+  $(call KernelPackage/brcm-wl/Default,)
+  TITLE:=Kernel driver for BCM43xx chipsets
+  FILES:=$(PKG_BUILD_DIR)/wlcompat/wlcompat$(1).o
+endef
+
+define KernelPackage/wlcompat
+$(call KernelPackage/wlcompat/Default,)
+  AUTOLOAD:=$(call AutoLoad,50,wlcompat)
+endef
+
+define KernelPackage/wlcompat/description
+ This package contains a wrapper module, that provides Wireless Extension 
+ support for the proprietary Broadcom wl module.
+endef
+
+define KernelPackage/wlcompat-debug
+$(call KernelPackage/wlcompat/Default,-debug)
+  TITLE+= (debug)
+  AUTOLOAD:=
+endef
+
+define KernelPackage/wlcompat-debug/description
+$(call KernelPackage/wlcompat/description)
+ This is the debugging version.
 endef
 
 define Package/wlc
@@ -95,65 +122,63 @@ MAKE_KMOD := $(MAKE) -C "$(LINUX_DIR)" \
 		CROSS_COMPILE="$(TARGET_CROSS)" \
 		ARCH="$(LINUX_KARCH)" \
 		PATH="$(TARGET_PATH)" \
-		SUBDIRS="$(PKG_BUILD_DIR)/kmod" \
+		SUBDIRS="$(PKG_BUILD_DIR)/kmod"
 
 define Build/Prepare
 	$(call Build/Prepare/Default)
-	$(CP) $(PKG_BUILD_DIR)/driver $(PKG_BUILD_DIR)/driver-mini
-	$(CP) ./src/glue $(PKG_BUILD_DIR)/glue
+	$(CP) src/* $(PKG_BUILD_DIR)/
 endef
 
 define Build/Compile
 	# Compile the kernel part
 	$(MAKE_KMOD) \
 		SUBDIRS="$(PKG_BUILD_DIR)/driver" \
-		MODFLAGS="-DMODULE -mlong-calls" \
 		modules
-
 	$(MAKE_KMOD) \
-		SUBDIRS="$(PKG_BUILD_DIR)/driver-mini" \
-		MODFLAGS="-DMODULE -mlong-calls" \
-		BUILD_TYPE="wl_apsta_mini" \
+		SUBDIRS="$(PKG_BUILD_DIR)/driver" \
+		MOD_NAME="_mimo" \
+		modules
+	$(MAKE_KMOD) \
+		SUBDIRS="$(PKG_BUILD_DIR)/wlcompat" \
+		$(if $(WL_WEXT),WL_WEXT=1) \
+		modules
+	$(MAKE_KMOD) \
+		SUBDIRS="$(PKG_BUILD_DIR)/wlcompat" \
+		DEBUG=1 \
+		$(if $(WL_WEXT),WL_WEXT=1) \
 		modules
 
-	# Compile glue driver
-	$(MAKE_KMOD) -C "$(LINUX_DIR)" \
-		SUBDIRS="$(PKG_BUILD_DIR)/glue" \
-		modules                                        
+	# NVRAM stub
+	$(TARGET_CC) $(TARGET_CFLAGS) -c -o $(PKG_BUILD_DIR)/nvram/nvram_stub.o $(PKG_BUILD_DIR)/nvram/nvram_stub.c
 
-	# Compile libshared
-	$(MAKE) -C $(PKG_BUILD_DIR)/shared \
+	# Compile wlc
+	$(MAKE) -C $(PKG_BUILD_DIR)/wlc \
 		$(TARGET_CONFIGURE_OPTS) \
-		CFLAGS="$(TARGET_CFLAGS) -I. -I$(PKG_BUILD_DIR)/driver/include" \
+		CFLAGS="$(TARGET_CFLAGS)" \
 		all
 
-	$(TARGET_CC) -o $(PKG_BUILD_DIR)/wlc \
-		-I$(PKG_BUILD_DIR)/shared -I$(PKG_BUILD_DIR)/driver/include \
-		./src/wlc.c $(PKG_BUILD_DIR)/shared/libshared.a
-
+	# Compile libshared
+	$(MAKE) -C $(PKG_BUILD_DIR)/router/shared \
+		$(TARGET_CONFIGURE_OPTS) \
+		CFLAGS="$(TARGET_CFLAGS) -I. -I$(PKG_BUILD_DIR)/include -Dlinux=1" \
+		all
 	$(TARGET_CC) -o $(PKG_BUILD_DIR)/nas \
 		$(PKG_BUILD_DIR)/nas_exe.o \
-		$(PKG_BUILD_DIR)/shared/libshared.a
-
-	$(TARGET_CC) -o $(PKG_BUILD_DIR)/wl \
-		$(PKG_BUILD_DIR)/wl_exe.o \
-		$(PKG_BUILD_DIR)/shared/libshared.a
+		$(PKG_BUILD_DIR)/nvram/nvram_stub.o \
+		$(TARGET_LDFLAGS) \
+		$(PKG_BUILD_DIR)/router/shared/libshared.a
+	$(TARGET_CC) -o $(PKG_BUILD_DIR)/wl $(PKG_BUILD_DIR)/wl_exe.o
 endef
 
 define Build/InstallDev
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(PKG_BUILD_DIR)/shared/libshared.a $(1)/usr/lib/
+	$(CP) $(PKG_BUILD_DIR)/router/shared/libshared.a $(1)/usr/lib/
 endef
 
 define Package/wlc/install
 	$(CP) ./files/* $(1)/
 	$(INSTALL_DIR) $(1)/sbin
-	$(INSTALL_BIN) $(PKG_BUILD_DIR)/wlc $(1)/sbin/
-endef
-
-define Package/wlc/postinst
-#!/bin/sh
-[ -n "$${IPKG_INSTROOT}" ] || /etc/init.d/wlunbind enable || true
+	$(INSTALL_BIN) $(PKG_BUILD_DIR)/wlc/wlc $(1)/sbin/
 endef
 
 define Package/wl/install
@@ -169,7 +194,9 @@ define Package/nas/install
 endef
 
 $(eval $(call KernelPackage,brcm-wl))
-$(eval $(call KernelPackage,brcm-wl-mini))
+$(eval $(call KernelPackage,brcm-wl-mimo))
+$(eval $(call KernelPackage,wlcompat))
+$(eval $(call KernelPackage,wlcompat-debug))
 $(eval $(call BuildPackage,wlc))
 $(eval $(call BuildPackage,wl))
 $(eval $(call BuildPackage,nas))

@@ -10,7 +10,7 @@ include $(TOPDIR)/rules.mk
 include $(INCLUDE_DIR)/kernel.mk
 
 PKG_NAME:=base-files
-PKG_RELEASE:=99
+PKG_RELEASE:=43.32
 
 PKG_FILE_DEPENDS:=$(PLATFORM_DIR)/ $(GENERIC_PLATFORM_DIR)/base-files/
 PKG_BUILD_DEPENDS:=opkg/host
@@ -34,7 +34,6 @@ endif
 define Package/base-files
   SECTION:=base
   CATEGORY:=Base system
-  DEPENDS:=+!USE_NETIFD:base-files-network +USE_NETIFD:netifd
   TITLE:=Base filesystem for OpenWrt
   URL:=http://openwrt.org/
   VERSION:=$(PKG_RELEASE)-$(REVISION)
@@ -46,6 +45,7 @@ define Package/base-files
 endef
 
 define Package/base-files/conffiles
+/etc/banner
 /etc/hosts
 /etc/inittab
 /etc/group
@@ -66,11 +66,6 @@ define Package/base-files/description
  This package contains a base filesystem and system scripts for OpenWrt.
 endef
 
-define Package/base-files/config
-  config USE_NETIFD
-    bool "Use netifd instead of the old network init scripts (experimental!)"
-	default n
-endef
 
 define Package/gcc/Default
   SECTION:=libs
@@ -83,7 +78,7 @@ endef
 define Package/libgcc
 $(call Package/gcc/Default)
   TITLE:=GCC support library
-  DEPENDS+=@!(TARGET_avr32||TARGET_coldfire)
+  DEPENDS+=@!(TARGET_avr32)
 endef
 
 define Package/libgcc/config
@@ -166,7 +161,7 @@ define Package/libc/Default
   SECTION:=libs
   CATEGORY:=Base system
   VERSION:=$(LIBC_VERSION)-$(PKG_RELEASE)
-ifneq ($(TARGET_avr32)$(TARGET_coldfire),)
+ifneq ($(TARGET_avr32),)
   DEPENDS:=+libgcc
 endif
   URL:=$(LIBC_URL)
@@ -203,6 +198,7 @@ endef
 define Package/libpthread
 $(call Package/libc/Default)
   TITLE:=POSIX thread library
+  DEPENDS:= +librt
 endef
 
 define Package/libpthread/config
@@ -229,7 +225,6 @@ endef
 define Package/librt
 $(call Package/libc/Default)
   TITLE:=POSIX.1b RealTime extension library
-  DEPENDS:=+libpthread
 endef
 
 define Package/librt/config
@@ -252,32 +247,6 @@ define Package/librt/config
 	endmenu
 endef
 
-
-define Package/libgfortran
-$(call Package/gcc/Default)
-  TITLE:=GFortran support library
-  DEPENDS+=@!(TARGET_avr32||TARGET_coldfire) @INSTALL_GFORTRAN
-endef
-
-define Package/libgfortran/config
-	menu "Configuration"
-		depends EXTERNAL_TOOLCHAIN && PACKAGE_libgfortran
-
-	config LIBGFORTRAN_ROOT_DIR
-		string
-		prompt "libgfortran shared library base directory"
-		depends EXTERNAL_TOOLCHAIN && PACKAGE_libgfortran
-		default TOOLCHAIN_ROOT  if !NATIVE_TOOLCHAIN
-		default "/"  if NATIVE_TOOLCHAIN
-
-	config LIBGFORTRAN_FILE_SPEC
-		string
-		prompt "libgfortran shared library files (use wildcards)"
-		depends EXTERNAL_TOOLCHAIN && PACKAGE_libgfortran
-		default "./usr/lib/libgfortran.so.*"
-
-	endmenu
-endef
 
 define Package/ldd
 $(call Package/libc/Default)
@@ -349,7 +318,7 @@ define ImageConfigOptions
 	echo 'pi_netmask=$(if $(CONFIG_TARGET_PREINIT_NETMASK),$(CONFIG_TARGET_PREINIT_NETMASK),"255.255.255.0")' >>$(1)/lib/preinit/00_preinit.conf
 	echo 'pi_broadcast=$(if $(CONFIG_TARGET_PREINIT_BROADCAST),$(CONFIG_TARGET_PREINIT_BROADCAST),"192.168.1.255")' >>$(1)/lib/preinit/00_preinit.conf
 	echo 'pi_preinit_net_messages="$(CONFIG_TARGET_PREINIT_SHOW_NETMSG)"' >>$(1)/lib/preinit/00_preinit.conf
-	echo 'pi_preinit_no_failsafe_netmsg="$(CONFIG_TARGET_PREINIT_SUPPRESS_FAILSAFE_NETMSG)"' >>$(1)/lib/preinit/00_preinit.conf
+	echo 'pi_preinit_no_failsafe_netmsg="$(CONFIG_TARGET_SUPPRESS_FAILSAFE_NETMSG)"' >>$(1)/lib/preinit/00_preinit.conf
 endef
 endif
 
@@ -357,76 +326,12 @@ define Build/Prepare
 	mkdir -p $(PKG_BUILD_DIR)
 endef
 
-LIBGCC_A=$(wildcard $(TOOLCHAIN_DIR)/lib/gcc/*/*/libgcc_pic.a)
-LIBGCC_MAP=$(wildcard $(TOOLCHAIN_DIR)/lib/gcc/*/*/libgcc.map)
-LIBGCC_SO=$(wildcard $(TOOLCHAIN_DIR)/lib/libgcc_s.so.*)
-ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
-  ifneq ($(if $(CONFIG_USE_UCLIBC),$(CONFIG_GCC_VERSION_LINARO)),)
-    BUILD_LIBGCC:=$(if $(CONFIG_avr32)$(CONFIG_m68k)$(CONFIG_powerpc),,$(PKG_BUILD_DIR)/libgcc_s.so.*)
-  endif
-endif
-
-ifneq ($(BUILD_LIBGCC),)
-  define Build/Compile/uClibc
-	$(SCRIPT_DIR)/relink-lib.sh \
-		"$(TARGET_CROSS)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libc_so.a)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libc_so.a)" \
-		"$(patsubst $(TOOLCHAIN_DIR)/lib/%,$(PKG_BUILD_DIR)/%,$(wildcard $(TOOLCHAIN_DIR)/lib/libuClibc-*.so))" \
-		-Wl,-init,__uClibc_init -Wl,-soname=libc.so.0 \
-		$(BUILD_LIBGCC)
-	$(SCRIPT_DIR)/relink-lib.sh \
-		"$(TARGET_CROSS)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libcrypt-*.so)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libcrypt_pic.a)" \
-		"$(patsubst $(TOOLCHAIN_DIR)/lib/%,$(PKG_BUILD_DIR)/%,$(wildcard $(TOOLCHAIN_DIR)/lib/libcrypt-*.so))" \
-		$(BUILD_LIBGCC) \
-		-Wl,-soname=libcrypt.so.0
-	$(SCRIPT_DIR)/relink-lib.sh \
-		"$(TARGET_CROSS)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libm-*.so)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libm_pic.a)" \
-		"$(patsubst $(TOOLCHAIN_DIR)/lib/%,$(PKG_BUILD_DIR)/%,$(wildcard $(TOOLCHAIN_DIR)/lib/libm-*.so))" \
-		$(BUILD_LIBGCC) \
-		-Wl,-soname=libm.so.0
-	$(SCRIPT_DIR)/relink-lib.sh \
-		"$(TARGET_CROSS)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libpthread-*.so)" \
-		"$(wildcard $(TOOLCHAIN_DIR)/lib/libpthread_so.a)" \
-		"$(patsubst $(TOOLCHAIN_DIR)/lib/%,$(PKG_BUILD_DIR)/%,$(wildcard $(TOOLCHAIN_DIR)/lib/libpthread-*.so))" \
-		-Wl,-z,nodelete,-z,initfirst,-init=__pthread_initialize_minimal_internal \
-		-ldl -lc $(BUILD_LIBGCC) \
-		-Wl,-soname=libpthread.so.0
-  endef
-  define Build/Compile/libgcc
-	$(SCRIPT_DIR)/relink-lib.sh \
-		"$(TARGET_CROSS)" \
-		"$(LIBGCC_SO)" \
-		"$(LIBGCC_A)" \
-		"$(patsubst $(TOOLCHAIN_DIR)/lib/%,$(PKG_BUILD_DIR)/%,$(LIBGCC_SO))" \
-		-Wl,--version-script=$(LIBGCC_MAP) -Wl,-soname=libgcc_s.so.1
-  endef
-else
-  define Build/Compile/uClibc
-	$(CP) \
-		$(TOOLCHAIN_DIR)/lib/libuClibc-*.so \
-		$(TOOLCHAIN_DIR)/lib/libcrypt-*.so \
-		$(TOOLCHAIN_DIR)/lib/libm-*.so \
-		$(TOOLCHAIN_DIR)/lib/libpthread-*.so \
-		$(PKG_BUILD_DIR)/
-  endef
-  ifneq ($(LIBGCC_SO),)
-    define Build/Compile/libgcc
-	$(CP) $(LIBGCC_SO) $(PKG_BUILD_DIR)/
-    endef
-  endif
-endif
-
 define Build/Compile/Default
-	$(call Build/Compile/libgcc)
-	$(call Build/Compile/$(LIBC))
 endef
-Build/Compile = $(Build/Compile/Default)
+
+define Build/Compile
+	$(call Build/Compile/Default)
+endef
 
 define Package/base-files/install
 	$(CP) ./files/* $(1)/
@@ -455,9 +360,10 @@ define Package/base-files/install
 	)
 # Form valid /etc/shadow entries, by copying the user:pw pairs
 # from /etc/passwd, and adding on pw change data
-	cut -d ':' -f 1-2 $(1)/etc/passwd > $(1)/etc/shadow; \
-	$(SED) 's/$$$$/:0:0:99999:7:::/' $(1)/etc/shadow
-
+	$(if $(CONFIG_BUSYBOX_CONFIG_FEATURE_SHADOWPASSWDS), \
+		cut -d ':' -f 1-2 $(1)/etc/passwd > $(1)/etc/shadow; \
+		$(SED) 's/$$$$/:13848:0:99999:7:::/' $(1)/etc/shadow \
+	)
 	$(SED) 's,$$$$R,$(REVISION),g' $(1)/etc/banner
 	mkdir -p $(1)/CONTROL
 	mkdir -p $(1)/dev
@@ -497,11 +403,6 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 	$(CP) $(TOOLCHAIN_DIR)/lib/libgcc_s.so.* $(1)/lib/
   endef
 
-  define Package/libgfortran/install
-	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib/libgfortran.so.* $(1)/usr/lib/
-  endef
-
   define Package/libssp/install
 	$(INSTALL_DIR) $(1)/lib
 	$(CP) $(TOOLCHAIN_DIR)/lib/libssp.so.* $(1)/lib/
@@ -509,7 +410,7 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 
   define Package/libstdcpp/install
 	$(INSTALL_DIR) $(1)/usr/lib
-	$(CP) $(TOOLCHAIN_DIR)/lib/libstdc++.so.* $(1)/usr/lib/
+	$(CP) $(TOOLCHAIN_DIR)/usr/lib/libstdc++.so.* $(1)/usr/lib/
   endef
 
   use_libutil=$(if $(CONFIG_USE_GLIBC)$(CONFIG_EGLIBC_OPTION_EGLIBC_UTMP),libutil)
@@ -517,20 +418,12 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
   use_nsswitch=$(if $(CONFIG_USE_GLIBC)$(CONFIG_EGLIBC_OPTION_EGLIBC_NSSWITCH),libnss_dns libnss_files)
 
   define Package/glibc/install
-	$(CP) ./glibc-files/* $(1)/
-	rm -f $(1)/etc/localtime
-	ln -sf /tmp/localtime $(1)/etc/localtime
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) \
-		$(TOOLCHAIN_DIR)/lib/ld*.so.* \
-		$(TOOLCHAIN_DIR)/lib/ld-$(LIBC_SO_VERSION).so \
-		$(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/ld*.so.* $(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/ld-$(LIBC_SO_VERSION).so $(1)/lib/
 	for file in libanl libc libcidn libcrypt libdl libm $(use_libnsl) $(use_nsswitch) libresolv $(use_libutil); do \
-		for file in $(TOOLCHAIN_DIR)/lib/$$$$file.so.* $(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_SO_VERSION).so; do \
-			if [ -e "$$$$file" ]; then \
-				$(CP) $$$$file $(1)/lib/; \
-			fi; \
-		done; \
+		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file.so.* $(1)/lib/; \
+		$(CP) $(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_SO_VERSION).so $(1)/lib/; \
 	done
   endef
 
@@ -548,18 +441,12 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
 		$(TOOLCHAIN_DIR)/lib/libc.so.* \
 		$(TOOLCHAIN_DIR)/lib/libuClibc-$(LIBC_SO_VERSION).so \
 		$(1)/lib/
-	for file in libcrypt libdl libm libutil; do \
+	for file in libcrypt libdl libm libnsl libresolv libutil; do \
 		$(CP) \
 			$(TOOLCHAIN_DIR)/lib/$$$$file.so.* \
 			$(TOOLCHAIN_DIR)/lib/$$$$file-$(LIBC_SO_VERSION).so \
 			$(1)/lib/; \
 	done
-
-	$(CP) \
-		$(PKG_BUILD_DIR)/libuClibc-* \
-		$(PKG_BUILD_DIR)/libm-* \
-		$(PKG_BUILD_DIR)/libcrypt-* \
-		$(1)/lib/
   endef
 
   define Package/libc/install
@@ -567,40 +454,33 @@ ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
   endef
 
   define Package/libc/install_lib
-	$(CP) $(filter-out %/libdl_pic.a %/libpthread_pic.a %/libresolv_pic.a,$(wildcard $(TOOLCHAIN_DIR)/lib/lib*.a)) $(1)/lib/
-	$(if $(wildcard $(TOOLCHAIN_DIR)/lib/libc_so.a),$(CP) $(TOOLCHAIN_DIR)/lib/libc_so.a $(1)/lib/libc_pic.a)
-	$(if $(LIBGCC_MAP), \
-		$(CP) $(LIBGCC_A) $(1)/lib/libgcc_s_pic.a; \
-		$(CP) $(LIBGCC_MAP) $(1)/lib/libgcc_s_pic.map \
+	$(CP) $(filter-out %/libdl_pic.a %/libpthread_pic.a %/libresolv_pic.a,$(wildcard $(TOOLCHAIN_DIR)/usr/lib/lib*.a)) $(1)/lib/
+	$(if $(wildcard $(TOOLCHAIN_DIR)/usr/lib/libc_so.a),$(CP) $(TOOLCHAIN_DIR)/usr/lib/libc_so.a $(1)/lib/libc_pic.a)
+	$(if $(wildcard $(TOOLCHAIN_DIR)/usr/lib/gcc/*/*/libgcc.map), \
+		$(CP) $(TOOLCHAIN_DIR)/usr/lib/gcc/*/*/libgcc_pic.a $(1)/lib/libgcc_s_pic.a; \
+		$(CP) $(TOOLCHAIN_DIR)/usr/lib/gcc/*/*/libgcc.map $(1)/lib/libgcc_s_pic.map \
 	)
   endef
 
   define Package/libpthread/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) \
-		$(TOOLCHAIN_DIR)/lib/libpthread.so.* \
-		$(if $(BUILD_LIBGCC),\
-			$(PKG_BUILD_DIR)/libpthread-$(LIBC_SO_VERSION).so, \
-			$(TOOLCHAIN_DIR)/lib/libpthread-$(LIBC_SO_VERSION).so \
-		) \
-		$(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/libpthread.so.* $(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/libpthread-$(LIBC_SO_VERSION).so $(1)/lib/
   endef
 
   define Package/libpthread/install_lib
-	$(if $(wildcard $(TOOLCHAIN_DIR)/lib/libpthread_so.a),$(CP) $(TOOLCHAIN_DIR)/lib/libpthread_so.a $(1)/lib/libpthread_pic.a)
+	$(if $(wildcard $(TOOLCHAIN_DIR)/usr/lib/libpthread_so.a),$(CP) $(TOOLCHAIN_DIR)/usr/lib/libpthread_so.a $(1)/lib/libpthread_pic.a)
   endef
 
   define Package/librt/install
 	$(INSTALL_DIR) $(1)/lib
-	$(CP) \
-		$(TOOLCHAIN_DIR)/lib/librt.so.* \
-		$(TOOLCHAIN_DIR)/lib/librt-$(LIBC_SO_VERSION).so \
-		$(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/librt.so.* $(1)/lib/
+	$(CP) $(TOOLCHAIN_DIR)/lib/librt-$(LIBC_SO_VERSION).so $(1)/lib/
   endef
 
   define Package/ldd/install
 	$(INSTALL_DIR) $(1)/usr/bin/
-	$(CP) $(TOOLCHAIN_DIR)/bin/ldd $(1)/usr/bin/
+	$(CP) $(TOOLCHAIN_DIR)/usr/bin/ldd $(1)/usr/bin/
   endef
 
   define Package/ldconfig/install
@@ -615,15 +495,6 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LIBGCC_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
-  endef
-
-  define Package/libgfortran/install
-	for file in $(call qstrip,$(CONFIG_LIBGFORTRAN_FILE_SPEC)); do \
-		dir=`dirname $$$$file` ; \
-		$(INSTALL_DIR) $(1)/$$$$dir ; \
-		$(CP) $(call qstrip,$(CONFIG_LIBGFORTRAN_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
 	done
   endef
 
@@ -632,8 +503,7 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LIBSSP_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
+	done
   endef
 
   define Package/libstdcpp/install
@@ -641,8 +511,7 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LIBSTDCPP_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
+	done
   endef
 
   define Package/libc/install
@@ -650,8 +519,7 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LIBC_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
+	done
   endef
 
   define Package/libpthread/install
@@ -659,8 +527,7 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LIBPTHREAD_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
+	done
   endef
 
   define Package/librt/install
@@ -668,8 +535,7 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LIBRT_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
+	done
   endef
 
   define Package/ldd/install
@@ -677,8 +543,7 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LDD_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
+	done
   endef
 
   define Package/ldconfig/install
@@ -686,8 +551,7 @@ else
 		dir=`dirname $$$$file` ; \
 		$(INSTALL_DIR) $(1)/$$$$dir ; \
 		$(CP) $(call qstrip,$(CONFIG_LDCONFIG_ROOT_DIR))/$$$$file $(1)/$$$$dir/ ; \
-	done ; \
-	exit 0
+	done
   endef
 
 endif
@@ -703,6 +567,5 @@ $(eval $(call BuildPackage,libssp))
 $(eval $(call BuildPackage,libstdcpp))
 $(eval $(call BuildPackage,libpthread))
 $(eval $(call BuildPackage,librt))
-$(eval $(call BuildPackage,libgfortran))
 $(eval $(call BuildPackage,ldd))
 $(eval $(call BuildPackage,ldconfig))

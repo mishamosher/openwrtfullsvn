@@ -1,12 +1,9 @@
-# DO NOT EDIT. This file is generated from Config.src
 #
 # For a description of the syntax of this configuration file,
 # see scripts/kbuild/config-language.txt.
 #
 
 menu "Linux Ext2 FS Progs"
-
-
 
 config BUSYBOX_CONFIG_CHATTR
 	bool "chattr"
@@ -16,7 +13,7 @@ config BUSYBOX_CONFIG_CHATTR
 
 ### config E2FSCK
 ###	bool "e2fsck"
-###	default y
+###	default n
 ###	help
 ###	  e2fsck is used to check Linux second extended file systems (ext2fs).
 ###	  e2fsck also supports ext2 filesystems countaining a journal (ext3).
@@ -34,27 +31,26 @@ config BUSYBOX_CONFIG_FSCK
 config BUSYBOX_CONFIG_LSATTR
 	bool "lsattr"
 	default n
-	select BUSYBOX_CONFIG_PLATFORM_LINUX
 	help
 	  lsattr lists the file attributes on a second extended file system.
 
 ### config MKE2FS
 ###	bool "mke2fs"
-###	default y
+###	default n
 ###	help
 ###	  mke2fs is used to create an ext2/ext3 filesystem. The normal compat
 ###	  symlinks 'mkfs.ext2' and 'mkfs.ext3' are also provided.
 
-config BUSYBOX_CONFIG_TUNE2FS
-	bool "tune2fs"
-	default n  # off: it is too limited compared to upstream version
-	help
-	  tune2fs allows the system administrator to adjust various tunable
-	  filesystem parameters on Linux ext2/ext3 filesystems.
+### config TUNE2FS
+###	bool "tune2fs"
+###	default n
+###	help
+###	  tune2fs allows the system administrator to adjust various tunable
+###	  filesystem parameters on Linux ext2/ext3 filesystems.
 
 ### config E2LABEL
 ###	bool "e2label"
-###	default y
+###	default n
 ###	depends on TUNE2FS
 ###	help
 ###	  e2label will display or change the filesystem label on the ext2
@@ -63,7 +59,7 @@ config BUSYBOX_CONFIG_TUNE2FS
 ### NB: this one is now provided by util-linux/volume_id/*
 ### config FINDFS
 ###	bool "findfs"
-###	default y
+###	default n
 ###	depends on TUNE2FS
 ###	help
 ###	  findfs will search the disks in the system looking for a filesystem

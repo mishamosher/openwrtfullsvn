@@ -73,20 +73,14 @@ endif
 ifeq ($(ARCH),i686)
   HAL_TARGET:=i386-elf
 endif
-ifeq ($(ARCH),armeb)
-  HAL_TARGET:=xscale-be-elfgnueabi
+ifeq ($(BOARD),ixp4xx)
+  HAL_TARGET:=xscale-be-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
-ifeq ($(ARCH),arm)
-  HAL_TARGET:=xscale-le-elfgnueabi
-  ifeq ($(BOARD),cns21xx)
-    HAL_TARGET:=armv4-le-elfgnueabi
-  endif
-  ifeq ($(BOARD),cns3xxx)
-    HAL_TARGET:=arm11-le-elfgnueabi
-  endif
-  ifeq ($(BOARD),gemini)
-    HAL_TARGET:=armv4-le-elfgnueabi
-  endif
+ifeq ($(BOARD),kirkwood)
+  HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
+endif
+ifeq ($(BOARD),orion)
+  HAL_TARGET:=xscale-le-elf$(if $(CONFIG_EABI_SUPPORT),gnueabi)
 endif
 ifeq ($(ARCH),powerpc)
   HAL_TARGET:=powerpc-be-elf
@@ -112,19 +106,19 @@ ifdef CONFIG_MADWIFI_RCA_SAMPLERATE
 endif
 
 ifneq ($(CONFIG_MADWIFI_SINGLE_MODULE),)
-MADWIFI_FILES:= $(PKG_BUILD_DIR)/ath_hal/ath_hal.ko
+MADWIFI_FILES:= $(PKG_BUILD_DIR)/ath_hal/ath_hal.$(LINUX_KMOD_SUFFIX)
 else
 MADWIFI_FILES:= \
-	$(PKG_BUILD_DIR)/net80211/wlan.ko \
-	$(PKG_BUILD_DIR)/net80211/wlan_scan_ap.ko \
-	$(PKG_BUILD_DIR)/net80211/wlan_scan_sta.ko \
-	$(PKG_BUILD_DIR)/ath_hal/ath_hal.ko \
-	$(PKG_BUILD_DIR)/ath_rate/$(RATE_CONTROL)/ath_rate_$(RATE_CONTROL).ko \
-	$(PKG_BUILD_DIR)/net80211/wlan_acl.ko \
-	$(PKG_BUILD_DIR)/net80211/wlan_ccmp.ko \
-	$(PKG_BUILD_DIR)/net80211/wlan_tkip.ko \
-	$(PKG_BUILD_DIR)/net80211/wlan_wep.ko \
-	$(PKG_BUILD_DIR)/net80211/wlan_xauth.ko
+	$(PKG_BUILD_DIR)/net80211/wlan.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_scan_ap.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_scan_sta.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/ath_hal/ath_hal.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/ath_rate/$(RATE_CONTROL)/ath_rate_$(RATE_CONTROL).$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_acl.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_ccmp.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_tkip.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_wep.$(LINUX_KMOD_SUFFIX) \
+	$(PKG_BUILD_DIR)/net80211/wlan_xauth.$(LINUX_KMOD_SUFFIX)
 endif
 
 ifneq ($(CONFIG_MADWIFI_SINGLE_MODULE),)
@@ -144,11 +138,11 @@ else
 endif
 
 ifeq ($(findstring AHB,$(BUS)),AHB)
-  MADWIFI_FILES+= $(PKG_BUILD_DIR)/ath/ath_ahb.ko
+  MADWIFI_FILES+= $(PKG_BUILD_DIR)/ath/ath_ahb.$(LINUX_KMOD_SUFFIX)
   MADWIFI_AUTOLOAD+= ath_ahb
 endif
 ifeq ($(findstring PCI,$(BUS)),PCI)
-  MADWIFI_FILES+= $(PKG_BUILD_DIR)/ath/ath_pci.ko
+  MADWIFI_FILES+= $(PKG_BUILD_DIR)/ath/ath_pci.$(LINUX_KMOD_SUFFIX)
   MADWIFI_AUTOLOAD+= ath_pci
 endif
 
@@ -162,7 +156,7 @@ define KernelPackage/madwifi
   TITLE:=Driver for Atheros wireless chipsets
   URL:=http://madwifi-project.org/
   MAINTAINER:=Felix Fietkau <nbd@openwrt.org>
-  DEPENDS:=+wireless-tools @PCI_SUPPORT @(!(TARGET_avr32||TARGET_cobalt||TARGET_ep93xx||TARGET_etrax||TARGET_octeon||TARGET_pxcab||TARGET_sibyte||LINUX_3_1||LINUX_3_2)||BROKEN) +@DRIVER_WEXT_SUPPORT
+  DEPENDS:=+wireless-tools @LINUX_2_6 @PCI_SUPPORT @(!(TARGET_avr32||TARGET_ep93xx)||BROKEN)
   FILES:=$(MADWIFI_FILES)
   AUTOLOAD:=$(call AutoLoad,50,$(MADWIFI_AUTOLOAD))
   MENU:=1

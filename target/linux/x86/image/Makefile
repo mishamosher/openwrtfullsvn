@@ -32,11 +32,12 @@ endif
 ROOTPART:=$(call qstrip,$(CONFIG_TARGET_ROOTFS_PARTNAME))
 
 ifneq ($(CONFIG_X86_GRUB_IMAGES),)
+ ifneq ($(HOST_OS),Darwin)
 
   BOOTOPTS:=$(call qstrip,$(CONFIG_X86_GRUB_BOOTOPTS))
 
-  define Image/cmdline/ext4
-    root=$(ROOTPART) rootfstype=ext4 rootwait
+  define Image/cmdline/ext2
+    root=$(ROOTPART) rootfstype=ext2 rootwait
   endef
   
   define Image/cmdline/jffs2-64k
@@ -82,14 +83,24 @@ ifneq ($(CONFIG_X86_GRUB_IMAGES),)
 		$(KDIR)/
   endef
 
+ else
+
+  define Image/Build/grub
+	PADDING="$(CONFIG_X86_GRUB_IMAGES_PAD)" PATH="$(TARGET_PATH)" NOGRUB=1 ./gen_image_x86.sh \
+		$(BIN_DIR)/$(IMG_PREFIX)-combined-$(1).img \
+		$(CONFIG_TARGET_KERNEL_PARTSIZE) "" \
+		$(CONFIG_TARGET_ROOTFS_PARTSIZE) $(KDIR)/root.$(1)
+  endef
+
+ endif
 endif
 
 ROOTDELAY=10
 
 ifneq ($(CONFIG_OLPC_BOOTSCRIPT_IMAGES),)
 
-  define Image/cmdline/ext4
-    root=$(ROOTPART) rootfstype=ext4 rootwait
+  define Image/cmdline/ext2
+    root=$(ROOTPART) rootfstype=ext2 rootwait
   endef
 
   define Image/cmdline/jffs2-64k
@@ -141,7 +152,7 @@ endef
 ifneq ($(CONFIG_X86_VDI_IMAGES),)
   define Image/Build/vdi
     # left here because the image builder doesnt need these
-    ifeq ($(1),ext4)
+    ifeq ($(1),ext2)
 		rm $(BIN_DIR)/$(IMG_PREFIX)-combined-$(1).vdi || true
 		qemu-img convert -f raw -O vdi \
 			$(BIN_DIR)/$(IMG_PREFIX)-combined-$(1).img \
@@ -155,7 +166,7 @@ endif
 ifneq ($(CONFIG_X86_VMDK_IMAGES),)
   define Image/Build/vmdk
     # left here because the image builder doesnt need these
-    ifeq ($(1),ext4)
+    ifeq ($(1),ext2)
 		rm $(BIN_DIR)/$(IMG_PREFIX)-combined-$(1).vmdk || true
 		qemu-img convert -f raw -O vmdk \
 			$(BIN_DIR)/$(IMG_PREFIX)-combined-$(1).img \
@@ -166,13 +177,6 @@ endif
 
 define Image/BuildKernel
 	$(CP) $(KDIR)/bzImage $(BIN_DIR)/$(IMG_PREFIX)-vmlinuz
-  ifneq ($(CONFIG_X86_ETHERBOOT_IMAGES),)
-	rm -f $(BIN_DIR)/$(IMG_PREFIX)-etherboot
-	$(STAGING_DIR_HOST)/bin/mkelfImage \
-		--append=$(CONFIG_X86_ETHERBOOT_BOOTOPTS) \
-		$(KDIR)/bzImage \
-		$(BIN_DIR)/$(IMG_PREFIX)-etherboot
-  endif
 endef
 
 define Image/Prepare
@@ -191,7 +195,7 @@ define Image/Build
   endif
 	$(CP) $(KDIR)/root.$(1) $(BIN_DIR)/$(IMG_PREFIX)-rootfs-$(1).img
 	$(CP) $(KDIR)/bzImage $(BIN_DIR)/$(IMG_PREFIX)-vmlinuz
-  ifneq (,$findstring($(1),ext4 jffs2))
+  ifeq ($(1),ext2)
 	gzip -f9 $(BIN_DIR)/$(IMG_PREFIX)-combined-$(1).img
 	gzip -f9 $(BIN_DIR)/$(IMG_PREFIX)-rootfs-$(1).img
   endif

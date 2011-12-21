@@ -1,10 +1,6 @@
----
- tc/q_fifo.c |    1 +
- 1 file changed, 1 insertion(+)
-
 --- a/tc/q_fifo.c
 +++ b/tc/q_fifo.c
-@@ -98,5 +98,6 @@ struct qdisc_util pfifo_head_drop_qdisc_
+@@ -94,5 +94,6 @@ struct qdisc_util pfifo_qdisc_util = {
  extern int prio_print_opt(struct qdisc_util *qu, FILE *f, struct rtattr *opt);
  struct qdisc_util pfifo_fast_qdisc_util = {
  	.id = "pfifo_fast",
