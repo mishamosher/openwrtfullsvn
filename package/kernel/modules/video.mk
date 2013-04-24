@@ -8,14 +8,6 @@
 
 VIDEO_MENU:=Video Support
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,3.7.0)),1)
-V4L2_DIR=v4l2-core
-V4L2_USB_DIR=usb
-else
-V4L2_DIR=video
-V4L2_USB_DIR=video
-endif
-
 
 define KernelPackage/fb
   SUBMENU:=$(VIDEO_MENU)
@@ -82,10 +74,9 @@ $(eval $(call KernelPackage,fb-cfb-imgblt))
 define KernelPackage/video-core
   SUBMENU:=$(VIDEO_MENU)
   TITLE=Video4Linux support
-  DEPENDS:=@PCI_SUPPORT||USB_SUPPORT
+  DEPENDS:=@PCI_SUPPORT||USB_SUPPORT +!TARGET_etrax:kmod-i2c-core
   KCONFIG:= \
 	CONFIG_MEDIA_SUPPORT=m \
-	CONFIG_MEDIA_CAMERA_SUPPORT=y \
 	CONFIG_VIDEO_DEV \
 	CONFIG_VIDEO_V4L1=y \
 	CONFIG_VIDEO_ALLOW_V4L1=y \
@@ -95,8 +86,8 @@ define KernelPackage/video-core
 	CONFIG_V4L_PLATFORM_DRIVERS=y \
 	CONFIG_V4L_ISA_PARPORT_DRIVERS=y
   FILES:= \
-	$(LINUX_DIR)/drivers/media/$(V4L2_DIR)/v4l2-common.ko \
-	$(LINUX_DIR)/drivers/media/$(V4L2_DIR)/videodev.ko
+	$(LINUX_DIR)/drivers/media/video/v4l2-common.ko \
+	$(LINUX_DIR)/drivers/media/video/videodev.ko
   AUTOLOAD:=$(call AutoLoad,60, videodev v4l2-common)
 endef
 
@@ -112,13 +103,6 @@ define AddDepends/video
   DEPENDS+=kmod-video-core $(1)
 endef
 
-define AddDepends/camera
-  SUBMENU:=$(VIDEO_MENU)
-  KCONFIG+=CONFIG_MEDIA_USB_SUPPORT=y \
-	 CONFIG_MEDIA_CAMERA_SUPPORT=y
-  DEPENDS+=kmod-video-core $(1)
-endef
-
 
 define KernelPackage/video-videobuf2
   TITLE:=videobuf2 lib
@@ -127,9 +111,9 @@ define KernelPackage/video-videobuf2
 	CONFIG_VIDEOBUF2_MEMOPS \
 	CONFIG_VIDEOBUF2_VMALLOC
   FILES:= \
-	$(LINUX_DIR)/drivers/media/$(V4L2_DIR)/videobuf2-core.ko \
-	$(LINUX_DIR)/drivers/media/$(V4L2_DIR)/videobuf2-memops.ko \
-	$(LINUX_DIR)/drivers/media/$(V4L2_DIR)/videobuf2-vmalloc.ko
+	$(LINUX_DIR)/drivers/media/video/videobuf2-core.ko \
+	$(LINUX_DIR)/drivers/media/video/videobuf2-memops.ko \
+	$(LINUX_DIR)/drivers/media/video/videobuf2-vmalloc.ko
   AUTOLOAD:=$(call AutoLoad,65,videobuf2-core videobuf2-memops videobuf2-vmalloc)
   $(call AddDepends/video)
 endef
@@ -145,9 +129,9 @@ define KernelPackage/video-cpia2
   TITLE:=CPIA2 video driver
   DEPENDS:=@USB_SUPPORT +kmod-usb-core
   KCONFIG:=CONFIG_VIDEO_CPIA2
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/cpia2/cpia2.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/cpia2/cpia2.ko
   AUTOLOAD:=$(call AutoLoad,70,cpia2)
-  $(call AddDepends/camera)
+  $(call AddDepends/video)
 endef
 
 define KernelPackage/video-cpia2/description
@@ -161,9 +145,9 @@ define KernelPackage/video-sn9c102
   TITLE:=SN9C102 Camera Chip support
   DEPENDS:=@USB_SUPPORT +kmod-usb-core
   KCONFIG:=CONFIG_USB_SN9C102
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/sn9c102/sn9c102.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/sn9c102/sn9c102.ko
   AUTOLOAD:=$(call AutoLoad,70,gspca_sn9c20x)
-  $(call AddDepends/camera)
+  $(call AddDepends/video)
 endef
 
 
@@ -177,13 +161,13 @@ $(eval $(call KernelPackage,video-sn9c102))
 
 define KernelPackage/video-pwc
   TITLE:=Philips USB webcam support
-  DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-video-videobuf2
+  DEPENDS:=@USB_SUPPORT +kmod-usb-core +!LINUX_2_6_39:kmod-video-videobuf2
   KCONFIG:= \
 	CONFIG_USB_PWC \
 	CONFIG_USB_PWC_DEBUG=n
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/pwc/pwc.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/pwc/pwc.ko
   AUTOLOAD:=$(call AutoLoad,70,pwc)
-  $(call AddDepends/camera)
+  $(call AddDepends/video)
 endef
 
 
@@ -197,9 +181,9 @@ define KernelPackage/video-uvc
   TITLE:=USB Video Class (UVC) support
   DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-video-videobuf2
   KCONFIG:= CONFIG_USB_VIDEO_CLASS
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/uvc/uvcvideo.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/uvc/uvcvideo.ko
   AUTOLOAD:=$(call AutoLoad,90,uvcvideo)
-  $(call AddDepends/camera)
+  $(call AddDepends/video)
   $(call AddDepends/input)
 endef
 
@@ -216,9 +200,9 @@ define KernelPackage/video-gspca-core
   TITLE:=GSPCA webcam core support framework
   DEPENDS:=@USB_SUPPORT +kmod-usb-core +kmod-input-core
   KCONFIG:=CONFIG_USB_GSPCA
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_main.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_main.ko
   AUTOLOAD:=$(call AutoLoad,70,gspca_main)
-  $(call AddDepends/camera)
+  $(call AddDepends/video)
 endef
 
 define KernelPackage/video-gspca-core/description
@@ -229,7 +213,7 @@ endef
 $(eval $(call KernelPackage,video-gspca-core))
 
 
-define AddDepends/camera-gspca
+define AddDepends/video-gspca
   SUBMENU:=$(VIDEO_MENU)
   DEPENDS+=kmod-video-gspca-core $(1)
 endef
@@ -238,9 +222,9 @@ endef
 define KernelPackage/video-gspca-conex
   TITLE:=conex webcam support
   KCONFIG:=CONFIG_USB_GSPCA_CONEX
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_conex.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_conex.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_conex)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-conex/description
@@ -253,9 +237,9 @@ $(eval $(call KernelPackage,video-gspca-conex))
 define KernelPackage/video-gspca-etoms
   TITLE:=etoms webcam support
   KCONFIG:=CONFIG_USB_GSPCA_ETOMS
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_etoms.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_etoms.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_etoms)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-etoms/description
@@ -268,9 +252,9 @@ $(eval $(call KernelPackage,video-gspca-etoms))
 define KernelPackage/video-gspca-finepix
   TITLE:=finepix webcam support
   KCONFIG:=CONFIG_USB_GSPCA_FINEPIX
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_finepix.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_finepix.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_finepix)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-finepix/description
@@ -283,9 +267,9 @@ $(eval $(call KernelPackage,video-gspca-finepix))
 define KernelPackage/video-gspca-mars
   TITLE:=mars webcam support
   KCONFIG:=CONFIG_USB_GSPCA_MARS
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_mars.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_mars.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_mars)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-mars/description
@@ -298,9 +282,9 @@ $(eval $(call KernelPackage,video-gspca-mars))
 define KernelPackage/video-gspca-mr97310a
   TITLE:=mr97310a webcam support
   KCONFIG:=CONFIG_USB_GSPCA_MR97310A
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_mr97310a.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_mr97310a.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_mr97310a)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-mr97310a/description
@@ -313,9 +297,9 @@ $(eval $(call KernelPackage,video-gspca-mr97310a))
 define KernelPackage/video-gspca-ov519
   TITLE:=ov519 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_OV519
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_ov519.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_ov519.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_ov519)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-ov519/description
@@ -328,9 +312,9 @@ $(eval $(call KernelPackage,video-gspca-ov519))
 define KernelPackage/video-gspca-ov534
   TITLE:=ov534 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_OV534
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_ov534.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_ov534.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_ov534)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-ov534/description
@@ -343,9 +327,9 @@ $(eval $(call KernelPackage,video-gspca-ov534))
 define KernelPackage/video-gspca-ov534-9
   TITLE:=ov534-9 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_OV534_9
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_ov534_9.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_ov534_9.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_ov534_9)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-ov534-9/description
@@ -358,9 +342,9 @@ $(eval $(call KernelPackage,video-gspca-ov534-9))
 define KernelPackage/video-gspca-pac207
   TITLE:=pac207 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_PAC207
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_pac207.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_pac207.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_pac207)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-pac207/description
@@ -373,9 +357,9 @@ $(eval $(call KernelPackage,video-gspca-pac207))
 define KernelPackage/video-gspca-pac7311
   TITLE:=pac7311 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_PAC7311
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_pac7311.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_pac7311.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_pac7311)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-pac7311/description
@@ -388,9 +372,9 @@ $(eval $(call KernelPackage,video-gspca-pac7311))
 define KernelPackage/video-gspca-se401
   TITLE:=se401 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SE401
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_se401.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_se401.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_se401)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-se401/description
@@ -403,9 +387,9 @@ $(eval $(call KernelPackage,video-gspca-se401))
 define KernelPackage/video-gspca-sn9c20x
   TITLE:=sn9c20x webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SN9C20X
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_sn9c20x.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_sn9c20x.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_sn9c20x)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-sn9c20x/description
@@ -418,9 +402,9 @@ $(eval $(call KernelPackage,video-gspca-sn9c20x))
 define KernelPackage/video-gspca-sonixb
   TITLE:=sonixb webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SONIXB
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_sonixb.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_sonixb.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_sonixb)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-sonixb/description
@@ -433,9 +417,9 @@ $(eval $(call KernelPackage,video-gspca-sonixb))
 define KernelPackage/video-gspca-sonixj
   TITLE:=sonixj webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SONIXJ
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_sonixj.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_sonixj.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_sonixj)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-sonixj/description
@@ -448,9 +432,9 @@ $(eval $(call KernelPackage,video-gspca-sonixj))
 define KernelPackage/video-gspca-spca500
   TITLE:=spca500 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SPCA500
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_spca500.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_spca500.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_spca500)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-spca500/description
@@ -463,9 +447,9 @@ $(eval $(call KernelPackage,video-gspca-spca500))
 define KernelPackage/video-gspca-spca501
   TITLE:=spca501 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SPCA501
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_spca501.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_spca501.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_spca501)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-spca501/description
@@ -478,9 +462,9 @@ $(eval $(call KernelPackage,video-gspca-spca501))
 define KernelPackage/video-gspca-spca505
   TITLE:=spca505 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SPCA505
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_spca505.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_spca505.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_spca505)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-spca505/description
@@ -493,9 +477,9 @@ $(eval $(call KernelPackage,video-gspca-spca505))
 define KernelPackage/video-gspca-spca506
   TITLE:=spca506 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SPCA506
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_spca506.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_spca506.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_spca506)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-spca506/description
@@ -508,9 +492,9 @@ $(eval $(call KernelPackage,video-gspca-spca506))
 define KernelPackage/video-gspca-spca508
   TITLE:=spca508 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SPCA508
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_spca508.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_spca508.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_spca508)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-spca508/description
@@ -523,9 +507,9 @@ $(eval $(call KernelPackage,video-gspca-spca508))
 define KernelPackage/video-gspca-spca561
   TITLE:=spca561 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SPCA561
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_spca561.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_spca561.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_spca561)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-spca561/description
@@ -538,9 +522,9 @@ $(eval $(call KernelPackage,video-gspca-spca561))
 define KernelPackage/video-gspca-sq905
   TITLE:=sq905 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SQ905
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_sq905.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_sq905.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_sq905)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-sq905/description
@@ -553,9 +537,9 @@ $(eval $(call KernelPackage,video-gspca-sq905))
 define KernelPackage/video-gspca-sq905c
   TITLE:=sq905c webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SQ905C
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_sq905c.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_sq905c.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_sq905c)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-sq905c/description
@@ -568,9 +552,9 @@ $(eval $(call KernelPackage,video-gspca-sq905c))
 define KernelPackage/video-gspca-stk014
   TITLE:=stk014 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_STK014
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_stk014.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_stk014.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_stk014)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-stk014/description
@@ -583,9 +567,9 @@ $(eval $(call KernelPackage,video-gspca-stk014))
 define KernelPackage/video-gspca-sunplus
   TITLE:=sunplus webcam support
   KCONFIG:=CONFIG_USB_GSPCA_SUNPLUS
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_sunplus.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_sunplus.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_sunplus)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-sunplus/description
@@ -598,9 +582,9 @@ $(eval $(call KernelPackage,video-gspca-sunplus))
 define KernelPackage/video-gspca-t613
   TITLE:=t613 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_T613
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_t613.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_t613.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_t613)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-t613/description
@@ -613,9 +597,9 @@ $(eval $(call KernelPackage,video-gspca-t613))
 define KernelPackage/video-gspca-tv8532
   TITLE:=tv8532 webcam support
   KCONFIG:=CONFIG_USB_GSPCA_TV8532
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_tv8532.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_tv8532.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_tv8532)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-tv8532/description
@@ -628,9 +612,9 @@ $(eval $(call KernelPackage,video-gspca-tv8532))
 define KernelPackage/video-gspca-vc032x
   TITLE:=vc032x webcam support
   KCONFIG:=CONFIG_USB_GSPCA_VC032X
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_vc032x.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_vc032x.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_vc032x)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-vc032x/description
@@ -643,9 +627,9 @@ $(eval $(call KernelPackage,video-gspca-vc032x))
 define KernelPackage/video-gspca-zc3xx
   TITLE:=zc3xx webcam support
   KCONFIG:=CONFIG_USB_GSPCA_ZC3XX
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_zc3xx.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_zc3xx.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_zc3xx)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-zc3xx/description
@@ -658,9 +642,9 @@ $(eval $(call KernelPackage,video-gspca-zc3xx))
 define KernelPackage/video-gspca-m5602
   TITLE:=m5602 webcam support
   KCONFIG:=CONFIG_USB_M5602
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/m5602/gspca_m5602.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/m5602/gspca_m5602.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_m5602)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-m5602/description
@@ -673,9 +657,9 @@ $(eval $(call KernelPackage,video-gspca-m5602))
 define KernelPackage/video-gspca-stv06xx
   TITLE:=stv06xx webcam support
   KCONFIG:=CONFIG_USB_STV06XX
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/stv06xx/gspca_stv06xx.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/stv06xx/gspca_stv06xx.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_stv06xx)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-stv06xx/description
@@ -688,9 +672,9 @@ $(eval $(call KernelPackage,video-gspca-stv06xx))
 define KernelPackage/video-gspca-gl860
   TITLE:=gl860 webcam support
   KCONFIG:=CONFIG_USB_GL860
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gl860/gspca_gl860.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gl860/gspca_gl860.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_gl860)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-gl800/description
@@ -703,9 +687,9 @@ $(eval $(call KernelPackage,video-gspca-gl860))
 define KernelPackage/video-gspca-jeilinj
   TITLE:=jeilinj webcam support
   KCONFIG:=CONFIG_USB_GSPCA_JEILINJ
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_jeilinj.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_jeilinj.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_jeilinj)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-jeilinj/description
@@ -718,9 +702,9 @@ $(eval $(call KernelPackage,video-gspca-jeilinj))
 define KernelPackage/video-gspca-konica
   TITLE:=konica webcam support
   KCONFIG:=CONFIG_USB_GSPCA_KONICA
-  FILES:=$(LINUX_DIR)/drivers/media/$(V4L2_USB_DIR)/gspca/gspca_konica.ko
+  FILES:=$(LINUX_DIR)/drivers/media/video/gspca/gspca_konica.ko
   AUTOLOAD:=$(call AutoLoad,75,gspca_konica)
-  $(call AddDepends/camera-gspca)
+  $(call AddDepends/video-gspca)
 endef
 
 define KernelPackage/video-gspca-konica/description

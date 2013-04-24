@@ -10,9 +10,7 @@
 extern "C" {
 #endif
 
-#include <assert.h>
 #include <stdio.h>
-#include "list.h"
 #ifndef __cplusplus
 #include <stdbool.h>
 #endif
@@ -20,16 +18,21 @@ extern "C" {
 struct file {
 	struct file *next;
 	struct file *parent;
-	const char *name;
+	char *name;
 	int lineno;
+	int flags;
 };
+
+#define FILE_BUSY		0x0001
+#define FILE_SCANNED		0x0002
+#define FILE_PRINTED		0x0004
 
 typedef enum tristate {
 	no, mod, yes
 } tristate;
 
 enum expr_type {
-	E_NONE, E_OR, E_AND, E_NOT, E_EQUAL, E_UNEQUAL, E_LIST, E_SYMBOL, E_RANGE
+	E_NONE, E_OR, E_AND, E_NOT, E_EQUAL, E_UNEQUAL, E_CHOICE, E_SYMBOL, E_RANGE
 };
 
 union expr_data {
@@ -42,12 +45,9 @@ struct expr {
 	union expr_data left, right;
 };
 
-#define EXPR_OR(dep1, dep2)	(((dep1)>(dep2))?(dep1):(dep2))
-#define EXPR_AND(dep1, dep2)	(((dep1)<(dep2))?(dep1):(dep2))
-#define EXPR_NOT(dep)		(2-(dep))
-
-#define expr_list_for_each_sym(l, e, s) \
-	for (e = (l); e && (s = e->right.sym); e = e->left.expr)
+#define E_OR(dep1, dep2)	(((dep1)>(dep2))?(dep1):(dep2))
+#define E_AND(dep1, dep2)	(((dep1)<(dep2))?(dep1):(dep2))
+#define E_NOT(dep)		(2-(dep))
 
 struct expr_value {
 	struct expr *expr;
@@ -63,89 +63,56 @@ enum symbol_type {
 	S_UNKNOWN, S_BOOLEAN, S_TRISTATE, S_INT, S_HEX, S_STRING, S_OTHER
 };
 
-/* enum values are used as index to symbol.def[] */
-enum {
-	S_DEF_USER,		/* main user value */
-	S_DEF_AUTO,		/* values read from auto.conf */
-	S_DEF_DEF3,		/* Reserved for UI usage */
-	S_DEF_DEF4,		/* Reserved for UI usage */
-	S_DEF_COUNT
-};
-
 struct symbol {
 	struct symbol *next;
 	char *name;
+	char *help;
 	enum symbol_type type;
-	struct symbol_value curr;
-	struct symbol_value def[S_DEF_COUNT];
+	struct symbol_value curr, user;
 	tristate visible;
 	int flags;
 	struct property *prop;
-	struct expr_value dir_dep;
+	struct expr *dep, *dep2;
 	struct expr_value rev_dep;
+	struct expr_value rev_dep_inv;
 };
 
 #define for_all_symbols(i, sym) for (i = 0; i < SYMBOL_HASHSIZE; i++) for (sym = symbol_hash[i]; sym; sym = sym->next) if (sym->type != S_OTHER)
 
-#define SYMBOL_CONST      0x0001  /* symbol is const */
-#define SYMBOL_CHECK      0x0008  /* used during dependency checking */
-#define SYMBOL_CHOICE     0x0010  /* start of a choice block (null name) */
-#define SYMBOL_CHOICEVAL  0x0020  /* used as a value in a choice block */
-#define SYMBOL_VALID      0x0080  /* set when symbol.curr is calculated */
-#define SYMBOL_OPTIONAL   0x0100  /* choice is optional - values can be 'n' */
-#define SYMBOL_WRITE      0x0200  /* ? */
-#define SYMBOL_CHANGED    0x0400  /* ? */
-#define SYMBOL_AUTO       0x1000  /* value from environment variable */
-#define SYMBOL_CHECKED    0x2000  /* used during dependency checking */
-#define SYMBOL_WARNED     0x8000  /* warning has been issued */
-
-/* Set when symbol.def[] is used */
-#define SYMBOL_DEF        0x10000  /* First bit of SYMBOL_DEF */
-#define SYMBOL_DEF_USER   0x10000  /* symbol.def[S_DEF_USER] is valid */
-#define SYMBOL_DEF_AUTO   0x20000  /* symbol.def[S_DEF_AUTO] is valid */
-#define SYMBOL_DEF3       0x40000  /* symbol.def[S_DEF_3] is valid */
-#define SYMBOL_DEF4       0x80000  /* symbol.def[S_DEF_4] is valid */
+#define SYMBOL_YES		0x0001
+#define SYMBOL_MOD		0x0002
+#define SYMBOL_NO		0x0004
+#define SYMBOL_CONST		0x0007
+#define SYMBOL_CHECK		0x0008
+#define SYMBOL_CHOICE		0x0010
+#define SYMBOL_CHOICEVAL	0x0020
+#define SYMBOL_PRINTED		0x0040
+#define SYMBOL_VALID		0x0080
+#define SYMBOL_OPTIONAL		0x0100
+#define SYMBOL_WRITE		0x0200
+#define SYMBOL_CHANGED		0x0400
+#define SYMBOL_NEW		0x0800
+#define SYMBOL_AUTO		0x1000
+#define SYMBOL_CHECKED		0x2000
+#define SYMBOL_WARNED		0x8000
 
 #define SYMBOL_MAXLENGTH	256
-#define SYMBOL_HASHSIZE		9973
+#define SYMBOL_HASHSIZE		257
 
-/* A property represent the config options that can be associated
- * with a config "symbol".
- * Sample:
- * config FOO
- *         default y
- *         prompt "foo prompt"
- *         select BAR
- * config BAZ
- *         int "BAZ Value"
- *         range 1..255
- */
 enum prop_type {
-	P_UNKNOWN,
-	P_PROMPT,   /* prompt "foo prompt" or "BAZ Value" */
-	P_COMMENT,  /* text associated with a comment */
-	P_MENU,     /* prompt associated with a menuconfig option */
-	P_DEFAULT,  /* default y */
-	P_CHOICE,   /* choice value */
-	P_SELECT,   /* select BAR */
-	P_RANGE,    /* range 7..100 (for a symbol) */
-	P_ENV,      /* value from environment variable */
-	P_SYMBOL,   /* where a symbol is defined */
-	P_RESET,	/* reset to defaults condition */
+	P_UNKNOWN, P_PROMPT, P_COMMENT, P_MENU, P_DEFAULT, P_CHOICE, P_DESELECT, P_SELECT, P_RANGE, P_RESET
 };
 
 struct property {
-	struct property *next;     /* next property - null if last */
-	struct symbol *sym;        /* the symbol for which the property is associated */
-	enum prop_type type;       /* type of property */
-	const char *text;          /* the prompt value - P_PROMPT, P_MENU, P_COMMENT */
+	struct property *next;
+	struct symbol *sym;
+	enum prop_type type;
+	const char *text;
 	struct expr_value visible;
-	struct expr *expr;         /* the optional conditional part of the property */
-	struct menu *menu;         /* the menu the property are associated with
-	                            * valid for: P_SELECT, P_RANGE, P_CHOICE,
-	                            * P_PROMPT, P_DEFAULT, P_MENU, P_COMMENT */
-	struct file *file;         /* what file was this property defined */
-	int lineno;                /* what lineno was this property defined */
+	struct expr *expr;
+	struct menu *menu;
+	struct file *file;
+	int lineno;
 };
 
 #define for_all_properties(sym, st, tok) \
@@ -163,10 +130,9 @@ struct menu {
 	struct menu *list;
 	struct symbol *sym;
 	struct property *prompt;
-	struct expr *visibility;
 	struct expr *dep;
 	unsigned int flags;
-	char *help;
+	//char *help;
 	struct file *file;
 	int lineno;
 	void *data;
@@ -175,14 +141,7 @@ struct menu {
 #define MENU_CHANGED		0x0001
 #define MENU_ROOT		0x0002
 
-struct jump_key {
-	struct list_head entries;
-	size_t offset;
-	struct menu *target;
-	int index;
-};
-
-#define JUMP_NB			9
+#ifndef SWIG
 
 extern struct file *file_list;
 extern struct file *current_file;
@@ -190,7 +149,6 @@ struct file *lookup_file(const char *name);
 
 extern struct symbol symbol_yes, symbol_no, symbol_mod;
 extern struct symbol *modules_sym;
-extern struct symbol *sym_defconfig_list;
 extern int cdebug;
 struct expr *expr_alloc_symbol(struct symbol *sym);
 struct expr *expr_alloc_one(enum expr_type type, struct expr *ce);
@@ -198,7 +156,7 @@ struct expr *expr_alloc_two(enum expr_type type, struct expr *e1, struct expr *e
 struct expr *expr_alloc_comp(enum expr_type type, struct symbol *s1, struct symbol *s2);
 struct expr *expr_alloc_and(struct expr *e1, struct expr *e2);
 struct expr *expr_alloc_or(struct expr *e1, struct expr *e2);
-struct expr *expr_copy(const struct expr *org);
+struct expr *expr_copy(struct expr *org);
 void expr_free(struct expr *e);
 int expr_eq(struct expr *e1, struct expr *e2);
 void expr_eliminate_eq(struct expr **ep1, struct expr **ep2);
@@ -213,7 +171,6 @@ struct expr *expr_extract_eq_and(struct expr **ep1, struct expr **ep2);
 struct expr *expr_extract_eq_or(struct expr **ep1, struct expr **ep2);
 void expr_extract_eq(enum expr_type type, struct expr **ep, struct expr **ep1, struct expr **ep2);
 struct expr *expr_trans_compare(struct expr *e, enum expr_type type, struct symbol *sym);
-struct expr *expr_simplify_unmet_dep(struct expr *e1, struct expr *e2);
 
 void expr_fprint(struct expr *e, FILE *out);
 struct gstr; /* forward */
@@ -228,6 +185,7 @@ static inline int expr_is_no(struct expr *e)
 {
 	return e && (e->type == E_SYMBOL && e->left.sym == &symbol_no);
 }
+#endif
 
 #ifdef __cplusplus
 }

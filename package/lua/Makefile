@@ -1,5 +1,5 @@
 # 
-# Copyright (C) 2006-2012 OpenWrt.org
+# Copyright (C) 2006-2011 OpenWrt.org
 #
 # This is free software, licensed under the GNU General Public License v2.
 # See /LICENSE for more information.
@@ -8,19 +8,15 @@
 include $(TOPDIR)/rules.mk
 
 PKG_NAME:=lua
-PKG_VERSION:=5.1.5
-PKG_RELEASE:=1
+PKG_VERSION:=5.1.4
+PKG_RELEASE:=8
 
 PKG_SOURCE:=$(PKG_NAME)-$(PKG_VERSION).tar.gz
 PKG_SOURCE_URL:=http://www.lua.org/ftp/ \
 	http://ftp.gwdg.de/pub/languages/lua/ \
 	http://mirrors.dotsrc.org/lua/ \
 	http://www.tecgraf.puc-rio.br/lua/ftp/
-PKG_MD5SUM:=2e115fe26e435e33b0d5c022e4490567
-PKG_BUILD_PARALLEL:=1
-
-PKG_LICENSE:=MIT
-PKG_LICENSE_FILES:=COPYRIGHT
+PKG_MD5SUM:=d0870f2de55d59c1c8419f36e8fac150
 
 HOST_PATCH_DIR := ./patches-host
 
@@ -33,7 +29,6 @@ define Package/lua/Default
   CATEGORY:=Languages
   TITLE:=Lua programming language
   URL:=http://www.lua.org/
-  MAINTAINER:=Jo-Philipp Wich <jow@openwrt.org>
 endef
 
 define Package/lua/Default/description
@@ -100,7 +95,7 @@ ifneq ($(CONFIG_USE_EGLIBC),)
 endif
 
 define Build/Compile
-	$(MAKE) $(PKG_JOBS) -C $(PKG_BUILD_DIR) \
+	$(MAKE) -C $(PKG_BUILD_DIR) \
 		CC="$(TARGET_CROSS)gcc" \
 		AR="$(TARGET_CROSS)ar rcu" \
 		RANLIB="$(TARGET_CROSS)ranlib" \

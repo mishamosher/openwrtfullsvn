@@ -22,7 +22,6 @@ struct ar934x_nfc_platform_data {
 	struct mtd_partition *parts;
 	int nr_parts;
 
-	bool swap_dma;
 	void (*hw_reset)(bool active);
 	void (*select_chip)(int chip_no);
 	int (*scan_fixup)(struct mtd_info *mtd);

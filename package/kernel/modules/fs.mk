@@ -10,7 +10,7 @@ FS_MENU:=Filesystems
 define KernelPackage/fs-autofs4
   SUBMENU:=$(FS_MENU)
   TITLE:=AUTOFS4 filesystem support
-  KCONFIG:=CONFIG_AUTOFS4_FS
+  KCONFIG:=CONFIG_AUTOFS4_FS 
   FILES:=$(LINUX_DIR)/fs/autofs4/autofs4.ko
   AUTOLOAD:=$(call AutoLoad,30,autofs4)
 endef
@@ -58,8 +58,7 @@ define KernelPackage/fs-cifs
     +kmod-crypto-md5 \
     +kmod-crypto-md4 \
     +kmod-crypto-des \
-    +kmod-crypto-ecb \
-    +!LINUX_3_3&&!LINUX_3_6:kmod-crypto-sha256
+    +kmod-crypto-ecb
 endef
 
 define KernelPackage/fs-cifs/description
@@ -67,22 +66,6 @@ define KernelPackage/fs-cifs/description
 endef
 
 $(eval $(call KernelPackage,fs-cifs))
-
-
-define KernelPackage/fs-configfs
-  SUBMENU:=$(FS_MENU)
-  TITLE:=Configuration filesystem support
-  KCONFIG:= \
-	CONFIG_CONFIGFS_FS
-  FILES:=$(LINUX_DIR)/fs/configfs/configfs.ko
-  AUTOLOAD:=$(call AutoLoad,30,configfs)
-endef
-
-define KernelPackage/fs-configfs/description
- Kernel module for configfs support
-endef
-
-$(eval $(call KernelPackage,fs-configfs))
 
 
 define KernelPackage/fs-exportfs
@@ -111,7 +94,7 @@ define KernelPackage/fs-ext4
 	$(LINUX_DIR)/fs/jbd2/jbd2.ko \
 	$(LINUX_DIR)/fs/mbcache.ko
   AUTOLOAD:=$(call AutoLoad,30,mbcache jbd2 ext4,1)
-  $(call AddDepends/crc16, +!LINUX_3_3:kmod-crypto-hash)
+  $(call AddDepends/crc16)
 endef
 
 define KernelPackage/fs-ext4/description
@@ -138,7 +121,7 @@ $(eval $(call KernelPackage,fuse))
 
 define KernelPackage/fs-hfs
   SUBMENU:=$(FS_MENU)
-  TITLE:=HFS filesystem support
+  TITLE:=HFS+ filesystem support
   KCONFIG:=CONFIG_HFS_FS
   FILES:=$(LINUX_DIR)/fs/hfs/hfs.ko
   AUTOLOAD:=$(call AutoLoad,30,hfs)

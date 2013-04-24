@@ -11,9 +11,7 @@
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/init.h>
-#include <linux/device.h>
-#include <linux/of.h>
-#include <linux/of_platform.h>
+#include <linux/platform_device.h>
 #include <linux/delay.h>
 #include <linux/skbuff.h>
 #include <linux/rtl8367.h>
@@ -862,51 +860,6 @@ static int rtl8367b_extif_init(struct rtl8366_smi *smi, int id,
 	return 0;
 }
 
-#ifdef CONFIG_OF
-static int rtl8367b_extif_init_of(struct rtl8366_smi *smi, int id,
-				  const char *name)
-{
-	struct rtl8367_extif_config *cfg;
-	const __be32 *prop;
-	int size;
-	int err;
-
-	prop = of_get_property(smi->parent->of_node, name, &size);
-	if (!prop)
-		return rtl8367b_extif_init(smi, id, NULL);
-
-	if (size != (9 * sizeof(*prop))) {
-		dev_err(smi->parent, "%s property is invalid\n", name);
-		return -EINVAL;
-	}
-
-	cfg = kzalloc(sizeof(struct rtl8367_extif_config), GFP_KERNEL);
-	if (!cfg)
-		return -ENOMEM;
-
-	cfg->txdelay = be32_to_cpup(prop++);
-	cfg->rxdelay = be32_to_cpup(prop++);
-	cfg->mode = be32_to_cpup(prop++);
-	cfg->ability.force_mode = be32_to_cpup(prop++);
-	cfg->ability.txpause = be32_to_cpup(prop++);
-	cfg->ability.rxpause = be32_to_cpup(prop++);
-	cfg->ability.link = be32_to_cpup(prop++);
-	cfg->ability.duplex = be32_to_cpup(prop++);
-	cfg->ability.speed = be32_to_cpup(prop++);
-
-	err = rtl8367b_extif_init(smi, id, cfg);
-	kfree(cfg);
-
-	return err;
-}
-#else
-static int rtl8367b_extif_init_of(struct rtl8366_smi *smi, int id,
-				  const char *name)
-{
-	return -EINVAL;
-}
-#endif
-
 static int rtl8367b_setup(struct rtl8366_smi *smi)
 {
 	struct rtl8367_platform_data *pdata;
@@ -920,23 +873,13 @@ static int rtl8367b_setup(struct rtl8366_smi *smi)
 		return err;
 
 	/* initialize external interfaces */
-	if (smi->parent->of_node) {
-		err = rtl8367b_extif_init_of(smi, 0, "realtek,extif0");
-		if (err)
-			return err;
+	err = rtl8367b_extif_init(smi, 0, pdata->extif0_cfg);
+	if (err)
+		return err;
 
-		err = rtl8367b_extif_init_of(smi, 1, "realtek,extif1");
-		if (err)
-			return err;
-	} else {
-		err = rtl8367b_extif_init(smi, 0, pdata->extif0_cfg);
-		if (err)
-			return err;
-
-		err = rtl8367b_extif_init(smi, 1, pdata->extif1_cfg);
-		if (err)
-			return err;
-	}
+	err = rtl8367b_extif_init(smi, 1, pdata->extif1_cfg);
+	if (err)
+		return err;
 
 	/* set maximum packet length to 1536 bytes */
 	REG_RMW(smi, RTL8367B_SWC0_REG, RTL8367B_SWC0_MAX_LENGTH_MASK,
@@ -1437,7 +1380,7 @@ static int rtl8367b_mii_write(struct mii_bus *bus, int addr, int reg, u16 val)
 	return err;
 }
 
-static int rtl8367b_detect(struct rtl8366_smi *smi)
+static int __devinit rtl8367b_detect(struct rtl8366_smi *smi)
 {
 	const char *chip_name;
 	u32 chip_num;
@@ -1510,15 +1453,27 @@ static struct rtl8366_smi_ops rtl8367b_smi_ops = {
 	.enable_port	= rtl8367b_enable_port,
 };
 
-static int  rtl8367b_probe(struct platform_device *pdev)
+static int __devinit rtl8367b_probe(struct platform_device *pdev)
 {
+	struct rtl8367_platform_data *pdata;
 	struct rtl8366_smi *smi;
 	int err;
 
-	smi = rtl8366_smi_probe(pdev);
-	if (!smi)
-		return -ENODEV;
+	pdata = pdev->dev.platform_data;
+	if (!pdata) {
+		dev_err(&pdev->dev, "no platform data specified\n");
+		err = -EINVAL;
+		goto err_out;
+	}
 
+	smi = rtl8366_smi_alloc(&pdev->dev);
+	if (!smi) {
+		err = -ENOMEM;
+		goto err_out;
+	}
+
+	smi->gpio_sda = pdata->gpio_sda;
+	smi->gpio_sck = pdata->gpio_sck;
 	smi->clk_delay = 1500;
 	smi->cmd_read = 0xb9;
 	smi->cmd_write = 0xb8;
@@ -1546,10 +1501,11 @@ static int  rtl8367b_probe(struct platform_device *pdev)
 	rtl8366_smi_cleanup(smi);
  err_free_smi:
 	kfree(smi);
+ err_out:
 	return err;
 }
 
-static int rtl8367b_remove(struct platform_device *pdev)
+static int __devexit rtl8367b_remove(struct platform_device *pdev)
 {
 	struct rtl8366_smi *smi = platform_get_drvdata(pdev);
 
@@ -1571,25 +1527,13 @@ static void rtl8367b_shutdown(struct platform_device *pdev)
 		rtl8367b_reset_chip(smi);
 }
 
-#ifdef CONFIG_OF
-static const struct of_device_id rtl8367b_match[] = {
-	{ .compatible = "realtek,rtl8367b" },
-	{ .compatible = "rtl8367b" },
-	{},
-};
-MODULE_DEVICE_TABLE(of, rtl8367b_match);
-#endif
-
 static struct platform_driver rtl8367b_driver = {
 	.driver = {
 		.name		= RTL8367B_DRIVER_NAME,
 		.owner		= THIS_MODULE,
-#ifdef CONFIG_OF
-		.of_match_table = of_match_ptr(rtl8367b_match),
-#endif
 	},
 	.probe		= rtl8367b_probe,
-	.remove		= rtl8367b_remove,
+	.remove		= __devexit_p(rtl8367b_remove),
 	.shutdown	= rtl8367b_shutdown,
 };
 

@@ -6,7 +6,7 @@
 # Licence GPL V2
 # Author david.goodenough@linkchoose.co.uk
 # Based on cf2nand from RB532 support
-. /lib/functions.sh
+. /etc/functions.sh
 
 [ -d /tmp/wget2nand ] && {
 	echo "/tmp/wget2nand already exists"

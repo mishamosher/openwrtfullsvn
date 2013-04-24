@@ -24,7 +24,7 @@ define Package/udev
   CATEGORY:=Base system
   TITLE:=Dynamic device management subsystem
   URL:=http://www.kernel.org/pub/linux/utils/kernel/hotplug/udev.html
-  MAINTAINER:=Geoff Levand <geoff@infradead.org>
+  MAINTAINER:=Geoff Levand <geoffrey.levand@am.sony.com>
   MENU:=1
   DEPENDS:=+librt
 endef

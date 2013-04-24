@@ -3,7 +3,7 @@ source "tmp/.config-target.in"
 # Kernel/Hardware features
 
 config HAS_SPE_FPU
-	depends on powerpc
+	depends powerpc
 	select HAS_FPU
 	bool
 
@@ -66,13 +66,6 @@ config PROFILE_KCONFIG
 config NOMMU
 	bool
 
-config HAS_MIPS16
-	depends on (mips || mipsel || mips64 || mips64el)
-	bool
-
-config ARCH_64BIT
-	bool
-
 # Architecture selection
 
 config arm
@@ -107,11 +100,9 @@ config mipsel
 
 config mips64
 	select BIG_ENDIAN
-	select ARCH_64BIT
 	bool
 
 config mips64el
-	select ARCH_64BIT
 	bool
 
 config powerpc
@@ -120,7 +111,6 @@ config powerpc
 
 config powerpc64
 	select BIG_ENDIAN
-	select ARCH_64BIT
 	bool
 
 config sh3
@@ -141,8 +131,11 @@ config sparc
 	select BIG_ENDIAN
 	bool
 
+config ubicom32
+	select BIG_ENDIAN
+	bool
+
 config x86_64
-	select ARCH_64BIT
 	bool
 
 config ARCH
@@ -164,5 +157,6 @@ config ARCH
 	default "sh4"       if sh4
 	default "sh4eb"     if sh4eb
 	default "sparc"     if sparc
+	default "ubicom32"  if ubicom32
 	default "x86_64"    if x86_64
 

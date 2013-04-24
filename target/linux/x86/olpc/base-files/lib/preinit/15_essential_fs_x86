@@ -3,5 +3,7 @@
 # Copyright (C) 2010 Vertical Communications
 
 do_mount_procfs() {
-	mount -o noatime -t proc none /proc
+	mount -t proc none /proc
 }
+
+

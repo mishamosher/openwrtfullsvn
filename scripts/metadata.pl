@@ -153,7 +153,7 @@ sub target_config_features(@) {
 	my $ret;
 
 	while ($_ = shift @_) {
-		/broken/ and $ret .= "\tdepends on BROKEN\n";
+		/broken/ and $ret .= "\tdepends BROKEN\n";
 		/audio/ and $ret .= "\tselect AUDIO_SUPPORT\n";
 		/display/ and $ret .= "\tselect DISPLAY_SUPPORT\n";
 		/gpio/ and $ret .= "\tselect GPIO_SUPPORT\n";
@@ -174,7 +174,6 @@ sub target_config_features(@) {
 		/ramdisk/ and $ret .= "\tselect USES_INITRAMFS\n";
 		/powerpc64/ and $ret .= "\tselect powerpc64\n";
 		/nommu/ and $ret .= "\tselect NOMMU\n";
-		/mips16/ and $ret .= "\tselect HAS_MIPS16\n";
 	}
 	return $ret;
 }
@@ -230,11 +229,10 @@ config TARGET_$target->{conf}
 EOF
 	}
 	if ($target->{subtarget}) {
-		$confstr .= "\tdepends on TARGET_$target->{boardconf}\n";
+		$confstr .= "\tdepends TARGET_$target->{boardconf}\n";
 	}
 	if (@{$target->{subtargets}} > 0) {
 		$confstr .= "\tselect HAS_SUBTARGETS\n";
-		grep { /broken/ } @{$target->{features}} and $confstr .= "\tdepends on BROKEN\n";
 	} else {
 		$confstr .= $features;
 	}
@@ -243,7 +241,7 @@ EOF
 		$confstr .= "\tselect $target->{arch}\n";
 	}
 	foreach my $dep (@{$target->{depends}}) {
-		my $mode = "depends on";
+		my $mode = "depends";
 		my $flags;
 		my $name;
 
@@ -317,7 +315,7 @@ EOF
 			print <<EOF;
 config TARGET_$target->{conf}_$profile->{id}
 	bool "$profile->{name}"
-	depends on TARGET_$target->{conf}
+	depends TARGET_$target->{conf}
 $profile->{config}
 EOF
 			$profile->{kconfig} and print "\tselect PROFILE_KCONFIG\n";
@@ -443,7 +441,7 @@ sub mconf_depends {
 	$depends or return;
 	my @depends = @$depends;
 	foreach my $depend (@depends) {
-		my $m = "depends on";
+		my $m = "depends";
 		my $flags = "";
 		$depend =~ s/^([@\+]+)// and $flags = $1;
 		my $vdep;
@@ -602,7 +600,7 @@ sub gen_package_config() {
 			print <<EOF
 	config UCI_PRECONFIG_$conf
 		string "$preconfig{$preconfig}->{$cfg}->{label}" if IMAGEOPT
-		depends on PACKAGE_$preconfig
+		depends PACKAGE_$preconfig
 		default "$preconfig{$preconfig}->{$cfg}->{default}"
 
 EOF

@@ -21,7 +21,7 @@ define Package/Default
   MDEPENDS:=
   PROVIDES:=
   EXTRA_DEPENDS:=
-  MAINTAINER:=$(PKG_MAINTAINER)
+  MAINTAINER:=OpenWrt Developers Team <openwrt-devel@openwrt.org>
   SOURCE:=$(patsubst $(TOPDIR)/%,%,$(CURDIR))
   ifneq ($(PKG_VERSION),)
     ifneq ($(PKG_RELEASE),)
@@ -42,6 +42,7 @@ define Package/Default
   else
     PKGARCH:=$(BOARD)
   endif
+  PRIORITY:=optional
   DEFAULT:=
   MENU:=
   SUBMENU:=

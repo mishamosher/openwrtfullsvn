@@ -21,8 +21,8 @@ install_bin() { # <file> [ <symlink> ... ]
 	files=$1
 	[ -x "$src" ] && files="$src $(libs $src)"
 	install_file $files
-	[ -e /lib/ld.so.1 ] && {
-		install_file /lib/ld.so.1
+	[ -e /lib/ld-linux.so.3 ] && {
+		install_file /lib/ld-linux.so.3
 	}
 	shift
 	for link in "$@"; do {
@@ -33,19 +33,19 @@ install_bin() { # <file> [ <symlink> ... ]
 	}; done
 }
 
-supivot() { # <new_root> <old_root>
+pivot() { # <new_root> <old_root>
 	mount | grep "on $1 type" 2>&- 1>&- || mount -o bind $1 $1
 	mkdir -p $1$2 $1/proc $1/sys $1/dev $1/tmp $1/overlay && \
-	mount -o noatime,move /proc $1/proc && \
+	mount -o move /proc $1/proc && \
 	pivot_root $1 $1$2 || {
-        umount -l $1 $1
+        umount $1 $1
 		return 1
 	}
 
-	mount -o noatime,move $2/sys /sys
-	mount -o noatime,move $2/dev /dev
-	mount -o noatime,move $2/tmp /tmp
-	mount -o noatime,move $2/overlay /overlay 2>&-
+	mount -o move $2/sys /sys
+	mount -o move $2/dev /dev
+	mount -o move $2/tmp /tmp
+	mount -o move $2/overlay /overlay 2>&-
 	return 0
 }
 
@@ -62,7 +62,7 @@ run_ramfs() { # <command> [...]
 	done
 	install_file /etc/resolv.conf /lib/functions.sh /lib/functions.sh /lib/upgrade/*.sh $RAMFS_COPY_DATA
 
-	supivot $RAM_ROOT /mnt || {
+	pivot $RAM_ROOT /mnt || {
 		echo "Failed to switch over to ramfs. Please reboot."
 		exit 1
 	}
@@ -71,7 +71,7 @@ run_ramfs() { # <command> [...]
 	umount -l /mnt
 
 	grep /overlay /proc/mounts > /dev/null && {
-		mount -o noatime,remount,ro /overlay
+		mount -o remount,ro /overlay
 		umount -l /overlay
 	}
 
@@ -99,7 +99,7 @@ kill_remaining() { # [ <signal> ]
 
 		case "$name" in
 			# Skip essential services
-			*procd*|*ash*|*init*|*watchdog*|*ssh*|*dropbear*|*telnet*|*login*|*hostapd*|*wpa_supplicant*) : ;;
+			*ash*|*init*|*watchdog*|*ssh*|*dropbear*|*telnet*|*login*|*hostapd*|*wpa_supplicant*) : ;;
 
 			# Killable process
 			*)

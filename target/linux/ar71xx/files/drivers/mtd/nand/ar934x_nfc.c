@@ -174,7 +174,6 @@ struct ar934x_nfc {
 	struct device *parent;
 	void __iomem *base;
 	void (*select_chip)(int chip_no);
-	bool swap_dma;
 	int irq;
 	wait_queue_head_t irq_waitq;
 
@@ -190,8 +189,6 @@ struct ar934x_nfc {
 	dma_addr_t buf_dma;
 	unsigned int buf_size;
 	int buf_index;
-
-	bool read_id;
 
 	int erase1_page_addr;
 
@@ -594,10 +591,7 @@ ar934x_nfc_read_status(struct ar934x_nfc *nfc)
 	nfc_dbg(nfc, "read status, cmd:%08x status:%02x\n",
 		cmd_reg, (status & 0xff));
 
-	if (nfc->swap_dma)
-		nfc->buf[0 ^ 3] = status;
-	else
-		nfc->buf[0] = status;
+	nfc->buf[0 ^ 3] = status;
 }
 
 static void
@@ -606,7 +600,6 @@ ar934x_nfc_cmdfunc(struct mtd_info *mtd, unsigned int command, int column,
 {
 	struct ar934x_nfc *nfc = mtd_to_ar934x_nfc(mtd);
 
-	nfc->read_id = false;
 	if (command != NAND_CMD_PAGEPROG)
 		nfc->buf_index = 0;
 
@@ -616,7 +609,6 @@ ar934x_nfc_cmdfunc(struct mtd_info *mtd, unsigned int command, int column,
 		break;
 
 	case NAND_CMD_READID:
-		nfc->read_id = true;
 		ar934x_nfc_send_readid(nfc, command);
 		break;
 
@@ -725,15 +717,13 @@ static u8
 ar934x_nfc_read_byte(struct mtd_info *mtd)
 {
 	struct ar934x_nfc *nfc = mtd_to_ar934x_nfc(mtd);
+	unsigned int buf_index;
 	u8 data;
 
 	WARN_ON(nfc->buf_index >= nfc->buf_size);
 
-	if (nfc->swap_dma || nfc->read_id)
-		data = nfc->buf[nfc->buf_index ^ 3];
-	else
-		data = nfc->buf[nfc->buf_index];
-
+	buf_index = nfc->buf_index ^ 3;
+	data = nfc->buf[buf_index];
 	nfc->buf_index++;
 
 	return data;
@@ -747,16 +737,9 @@ ar934x_nfc_write_buf(struct mtd_info *mtd, const u8 *buf, int len)
 
 	WARN_ON(nfc->buf_index + len > nfc->buf_size);
 
-	if (nfc->swap_dma) {
-		for (i = 0; i < len; i++) {
-			nfc->buf[nfc->buf_index ^ 3] = buf[i];
-			nfc->buf_index++;
-		}
-	} else {
-		for (i = 0; i < len; i++) {
-			nfc->buf[nfc->buf_index] = buf[i];
-			nfc->buf_index++;
-		}
+	for (i = 0; i < len; i++) {
+		nfc->buf[nfc->buf_index ^ 3] = buf[i];
+		nfc->buf_index++;
 	}
 }
 
@@ -771,19 +754,24 @@ ar934x_nfc_read_buf(struct mtd_info *mtd, u8 *buf, int len)
 
 	buf_index = nfc->buf_index;
 
-	if (nfc->swap_dma || nfc->read_id) {
-		for (i = 0; i < len; i++) {
-			buf[i] = nfc->buf[buf_index ^ 3];
-			buf_index++;
-		}
-	} else {
-		for (i = 0; i < len; i++) {
-			buf[i] = nfc->buf[buf_index];
-			buf_index++;
-		}
+	for (i = 0; i < len; i++) {
+		buf[i] = nfc->buf[buf_index ^ 3];
+		buf_index++;
 	}
 
 	nfc->buf_index = buf_index;
+}
+
+static int
+ar934x_nfc_verify_buf(struct mtd_info *mtd, const u_char *buf, int len)
+{
+	int i;
+
+	for (i = 0; i < len; i++)
+		if (buf[i] != ar934x_nfc_read_byte(mtd))
+			return -EFAULT;
+
+	return 0;
 }
 
 static void
@@ -872,7 +860,7 @@ ar934x_nfc_irq_handler(int irq, void *data)
 	return IRQ_HANDLED;
 }
 
-static int
+static int __devinit
 ar934x_nfc_init_tail(struct mtd_info *mtd)
 {
 	struct ar934x_nfc *nfc = mtd_to_ar934x_nfc(mtd);
@@ -998,7 +986,7 @@ ar934x_nfc_init_tail(struct mtd_info *mtd)
 	return err;
 }
 
-static int
+static int __devinit
 ar934x_nfc_probe(struct platform_device *pdev)
 {
 	static const char *part_probes[] = { "cmdlinepart", NULL, };
@@ -1052,7 +1040,6 @@ ar934x_nfc_probe(struct platform_device *pdev)
 
 	nfc->parent = &pdev->dev;
 	nfc->select_chip = pdata->select_chip;
-	nfc->swap_dma = pdata->swap_dma;
 
 	nand = &nfc->nand_chip;
 	mtd = &nfc->mtd;
@@ -1064,6 +1051,7 @@ ar934x_nfc_probe(struct platform_device *pdev)
 	else
 		mtd->name = dev_name(&pdev->dev);
 
+	nand->options = NAND_NO_AUTOINCR;
 	nand->chip_delay = 25;
 	nand->ecc.mode = NAND_ECC_SOFT;
 
@@ -1072,6 +1060,7 @@ ar934x_nfc_probe(struct platform_device *pdev)
 	nand->read_byte = ar934x_nfc_read_byte;
 	nand->write_buf = ar934x_nfc_write_buf;
 	nand->read_buf = ar934x_nfc_read_buf;
+	nand->verify_buf = ar934x_nfc_verify_buf;
 	nand->select_chip = ar934x_nfc_select_chip;
 
 	ret = ar934x_nfc_alloc_buf(nfc, AR934X_NFC_ID_BUF_SIZE);
@@ -1128,7 +1117,7 @@ err_free_nand:
 	return ret;
 }
 
-static int
+static int __devexit
 ar934x_nfc_remove(struct platform_device *pdev)
 {
 	struct ar934x_nfc *nfc;
@@ -1147,7 +1136,7 @@ ar934x_nfc_remove(struct platform_device *pdev)
 
 static struct platform_driver ar934x_nfc_driver = {
 	.probe		= ar934x_nfc_probe,
-	.remove		= ar934x_nfc_remove,
+	.remove		= __devexit_p(ar934x_nfc_remove),
 	.driver = {
 		.name	= AR934X_NFC_DRIVER_NAME,
 		.owner	= THIS_MODULE,

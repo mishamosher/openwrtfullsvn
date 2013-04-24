@@ -1,4 +1,4 @@
-. /lib/functions.sh
+. /etc/functions.sh
 do_button () {
 	local button
 	local action

@@ -13,6 +13,7 @@ PKG_BUILD_DIR ?= $(BUILD_DIR)/$(PKG_NAME)$(if $(PKG_VERSION),-$(PKG_VERSION))
 PKG_INSTALL_DIR ?= $(PKG_BUILD_DIR)/ipkg-install
 PKG_MD5SUM ?= unknown
 PKG_BUILD_PARALLEL ?=
+PKG_INFO_DIR := $(STAGING_DIR)/pkginfo
 
 ifneq ($(CONFIG_PKG_BUILD_USE_JOBSERVER),)
   MAKE_J:=$(if $(MAKE_JOBSERVER),$(MAKE_JOBSERVER) -j)
@@ -50,9 +51,6 @@ ifneq ($(if $(CONFIG_SRC_TREE_OVERRIDE),$(wildcard ./git-src)),)
   USE_GIT_TREE:=1
   QUILT:=1
 endif
-
-PKG_DIR_NAME:=$(lastword $(subst /,$(space),$(CURDIR)))
-PKG_INSTALL_STAMP:=$(PKG_INFO_DIR)/$(PKG_DIR_NAME).$(if $(BUILD_VARIANT),$(BUILD_VARIANT),default).install
 
 include $(INCLUDE_DIR)/download.mk
 include $(INCLUDE_DIR)/quilt.mk
@@ -215,7 +213,7 @@ define Package/$(1)/description
 endef
 endif
 
-  $(foreach FIELD, TITLE CATEGORY SECTION VERSION,
+  $(foreach FIELD, TITLE CATEGORY PRIORITY SECTION VERSION,
     ifeq ($($(FIELD)),)
       $$(error Package/$(1) is missing the $(FIELD) field)
     endif
@@ -252,12 +250,6 @@ Build/DistCheck=$(call Build/DistCheck/Default,)
 
 .NOTPARALLEL:
 
-.PHONY: prepare-package-install
-prepare-package-install:
-	@mkdir -p $(PKG_INFO_DIR)
-	@touch $(PKG_INSTALL_STAMP).clean
-	@echo "$(filter-out essential,$(PKG_FLAGS))" > $(PKG_INSTALL_STAMP).flags
-
 $(PACKAGE_DIR):
 	mkdir -p $@
 	
@@ -265,8 +257,8 @@ dumpinfo:
 download:
 prepare:
 configure:
-compile: prepare-package-install
-install: compile
+compile:
+install:
 clean-staging: FORCE
 	rm -f $(STAMP_INSTALLED)
 	@-(\

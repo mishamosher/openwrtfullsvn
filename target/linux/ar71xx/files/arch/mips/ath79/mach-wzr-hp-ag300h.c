@@ -210,4 +210,5 @@ static void __init wzrhpag300h_setup(void)
 }
 
 MIPS_MACHINE(ATH79_MACH_WZR_HP_AG300H, "WZR-HP-AG300H",
-	     "Buffalo WZR-HP-AG300H/WZR-600DHP", wzrhpag300h_setup);
+	     "Buffalo WZR-HP-AG300H", wzrhpag300h_setup);
+

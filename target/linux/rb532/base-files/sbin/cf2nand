@@ -1,5 +1,5 @@
 #!/bin/sh
-. /lib/functions.sh
+. /etc/functions.sh
 
 copy_kernel() {
 	local input="$1"

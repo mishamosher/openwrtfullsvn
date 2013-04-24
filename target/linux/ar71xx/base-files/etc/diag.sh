@@ -1,8 +1,32 @@
 #!/bin/sh
-# Copyright (C) 2009-2013 OpenWrt.org
+#
+# Copyright (C) 2009 OpenWrt.org
+#
+#
 
-. /lib/functions/leds.sh
 . /lib/ar71xx.sh
+
+status_led=""
+
+led_set_attr() {
+	[ -f "/sys/class/leds/$1/$2" ] && echo "$3" > "/sys/class/leds/$1/$2"
+}
+
+status_led_set_timer() {
+	led_set_attr $status_led "trigger" "timer"
+	led_set_attr $status_led "delay_on" "$1"
+	led_set_attr $status_led "delay_off" "$2"
+}
+
+status_led_on() {
+	led_set_attr $status_led "trigger" "none"
+	led_set_attr $status_led "brightness" 255
+}
+
+status_led_off() {
+	led_set_attr $status_led "trigger" "none"
+	led_set_attr $status_led "brightness" 0
+}
 
 get_status_led() {
 	case $(ar71xx_board_name) in
@@ -12,15 +36,8 @@ get_status_led() {
 	all0305)
 		status_led="eap7660d:green:ds4"
 		;;
-	ap132)
-		status_led="ap132:green:status"
-		;;
-	ap136-010|\
-	ap136-020)
+	ap136)
 		status_led="ap136:green:status"
-		;;
-	ap135-020)
-		status_led="ap135:green:status"
 		;;
 	ap81)
 		status_led="ap81:green:status"
@@ -50,11 +67,7 @@ get_status_led() {
 	dir-615-c1)
 		status_led="d-link:green:status"
 		;;
-	dir-825-b1 |\
-	dir-835-a1)
-		status_led="d-link:orange:power"
-		;;
-	dir-825-c1)
+	dir-825-b1)
 		status_led="d-link:orange:power"
 		;;
 	eap7660d)
@@ -72,9 +85,6 @@ get_status_led() {
 		;;
 	mr600)
 		status_led="mr600:orange:power"
-		;;
-	mr600v2)
-		status_led="mr600:blue:power"
 		;;
 	mzk-w04nu | \
 	mzk-w300nh)
@@ -116,12 +126,9 @@ get_status_led() {
 		status_led="tp-link:green:wps"
 		;;
 	tl-mr3220 | \
-	tl-mr3220-v2 | \
 	tl-mr3420 | \
-	tl-mr3420-v2 | \
 	tl-wa901nd | \
 	tl-wa901nd-v2 | \
-	tl-wdr3500 | \
 	tl-wr1041n-v2 | \
 	tl-wr1043nd | \
 	tl-wr741nd | \
@@ -142,9 +149,6 @@ get_status_led() {
 	unifi)
 		status_led="ubnt:green:dome"
 		;;
-	uap-pro)
-		status_led="ubnt:white:dome"
-		;;
 	whr-g301n | \
 	whr-hp-g300n | \
 	whr-hp-gn | \
@@ -161,9 +165,6 @@ get_status_led() {
 	wndr3700)
 		status_led="wndr3700:green:power"
 		;;
-	wndr4300)
-		status_led="netgear:green:power"
-		;;
 	wnr2000)
 		status_led="wnr2000:green:power"
 		;;
@@ -179,7 +180,7 @@ get_status_led() {
 	zcn-1523h-2 | zcn-1523h-5)
 		status_led="zcn-1523h:amber:init"
 		;;
-	esac
+	esac;
 }
 
 set_state() {
@@ -187,13 +188,13 @@ set_state() {
 
 	case "$1" in
 	preinit)
-		insmod leds-gpio 2> /dev/null
-		insmod ledtrig-default-on 2> /dev/null
-		insmod ledtrig-timer 2> /dev/null
-		status_led_blink_preinit
+		insmod leds-gpio
+		insmod ledtrig-default-on
+		insmod ledtrig-timer
+		status_led_set_timer 200 200
 		;;
 	failsafe)
-		status_led_blink_failsafe
+		status_led_set_timer 50 50
 		;;
 	done)
 		status_led_on

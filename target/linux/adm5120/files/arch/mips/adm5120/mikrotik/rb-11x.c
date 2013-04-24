@@ -27,6 +27,7 @@ static void __init rb11x_setup(void)
 	rb1xx_add_device_nand();
 
 	adm5120_add_device_switch(1, rb11x_vlans);
+	adm5120_add_device_gpio(0);
 	adm5120_add_device_gpio_leds(ARRAY_SIZE(rb11x_gpio_leds),
 					rb11x_gpio_leds);
 }

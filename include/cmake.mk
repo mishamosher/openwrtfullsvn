@@ -4,8 +4,6 @@ ifneq ($(findstring c,$(OPENWRT_VERBOSE)),)
   MAKE_FLAGS+=VERBOSE=1
 endif
 
-CMAKE_SOURCE_DIR:=.
-
 ifeq ($(CONFIG_CCACHE),)
  ifeq ($(CONFIG_EXTERNAL_TOOLCHAIN),)
   CMAKE_C_COMPILER:=$(TOOLCHAIN_DIR)/bin/$(TARGET_CC)
@@ -55,9 +53,8 @@ define Build/Configure/Default
 			-DCMAKE_STRIP=: \
 			-DCMAKE_INSTALL_PREFIX=/usr \
 			-DDL_LIBRARY=$(STAGING_DIR) \
-                        -DCMAKE_PREFIX_PATH=$(STAGING_DIR) \
 			$(CMAKE_OPTIONS) \
-		$(CMAKE_SOURCE_DIR) \
+		. \
 	)
 endef
 

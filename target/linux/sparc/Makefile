@@ -9,9 +9,9 @@ include $(TOPDIR)/rules.mk
 ARCH:=sparc
 BOARD:=sparc
 BOARDNAME:=Sun UltraSPARC
-FEATURES+=fpu tgz jffs2 ext4 squashfs
+FEATURES+=fpu tgz broken
 
-LINUX_VERSION:=3.6.11
+LINUX_VERSION:=2.6.36.4
 MAINTAINER:=Imre Kaloz <kaloz@openwrt.org>
 
 include $(INCLUDE_DIR)/target.mk

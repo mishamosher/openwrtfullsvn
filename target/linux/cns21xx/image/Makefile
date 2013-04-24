@@ -66,9 +66,9 @@ endef
 
 define Image/Build/Generic
 	if [ `stat -c%s "$(KDIR)/$(call zimage_name,$(2))"` -gt 1048576 ]; then \
-		echo "Warning: $(KDIR)/$(call zimage_name,$(2)) is too big" >&2; \
+		echo "Warning: $(KDIR)/$(call zimage_name,$(2)) is too big"; \
 	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt $(3) ]; then \
-		echo "Warning: of=$(BIN_DIR)/$(IMG_PREFIX)-root.$(1) is too big" >&2; \
+		echo "Warning: of=$(BIN_DIR)/$(IMG_PREFIX)-root.$(1) is too big"; \
 	else \
 		cat $(KDIR)/root.$(1) > $(call rootfsname,$(1),$(2)); \
 		( \
@@ -80,9 +80,9 @@ endef
 
 define Image/Build/uImage
 	if [ `stat -c%s "$(KDIR)/$(call uimage_name,$(2))"` -gt 1048576 ]; then \
-		echo "Warning: $(KDIR)/$(call uimage_name,$(2)) is too big" >&2; \
+		echo "Warning: $(KDIR)/$(call uimage_name,$(2)) is too big"; \
 	else if [ `stat -c%s $(KDIR)/root.$(1)` -gt $(3) ]; then \
-		echo "Warning: of=$(BIN_DIR)/$(IMG_PREFIX)-root.$(1) is too big" >&2; \
+		echo "Warning: of=$(BIN_DIR)/$(IMG_PREFIX)-root.$(1) is too big"; \
 	else \
 		cat $(KDIR)/root.$(1) > $(call rootfsname,$(1),$(2)); \
 		( \

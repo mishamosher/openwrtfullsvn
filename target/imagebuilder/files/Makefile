@@ -134,7 +134,15 @@ package_install: FORCE
 copy_files: FORCE
 	@echo
 	@echo Copying extra files
-	@$(call file_copy,$(USER_FILES)/*,$(TARGET_DIR)/)
+	@( cd $(USER_FILES); find -type f ) | \
+		( cd $(TARGET_DIR); while :; do \
+			read FILE; \
+			[ -z "$$FILE" ] && break; \
+			[ -L "$$FILE" ] || continue; \
+			echo "Removing symlink $(TARGET_DIR)/$$FILE"; \
+			rm -f "$$FILE"; \
+		done; )
+	$(CP) $(USER_FILES)/* $(TARGET_DIR)/
 
 package_postinst: FORCE
 	@echo

@@ -88,6 +88,7 @@ static struct ssb_driver wl_glue_ssb_driver = {
 #ifdef CONFIG_BCMA
 static int wl_glue_bcma_probe(struct bcma_device *dev)
 {
+	void *mmio;
 	void *wldev;
 
 	if (!attach_cb)
@@ -108,7 +109,8 @@ static int wl_glue_bcma_probe(struct bcma_device *dev)
 	 * 0x1000     = BCMA_CORE_SIZE
 	 */
 
-	wldev = attach_cb(dev->id.manuf, dev->id.id, (ulong)dev->addr, dev, dev->irq);
+	mmio = (void *) 0x18000000 + dev->core_index * 0x1000;
+	wldev = attach_cb(dev->id.manuf, dev->id.id, (ulong)mmio, dev, dev->irq);
 
 	if (!wldev)
 	{

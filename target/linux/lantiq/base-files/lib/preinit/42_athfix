@@ -1,6 +1,6 @@
 #!/bin/sh
 
-. /lib/functions/lantiq.sh
+. /lib/lantiq.sh
 
 init_atheeprom() {
 	local board=$(lantiq_board_name)

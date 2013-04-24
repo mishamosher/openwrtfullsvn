@@ -5,23 +5,16 @@
 preinit_set_mac_address() {
 	local mac
 
-	. /lib/functions.sh
 	. /lib/ramips.sh
 
 	case $(ramips_board_name) in
 	3g-6200n |\
-	3g-6200nl |\
-	3g300m | \
-	w150m | \
-	mzk-w300nh2 |\
 	wl-330n |\
 	wl-330n3g)
-		mac=$(mtd_get_mac_binary factory 4)
+		mac=$(ramips_get_mac_binary factory 4)
 		ifconfig eth0 hw ether $mac 2>/dev/null
 		;;
 	bc2 |\
-	broadway |\
-	d105 |\
 	dir-620-a1 |\
 	esr-9753 |\
 	freestation5 |\
@@ -29,23 +22,23 @@ preinit_set_mac_address() {
 	psr-680w |\
 	rt-n56u |\
 	sl-r7205)
-		mac=$(mtd_get_mac_binary factory 4)
-		mac=$(macaddr_setbit_la "$mac")
+		mac=$(ramips_get_mac_binary factory 4)
+		mac=$(maccalc or "$mac" "02:00:00:00:00:00")
 		ifconfig eth0 hw ether $mac 2>/dev/null
 		;;
 	dir-300-b1 |\
 	dir-300-b2 |\
 	dir-600-b1)
-                mac=$(mtd_get_mac_binary devdata 16388)
+                mac=$(ramips_get_mac_binary devdata 16388)
                 ifconfig eth0 hw ether $mac 2>/dev/null
                 ;;
 	dir-645)
-		mac=$(mtd_get_mac_ascii nvram lanmac)
-		mac=$(macaddr_setbit_la "$mac")
+		mac=$(ramips_get_mac_nvram nvram lanmac)
+		mac=$(maccalc or "$mac" "02:00:00:00:00:00")
 		ifconfig eth0 hw ether $mac 2>/dev/null
 		;;
 	dap-1350)
-		mac=$(mtd_get_mac_binary devdata 46)
+		mac=$(ramips_get_mac_binary devdata 46)
 		ifconfig eth0 hw ether $mac 2>/dev/null
                 ;;
 	all0239-3g |\
@@ -54,27 +47,24 @@ preinit_set_mac_address() {
 	carambola |\
 	dir-615-h1 |\
 	fonera20n |\
-	rt-n13u |\
 	hw550-3g |\
 	nbg-419n |\
 	omni-emb |\
-	omni-emb-hpm |\
 	tew-691gr |\
 	tew-692gr |\
 	w306r-v20 |\
 	w502u    |\
 	wr6202 |\
-	wnce2001 |\
 	xdxrn502j)
-		mac=$(mtd_get_mac_binary factory 40)
+		mac=$(ramips_get_mac_binary factory 40)
 		ifconfig eth0 hw ether $mac 2>/dev/null
 		;;
 	wl341v3)
-		mac=$(mtd_get_mac_binary board-nvram 65440)
+		mac=$(ramips_get_mac_binary board-nvram 65440)
 		ifconfig eth0 hw ether $mac 2>/dev/null
 		;;
 	rt-n10-plus)
-		mac=$(mtd_get_mac_binary devconf 4)
+		mac=$(ramips_get_mac_binary devconf 4)
 		ifconfig eth0 hw ether $mac 2>/dev/null
 		;;
 	esac

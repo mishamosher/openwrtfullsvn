@@ -14,7 +14,7 @@ ifeq ($(DUMP),)
       else
         compile: $(1)-disabled
         $(1)-disabled:
-		@echo "WARNING: skipping $(1) -- package not selected" >&2
+		@echo "WARNING: skipping $(1) -- package not selected"
       endif
     endif
     endif

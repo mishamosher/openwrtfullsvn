@@ -136,7 +136,7 @@ static void rb4xx_nand_read_buf(struct mtd_info *mtd, unsigned char *buf,
 		pr_err("rb4xx_nand: read buf failed, err=%d\n", err);
 }
 
-static int rb4xx_nand_probe(struct platform_device *pdev)
+static int __devinit rb4xx_nand_probe(struct platform_device *pdev)
 {
 	struct rb4xx_nand_info	*info;
 	int ret;
@@ -215,9 +215,13 @@ static int rb4xx_nand_probe(struct platform_device *pdev)
 	info->chip.read_byte	= rb4xx_nand_read_byte;
 	info->chip.write_buf	= rb4xx_nand_write_buf;
 	info->chip.read_buf	= rb4xx_nand_read_buf;
+#if 0
+	info->chip.verify_buf	= rb4xx_nand_verify_buf;
+#endif
 
 	info->chip.chip_delay	= 25;
 	info->chip.ecc.mode	= NAND_ECC_SOFT;
+	info->chip.options	|= NAND_NO_AUTOINCR;
 
 	platform_set_drvdata(pdev, info);
 
@@ -261,7 +265,7 @@ err:
 	return ret;
 }
 
-static int rb4xx_nand_remove(struct platform_device *pdev)
+static int __devexit rb4xx_nand_remove(struct platform_device *pdev)
 {
 	struct rb4xx_nand_info *info = platform_get_drvdata(pdev);
 
@@ -278,7 +282,7 @@ static int rb4xx_nand_remove(struct platform_device *pdev)
 
 static struct platform_driver rb4xx_nand_driver = {
 	.probe	= rb4xx_nand_probe,
-	.remove	= rb4xx_nand_remove,
+	.remove	= __devexit_p(rb4xx_nand_remove),
 	.driver	= {
 		.name	= DRV_NAME,
 		.owner	= THIS_MODULE,

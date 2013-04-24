@@ -205,7 +205,7 @@ gpio_pwm_request(struct pwm_channel *p)
 	return 0;
 }
 
-static int
+static int __devinit
 gpio_pwm_probe(struct platform_device *pdev)
 {
 	struct gpio_pwm *gp;
@@ -256,7 +256,7 @@ err_alloc:
 	return ret;
 }
 
-static int
+static int __devexit
 gpio_pwm_remove(struct platform_device *pdev)
 {
 	struct gpio_pwm *gp = platform_get_drvdata(pdev);
@@ -277,7 +277,7 @@ static struct platform_driver gpio_pwm_driver = {
 		.owner = THIS_MODULE,
 	},
 	.probe = gpio_pwm_probe,
-	.remove = gpio_pwm_remove,
+	.remove = __devexit_p(gpio_pwm_remove),
 };
 
 static int __init gpio_pwm_init(void)

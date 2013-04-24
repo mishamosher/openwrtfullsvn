@@ -11,7 +11,6 @@ define Profile/Simone
 	kmod-input-core \
 	kmod-input-evdev \
 	kmod-input-keyboard-ep93xx \
-	kmod-sound-core \
 	kmod-sound-soc-ep93xx \
 	kmod-sound-soc-ep93xx-ac97 \
 	kmod-sound-soc-ep93xx-simone

@@ -27,8 +27,6 @@
 
 #define MAX_MODEL_NAME_LEN	20
 #define MAX_SIG_LEN		30
-#define MAX_REGION_LEN		4
-#define MAX_VERSION_LEN		12
 
 struct img_hdr_struct {
 	uint32_t checksum;
@@ -53,7 +51,7 @@ perrexit(int code, char *msg)
 void
 usage()
 {
-	fprintf(stderr, "usage: %s [-p] [-m model] [-r region] [-v version] -s signature -i input -o output\n", progname);
+	fprintf(stderr, "usage: %s [-p] [-m model] -s signature -i input -o output\n", progname);
 	exit(1);
 }
 
@@ -62,11 +60,8 @@ main(int ac, char *av[])
 {
 	char model[MAX_MODEL_NAME_LEN+1];
 	char signature[MAX_SIG_LEN+1];
-	char region[MAX_REGION_LEN+1];
-	char version[MAX_VERSION_LEN+1];
 	int patchmode = 0;
 	int fixmode = 0;
-	int have_regionversion = 0;
 
 	FILE *ifile, *ofile;
 	int c;
@@ -76,13 +71,11 @@ main(int ac, char *av[])
 	progname = basename(av[0]);
 	memset(model, 0, sizeof(model));
 	memset(signature, 0, sizeof(signature));
-	memset(region, 0, sizeof(region));
-	memset(version, 0, sizeof(version));
 
 	while ( 1 ) {
 		int c;
 
-		c = getopt(ac, av, "pxm:r:v:s:i:o:");
+		c = getopt(ac, av, "pxm:s:i:o:");
 		if (c == -1)
 			break;
 
@@ -100,24 +93,6 @@ main(int ac, char *av[])
 				exit(1);
 			}
 			strcpy(model, optarg);
-			break;
-		case 'r':
-			if (strlen(optarg) > MAX_REGION_LEN) {
-				fprintf(stderr, "%s: region exceeds %d chars\n",
-					progname, MAX_REGION_LEN);
-				exit(1);
-			}
-			have_regionversion = 1;
-			strcpy(region, optarg);
-			break;
-		case 'v':
-			if (strlen(optarg) > MAX_VERSION_LEN) {
-				fprintf(stderr, "%s: version exceeds %d chars\n",
-					progname, MAX_VERSION_LEN);
-				exit(1);
-			}
-			have_regionversion = 1;
-			strcpy(version, optarg);
 			break;
 		case 's':
 			if (strlen(optarg) > MAX_SIG_LEN) {
@@ -175,10 +150,6 @@ main(int ac, char *av[])
 		imghdr.checksum = htonl(cksum);
 		imghdr.partition = 0 ; // don't care?
 		imghdr.hdr_len = sizeof(imghdr);
-		if (have_regionversion) {
-			imghdr.hdr_len += MAX_REGION_LEN;
-			imghdr.hdr_len += MAX_VERSION_LEN;
-		}
 		imghdr.flash_byte_cnt = htonl(bcnt);
 	} else {
 		if (ntohl(imghdr.checksum) != cksum) {
@@ -205,12 +176,6 @@ main(int ac, char *av[])
 
 	if (fwrite(&imghdr, sizeof(imghdr), 1, ofile) < 0)
 		perrexit(2, "fwrite header on output");
-	if (have_regionversion) {
-		if (fwrite(&region, MAX_REGION_LEN, 1, ofile) < 0)
-			perrexit(2, "fwrite header on output");
-		if (fwrite(&version, MAX_VERSION_LEN, 1, ofile) < 0)
-			perrexit(2, "fwrite header on output");
-	}
 
 	while ((c = fgetc(ifile)) != EOF) {
 		if (fputc(c, ofile) == EOF)

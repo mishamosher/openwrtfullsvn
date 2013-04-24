@@ -9,12 +9,14 @@ include $(TOPDIR)/rules.mk
 ARCH:=mipsel
 BOARD:=adm8668
 BOARDNAME:=Infineon WildPass ADM8668
-FEATURES:=squashfs usb pci
+FEATURES:=squashfs
 MAINTAINER:=Florian Fainelli <florian@openwrt.org>
 
 LINUX_VERSION:=3.3.8
 
 include $(INCLUDE_DIR)/target.mk
+DEFAULT_PACKAGES += wpad-mini kmod-rt61-pci
+# kmod-switch kmod-diag nvram
 
 define Target/Description
 	Build firmware images for Infineon WildPass (ADM8668) based routers

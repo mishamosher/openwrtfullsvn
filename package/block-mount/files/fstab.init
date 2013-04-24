@@ -85,8 +85,4 @@ stop() {
 	swapoff -a
 }
 
-restart() {
-	stop
-	sleep 1
-	start
-}
+

@@ -1,6 +1,5 @@
 /*
  * Copyright (C) 2010 Scott Nicholas <neutronscott@scottn.us>
- * Copyright (C) 2012 Florian Fainelli <florian@openwrt.org>
  *
  * This file is subject to the terms and conditions of the GNU General Public
  * License.  See the file "COPYING" in the main directory of this archive
@@ -21,38 +20,15 @@
 #include <asm/irq.h>
 #include <adm8668.h>
 
-/* interrupt controller */
-#define IRQ_STATUS_REG		0x00	/* Read */
-#define IRQ_ENABLE_REG		0x08	/* Read/Write */
-#define IRQ_DISABLE_REG		0x0C	/* Write */
-
-#define IRQ_MASK		0xffff
-
-static inline void intc_write_reg(u32 val, unsigned int reg)
-{
-	void __iomem *base = (void __iomem *)KSEG1ADDR(ADM8668_INTC_BASE);
-
-	__raw_writel(val, base + reg);
-}
-
-static inline u32 intc_read_reg(unsigned int reg)
-{
-	void __iomem *base = (void __iomem *)KSEG1ADDR(ADM8668_INTC_BASE);
-
-	return __raw_readl(base + reg);
-}
-
 static void adm8668_irq_cascade(void)
 {
-	int irq;
-	u32 intsrc;
+	int i;
+	unsigned long intsrc;
 
-	intsrc = intc_read_reg(IRQ_STATUS_REG) & IRQ_MASK;
-	if (intsrc) {
-		irq = fls(intsrc) - 1;
-		do_IRQ(irq);
-	} else
-		spurious_interrupt();
+	intsrc = ADM8668_INTC_REG(IRQ_STATUS_REG) & IRQ_MASK;
+	for (i = 0; intsrc; intsrc >>= 1, i++)
+		if (intsrc & 0x1)
+			do_IRQ(i);
 }
 
 /*
@@ -67,10 +43,8 @@ void plat_irq_dispatch(void)
 	/* timer interrupt, that we renumbered */
 	if (pending & STATUSF_IP7)
 		do_IRQ(MIPS_CPU_IRQ_BASE + 7);
-	else if (pending & STATUSF_IP2)
+	if (pending & STATUSF_IP2)
 		adm8668_irq_cascade();
-	else
-		spurious_interrupt();
 }
 
 /*
@@ -78,13 +52,33 @@ void plat_irq_dispatch(void)
  */
 static void enable_adm8668_irq(struct irq_data *d)
 {
-	intc_write_reg((1 << d->irq), IRQ_ENABLE_REG);
+	int irq = d->irq;
+
+	if ((irq < 0) || (irq > NR_IRQS))
+		return;
+
+	ADM8668_INTC_REG(IRQ_ENABLE_REG) = (1 << irq);
 }
 
 
+/*
+ * disable 8668 irq
+ */
+static void disable_adm8668_irq(struct irq_data *d)
+{
+	int irq = d->irq;
+
+	if ((irq < 0) || (irq > NR_IRQS))
+		return;
+
+	ADM8668_INTC_REG(IRQ_DISABLE_REG) = (1 << irq);
+}
+
 static void ack_adm8668_irq(struct irq_data *d)
 {
-	intc_write_reg((1 << d->irq), IRQ_DISABLE_REG);
+	int irq = d->irq;
+
+	ADM8668_INTC_REG(IRQ_DISABLE_REG) = (1 << irq);
 }
 
 /*
@@ -94,7 +88,7 @@ static void ack_adm8668_irq(struct irq_data *d)
 static struct irq_chip adm8668_irq_type = {
 	.name = "adm8668",
 	.irq_ack = ack_adm8668_irq,
-	.irq_mask = ack_adm8668_irq,
+	.irq_mask = disable_adm8668_irq,
 	.irq_unmask = enable_adm8668_irq
 };
 
@@ -105,10 +99,7 @@ static void __init init_adm8668_irqs(void)
 {
 	int i;
 
-	/* disable all interrupts for the moment */
-	intc_write_reg(IRQ_MASK, IRQ_DISABLE_REG);
-
-	for (i = 0; i <= ADM8668_IRQ_MAX; i++)
+	for (i = 0; i <= INT_LVL_MAX; i++)
 		irq_set_chip_and_handler(i, &adm8668_irq_type,
 			handle_level_irq);
 

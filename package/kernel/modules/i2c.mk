@@ -24,13 +24,10 @@ I2C_CORE_MODULES:= \
   CONFIG_I2C:drivers/i2c/i2c-core \
   CONFIG_I2C_CHARDEV:drivers/i2c/i2c-dev
 
-ifeq (CONFIG_OF,y)
-  I2C_CORE_MODULES+=CONFIG_OF_I2C:drivers/of/of_i2c
-endif
-
 define KernelPackage/i2c-core
   $(call i2c_defaults,$(I2C_CORE_MODULES),51)
   TITLE:=I2C support
+  DEPENDS:=@!TARGET_etrax
 endef
 
 define KernelPackage/i2c-core/description
@@ -104,6 +101,23 @@ endef
 
 $(eval $(call KernelPackage,i2c-gpio))
 
+
+OF_I2C_MODULES:=\
+  CONFIG_OF_I2C:drivers/of/of_i2c
+
+define KernelPackage/of-i2c
+  $(call i2c_defaults,$(OF_I2C_MODULES),58)
+  TITLE:=OpenFirmware I2C accessors
+  DEPENDS:=@TARGET_ppc40x||TARGET_ppc4xx||TARGET_mpc52xx||TARGET_mpc83xx||TARGET_mpc85xx \
+          kmod-i2c-core
+endef
+
+define KernelPackage/of-i2c/description
+ Kernel module for OpenFirmware I2C accessors.
+endef
+
+$(eval $(call KernelPackage,of-i2c))
+
 I2C_MPC_MODULES:=\
   CONFIG_I2C_MPC:drivers/i2c/busses/i2c-mpc
 
@@ -111,7 +125,7 @@ define KernelPackage/i2c-mpc
   $(call i2c_defaults,$(I2C_MPC_MODULES),59)
   TITLE:=MPC I2C accessors
   DEPENDS:=@TARGET_mpc52xx||TARGET_mpc83xx||TARGET_mpc85xx \
-          +kmod-i2c-core
+          +kmod-i2c-core +kmod-of-i2c
 endef
 
 define KernelPackage/i2c-mpc/description
@@ -126,7 +140,7 @@ I2C_IBM_IIC_MODULES:=\
 define KernelPackage/i2c-ibm-iic
   $(call i2c_defaults,$(OF_I2C_MODULES),59)
   TITLE:=IBM PPC 4xx on-chip I2C interface support
-  DEPENDS:=@TARGET_ppc40x||TARGET_ppc4xx +kmod-i2c-core
+  DEPENDS:=@TARGET_ppc40x||TARGET_ppc4xx +kmod-i2c-core +kmod-of-i2c
 endef
 
 define KernelPackage/i2c-ibm-iic/description
@@ -141,11 +155,11 @@ I2C_MV64XXX_MODULES:=\
 define KernelPackage/i2c-mv64xxx
   $(call i2c_defaults,$(I2C_MV64XXX_MODULES),59)
   TITLE:=Orion Platform I2C interface support
-  DEPENDS:=@TARGET_kirkwood||TARGET_orion||TARGET_mvebu +kmod-i2c-core
+  DEPENDS:=@TARGET_kirkwood||TARGET_orion +kmod-i2c-core
 endef
 
 define KernelPackage/i2c-mv64xxx/description
- Kernel module for I2C interface on the Kirkwood, Orion and Armada XP/370
+ Kernel module for I2C interface on the Kirkwood and Orion
  family processors.
 endef
 
@@ -183,13 +197,8 @@ endef
 
 $(eval $(call KernelPackage,i2c-mux))
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,3.6.0)),1)
-I2C_MUX_GPIO_MODULES:= \
-  CONFIG_I2C_MUX_GPIO:drivers/i2c/muxes/i2c-mux-gpio
-else
 I2C_MUX_GPIO_MODULES:= \
   CONFIG_I2C_MUX_GPIO:drivers/i2c/muxes/gpio-i2cmux
-endif
 
 define KernelPackage/i2c-mux-gpio
   $(call i2c_defaults,$(I2C_MUX_GPIO_MODULES),51)
@@ -203,12 +212,8 @@ endef
 
 $(eval $(call KernelPackage,i2c-mux-gpio))
 
-ifeq ($(strip $(call CompareKernelPatchVer,$(KERNEL_PATCHVER),ge,3.6.0)),1)
-I2C_MUX_PREFIX:=i2c-mux-
-endif
-
 I2C_MUX_PCA954x_MODULES:= \
-  CONFIG_I2C_MUX_PCA954x:drivers/i2c/muxes/$(I2C_MUX_PREFIX)pca954x
+  CONFIG_I2C_MUX_PCA954x:drivers/i2c/muxes/pca954x
 
 define KernelPackage/i2c-mux-pca954x
   $(call i2c_defaults,$(I2C_MUX_PCA954x_MODULES),51)
@@ -224,7 +229,7 @@ $(eval $(call KernelPackage,i2c-mux-pca954x))
 ## Support for pca954x seems to be in kernel since 2.6.36
 
 I2C_MUX_PCA9541_MODULES:= \
-  CONFIG_I2C_MUX_PCA9541:drivers/i2c/muxes/$(I2C_MUX_PREFIX)pca9541
+  CONFIG_I2C_MUX_PCA9541:drivers/i2c/muxes/pca9541
 
 define KernelPackage/i2c-mux-pca9541
   $(call i2c_defaults,$(I2C_MUX_PCA9541_MODULES),51)

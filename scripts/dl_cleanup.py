@@ -3,8 +3,7 @@
 # OpenWRT download directory cleanup utility.
 # Delete all but the very last version of the program tarballs.
 #
-# Copyright (C) 2010 Michael Buesch <mb@bu3sch.de>
-# Copyright (C) 2013 OpenWrt.org
+# Copyright (c) 2010 Michael Buesch <mb@bu3sch.de>
 """
 
 import sys
@@ -76,14 +75,11 @@ def parseVer_GIT(match, filepath):
 extensions = (
 	".tar.gz",
 	".tar.bz2",
-	".tar.xz",
 	".orig.tar.gz",
 	".orig.tar.bz2",
-	".orig.tar.xz",
 	".zip",
 	".tgz",
 	".tbz",
-	".txz",
 )
 
 versionRegex = (

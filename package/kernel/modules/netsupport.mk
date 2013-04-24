@@ -231,10 +231,9 @@ $(eval $(call KernelPackage,ipip))
 
 
 IPSEC-m:= \
-	$(if $(CONFIG_LINUX_3_3),,xfrm/xfrm_algo) \
+	key/af_key \
 	xfrm/xfrm_ipcomp \
 	xfrm/xfrm_user \
-	key/af_key \
 
 define KernelPackage/ipsec
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
@@ -445,22 +444,6 @@ endef
 $(eval $(call KernelPackage,gre))
 
 
-define KernelPackage/gre6
-  SUBMENU:=$(NETWORK_SUPPORT_MENU)
-  TITLE:=GRE support over IPV6
-  DEPENDS:=+kmod-ipv6 +kmod-ip6-tunnel @!LINUX_3_3 @!LINUX_3_6
-  KCONFIG:=CONFIG_IPV6_GRE
-  FILES:=$(LINUX_DIR)/net/ipv6/ip6_gre.ko
-  AUTOLOAD:=$(call AutoLoad,39,ip6_gre)
-endef
-
-define KernelPackage/gre6/description
- Generic Routing Encapsulation support over IPv6
-endef
-
-$(eval $(call KernelPackage,gre6))
-
-
 define KernelPackage/tun
   SUBMENU:=$(NETWORK_SUPPORT_MENU)
   TITLE:=Universal TUN/TAP driver
@@ -652,7 +635,6 @@ define KernelPackage/sched-core
 	CONFIG_NET_EMATCH=y \
 	CONFIG_NET_EMATCH_U32
   FILES:=$(SCHED_FILES)
-  AUTOLOAD:=$(call AutoLoad,70, $(SCHED_MODULES_CORE))
 endef
 
 define KernelPackage/sched-core/description
@@ -668,7 +650,6 @@ define KernelPackage/sched-connmark
   DEPENDS:=+kmod-sched-core +kmod-ipt-core +kmod-ipt-conntrack-extra
   KCONFIG:=CONFIG_NET_ACT_CONNMARK
   FILES:=$(LINUX_DIR)/net/sched/act_connmark.ko
-  AUTOLOAD:=$(call AutoLoad,71, act_connmark)
 endef
 $(eval $(call KernelPackage,sched-connmark))
 
@@ -680,7 +661,6 @@ define KernelPackage/sched-esfq
 	CONFIG_NET_SCH_ESFQ \
 	CONFIG_NET_SCH_ESFQ_NFCT=y
   FILES:=$(LINUX_DIR)/net/sched/sch_esfq.ko
-  AUTOLOAD:=$(call AutoLoad,72, sch_esfq)
 endef
 $(eval $(call KernelPackage,sched-esfq))
 
@@ -706,7 +686,6 @@ define KernelPackage/sched
 	CONFIG_NET_EMATCH_META \
 	CONFIG_NET_EMATCH_TEXT
   FILES:=$(SCHED_FILES_EXTRA)
-  AUTOLOAD:=$(call AutoLoad,73, $(SCHED_MODULES_EXTRA))
 endef
 
 define KernelPackage/sched/description
@@ -836,12 +815,7 @@ define KernelPackage/sctp
      CONFIG_SCTP_DBG_OBJCNT=n \
      CONFIG_SCTP_HMAC_NONE=n \
      CONFIG_SCTP_HMAC_SHA1=n \
-     CONFIG_SCTP_HMAC_MD5=y \
-     CONFIG_SCTP_COOKIE_HMAC_SHA1=n \
-     CONFIG_SCTP_COOKIE_HMAC_MD5=y \
-     CONFIG_SCTP_DEFAULT_COOKIE_HMAC_NONE=n \
-     CONFIG_SCTP_DEFAULT_COOKIE_HMAC_SHA1=n \
-     CONFIG_SCTP_DEFAULT_COOKIE_HMAC_MD5=y
+     CONFIG_SCTP_HMAC_MD5=y
   FILES:= $(LINUX_DIR)/net/sctp/sctp.ko
   AUTOLOAD:= $(call AutoLoad,32,sctp)
   DEPENDS:=+kmod-lib-crc32c +kmod-crypto-md5 +kmod-crypto-hmac

@@ -18,9 +18,9 @@ KDIR=$(KERNEL_BUILD_DIR)
 IMG_PREFIX:=openwrt-$(BOARD)$(if $(SUBTARGET),-$(SUBTARGET))
 
 ifneq ($(CONFIG_BIG_ENDIAN),)
-  JFFS2OPTS     :=  --pad --big-endian --squash-uids -v
+  JFFS2OPTS     :=  --pad --big-endian --squash -v
 else
-  JFFS2OPTS     :=  --pad --little-endian --squash-uids -v
+  JFFS2OPTS     :=  --pad --little-endian --squash -v
 endif
 
 ifeq ($(CONFIG_JFFS2_RTIME),y)
@@ -50,10 +50,7 @@ ifeq ($(CONFIG_SQUASHFS_LZMA),y)
   SQUASHFSCOMP := lzma $(LZMA_XZ_OPTIONS)
 endif
 ifeq ($(CONFIG_SQUASHFS_XZ),y)
-  ifneq ($(filter arm x86 powerpc sparc,$(LINUX_KARCH)),)
-    BCJ_FILTER:=-Xbcj $(LINUX_KARCH)
-  endif
-  SQUASHFSCOMP := xz $(LZMA_XZ_OPTIONS) $(BCJ_FILTER)
+  SQUASHFSCOMP := xz $(LZMA_XZ_OPTIONS)
 endif
 
 JFFS2_BLOCKSIZE ?= 64k 128k
@@ -101,7 +98,6 @@ else
     define Image/mkfs/ubifs
 		$(CP) ./ubinize.cfg $(KDIR)
 		$(STAGING_DIR_HOST)/bin/mkfs.ubifs $(UBIFS_OPTS) -o $(KDIR)/root.ubifs -d $(TARGET_DIR)
-		$(call Image/Build,ubifs)
 		(cd $(KDIR); \
 		$(STAGING_DIR_HOST)/bin/ubinize $(UBINIZE_OPTS) -o $(KDIR)/root.ubi ubinize.cfg)
 		$(call Image/Build,ubi)
